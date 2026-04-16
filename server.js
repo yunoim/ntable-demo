@@ -11,6 +11,7 @@ const wsRouter = require('./routes/ws');
 const adminRouter = require('./routes/admin');
 const surveyRouter = require('./routes/survey');
 const aiRouter = require('./routes/ai');
+const panelRouter = require('./routes/panel');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api', roomsRouter);
 app.use('/api', adminRouter);
 app.use('/api', surveyRouter);
 app.use('/api', aiRouter);
+app.use('/api', panelRouter);
 
 // Page routes
 app.get('/room/:code/host', (req, res) => {
@@ -49,6 +51,9 @@ app.get('/result', (req, res) => {
 });
 app.get('/create', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'create.html'));
+});
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Fallback: serve login.html for non-api routes

@@ -80,6 +80,16 @@ function init(server) {
           const msg = JSON.parse(data.toString());
           if (msg.type === 'ping') {
             ws.send(JSON.stringify({ type: 'pong' }));
+          } else if (msg.type === 'chat') {
+            const text = String(msg.message || '').slice(0, 500).trim();
+            if (!text) return;
+            broadcastToRoom(room_code, {
+              type: 'chat',
+              uuid,
+              nickname,
+              message: text,
+              ts: Date.now(),
+            });
           }
         } catch (e) {
           // ignore malformed messages

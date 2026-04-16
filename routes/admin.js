@@ -207,9 +207,126 @@ router.post('/rooms/:code/vote/mvp', async (req, res) => {
       [target_uuid, room_id]
     );
 
+    // 실시간 MVP 순위 브로드캐스트
+    const mvpRows = await pool.query(
+      `SELECT mr.uuid, mr.fi_count, u.nickname
+         FROM member_results mr
+         LEFT JOIN users u ON u.uuid = mr.uuid
+        WHERE mr.room_id = $1
+        ORDER BY mr.fi_count DESC, u.nickname ASC`,
+      [room_id]
+    );
+    broadcastToRoom(code, {
+      type: 'mvp_update',
+      mvp_list: mvpRows.rows.map(r => ({
+        uuid: r.uuid, nickname: r.nickname || '익명', fi_count: r.fi_count || 0,
+      })),
+    });
+
     res.json({ success: true });
   } catch (err) {
     console.error('mvp vote error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /api/rooms/:code/insta-reveal ──────────────────────────────────────
+// 상호 동의 후 인스타그램 공개. body: { uuid }
+// 내 매칭 상대를 match_json.pairs 에서 찾고, 양쪽 모두 instagram_revealed=true 면 상대 instagram 반환
+router.post('/rooms/:code/insta-reveal', async (req, res) => {
+  const { code } = req.params;
+  const { uuid } = req.body;
+  if (!uuid) return res.status(400).json({ error: 'uuid 필수' });
+
+  try {
+    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+    if (!roomRes.rows.length) return res.status(404).json({ error: '방 없음' });
+    const room_id = roomRes.rows[0].id;
+
+    // 내 매칭 상대 uuid 탐색 — 모든 멤버의 match_json.pairs 검사
+    const allRes = await pool.query(
+      'SELECT uuid, match_json FROM member_results WHERE room_id = $1',
+      [room_id]
+    );
+
+    // 1) 방장(호스트)이 발표한 pairs 우선 — 모든 row에 동일 pairs가 broadcast 후 저장될 수도 있으니
+    //    각 row의 match_json.pairs 를 전부 합쳐 유니크하게 본다.
+    let partnerUuid = null;
+    for (const row of allRes.rows) {
+      const pairs = row.match_json?.pairs;
+      if (!Array.isArray(pairs)) continue;
+      for (const p of pairs) {
+        if (p.a?.uuid === uuid) { partnerUuid = p.b?.uuid || null; break; }
+        if (p.b?.uuid === uuid) { partnerUuid = p.a?.uuid || null; break; }
+      }
+      if (partnerUuid) break;
+    }
+    // 2) pairs 기록이 없으면 본인의 match_json.pick 폴백 (단방향 관심 표시)
+    if (!partnerUuid) {
+      const myRow = allRes.rows.find(r => r.uuid === uuid);
+      partnerUuid = myRow?.match_json?.pick || null;
+    }
+
+    if (!partnerUuid) {
+      return res.json({ mutual: false, pending: false, partner: null });
+    }
+
+    // 내 match_json.instagram_revealed = true 기록
+    await pool.query(
+      `INSERT INTO member_results (uuid, room_id, room_code, votes_json, match_json, fi_count)
+       VALUES ($1, $2, $3, '{}', '{}', 0)
+       ON CONFLICT (uuid, room_id) DO NOTHING`,
+      [uuid, room_id, code]
+    );
+    await pool.query(
+      `UPDATE member_results
+          SET match_json = jsonb_set(COALESCE(match_json, '{}'::jsonb), '{instagram_revealed}', 'true'::jsonb)
+        WHERE uuid = $1 AND room_id = $2`,
+      [uuid, room_id]
+    );
+
+    // 상대도 공개했는지 확인
+    const partnerRow = await pool.query(
+      'SELECT match_json FROM member_results WHERE uuid = $1 AND room_id = $2',
+      [partnerUuid, room_id]
+    );
+    const partnerRevealed = !!partnerRow.rows[0]?.match_json?.instagram_revealed;
+
+    if (!partnerRevealed) {
+      return res.json({ mutual: false, pending: true, partner: { uuid: partnerUuid } });
+    }
+
+    // 상호 공개 완료 → 상대 instagram + nickname 반환
+    const partnerUser = await pool.query(
+      'SELECT nickname, instagram FROM users WHERE uuid = $1',
+      [partnerUuid]
+    );
+    const u = partnerUser.rows[0] || {};
+
+    // 내 insta도 상대에게 broadcast해줄 수 있게 WS 전송
+    const meUser = await pool.query(
+      'SELECT nickname, instagram FROM users WHERE uuid = $1',
+      [uuid]
+    );
+    broadcastToRoom(code, {
+      type: 'insta_mutual',
+      a_uuid: uuid,
+      b_uuid: partnerUuid,
+      a: { nickname: meUser.rows[0]?.nickname || '', instagram: meUser.rows[0]?.instagram || '' },
+      b: { nickname: u.nickname || '', instagram: u.instagram || '' },
+    });
+
+    return res.json({
+      mutual: true,
+      pending: false,
+      partner: {
+        uuid: partnerUuid,
+        nickname: u.nickname || '',
+        instagram: u.instagram || '',
+      },
+    });
+  } catch (err) {
+    console.error('insta-reveal error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -355,6 +472,18 @@ router.post('/rooms/:code/match', async (req, res) => {
     const mvp = sorted[0] ? { uuid: sorted[0].uuid, nickname: userMap[sorted[0].uuid]?.nickname, fi_count: sorted[0].fi_count } : null;
 
     const match_json = { pairs, mvp };
+
+    // 각 멤버의 match_json에 pairs/mvp 저장 — insta-reveal 등 후속 조회용
+    // 기존 pick 값은 유지하면서 pairs/mvp 키만 병합
+    for (const m of members) {
+      await pool.query(
+        `UPDATE member_results
+            SET match_json = COALESCE(match_json, '{}'::jsonb)
+                              || jsonb_build_object('pairs', $1::jsonb, 'mvp', $2::jsonb)
+          WHERE uuid = $3 AND room_id = $4`,
+        [JSON.stringify(pairs), JSON.stringify(mvp), m.uuid, room.id]
+      );
+    }
 
     broadcastToRoom(code, { type: 'matching_result', match_json });
     res.json({ match_json });

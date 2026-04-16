@@ -411,6 +411,19 @@
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* 상단 우측 계정/로그아웃 */
+  #user-menu {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 12px; border-left: 1px solid var(--border); height: 100%;
+    font-size: 12px; color: var(--text-muted); flex-shrink: 0;
+  }
+  #user-menu button {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); border-radius: 16px;
+    padding: 5px 10px; font-size: 11px; cursor: pointer;
+  }
+  #user-menu button:hover { color: var(--text); border-color: var(--gold); }
 </style>
 </head>
 <body>
@@ -437,6 +450,10 @@
     <button class="tab-btn" data-tab="explore">탐구</button>
     <button class="tab-btn" data-tab="free">자유대화</button>
     <button class="tab-btn" data-tab="ending">마무리</button>
+    <div id="user-menu">
+      <span id="user-nick"></span>
+      <button onclick="logout()">로그아웃</button>
+    </div>
   </nav>
 
   <div id="tab-content">
@@ -527,6 +544,7 @@ const state = {
   myVotes: {}, // question_id → answer (겸임)
   waitingUsers: [], // [{uuid, nickname}]
   approvedUsers: [], // [{uuid, nickname, gender, birth_year, mbti, interest}]
+  mvpList: [], // [{uuid, nickname, fi_count}]
   timerMinutes: 20,
   timerSeconds: 0,
   timerInterval: null,
@@ -544,7 +562,6 @@ function init() {
   const codeIdx = parts.indexOf('room');
   state.roomCode = codeIdx !== -1 ? parts[codeIdx + 1] : '';
   state.uuid = localStorage.getItem('demo_uuid') || '';
-  state.nickname = localStorage.getItem('nickname') || '';
 
   if (!state.roomCode || !state.uuid) {
     location.href = '/';
@@ -563,12 +580,23 @@ async function loadRoomInfo() {
     const res = await api(`/api/rooms/${state.roomCode}`);
     if (!res.ok) { location.href = '/'; return; }
     const room = await res.json();
-    // host_uuid가 응답에 포함된 경우만 검증 (GET /api/rooms/:code는 host_uuid 미포함)
+    // host_uuid 검증 — 타인의 host URL 접속 차단
     if (room.host_uuid && room.host_uuid !== state.uuid) { location.href = '/'; return; }
+    if (room.status === 'closed') { location.href = '/create'; return; }
     state.hostRole = room.host_role || 'host_only';
     if (state.hostRole === 'participant') {
       document.getElementById('host-vote-btns').style.display = 'block';
     }
+    // 닉네임 로드
+    try {
+      const meRes = await api(`/api/me?uuid=${state.uuid}`);
+      if (meRes.ok) {
+        const me = await meRes.json();
+        state.nickname = me.nickname || '';
+        const nickEl = document.getElementById('user-nick');
+        if (nickEl) nickEl.textContent = `@${state.nickname}`;
+      }
+    } catch {}
   } catch {}
 }
 
@@ -644,29 +672,43 @@ function handleWSMessage(msg) {
       break;
     case 'approved':
       // 대기→승인 이동
-      const idx = state.waitingUsers.findIndex(u => u.uuid === msg.uuid);
-      if (idx !== -1) {
-        const user = state.waitingUsers.splice(idx, 1)[0];
-        if (!state.approvedUsers.find(u => u.uuid === user.uuid)) {
-          // 프로필 정보 가져오기
-          fetchUserProfile(user.uuid).then(profile => {
-            state.approvedUsers.push({ ...user, ...profile });
-            renderApprovedList();
-            renderProfiles();
+      {
+        const idx = state.waitingUsers.findIndex(u => u.uuid === msg.uuid);
+        if (idx !== -1) {
+          const user = state.waitingUsers.splice(idx, 1)[0];
+          if (!state.approvedUsers.find(u => u.uuid === user.uuid)) {
+            fetchUserProfile(user.uuid).then(profile => {
+              state.approvedUsers.push({ ...user, ...profile });
+              renderApprovedList();
+              renderProfiles();
+            });
+          }
+          renderWaitingList();
+        } else if (!state.approvedUsers.find(u => u.uuid === msg.uuid)) {
+          // 대기 목록 외에서 approved (호스트 자신 또는 이미 연결 중이던 케이스)
+          fetchUserProfile(msg.uuid).then(profile => {
+            if (profile && profile.nickname && !state.approvedUsers.find(u => u.uuid === msg.uuid)) {
+              state.approvedUsers.push({ uuid: msg.uuid, ...profile });
+              renderApprovedList();
+              renderProfiles();
+            }
           });
         }
-        renderWaitingList();
       }
       break;
     case 'vote_result':
       state.currentVotes[msg.question_id] = msg.counts;
       renderVoteBars(msg.question_id, msg.counts);
+      break;
+    case 'mvp_update':
+      state.mvpList = msg.mvp_list || [];
       updateMVPList();
       break;
     case 'matching_result':
       renderMatchResult(msg.match_json);
       break;
     case 'chat':
+      // 내가 보낸 메시지 제외(호스트는 보통 송신 안 하지만 겸임 대비)
       appendChatMsg(msg);
       break;
   }
@@ -730,12 +772,14 @@ function renderProfiles() {
   const now = new Date().getFullYear();
   for (const u of state.approvedUsers) {
     const age = u.birth_year ? now - u.birth_year + 1 : '?';
+    const genderLabel = (u.gender === 'M' || u.gender === 'male') ? '남'
+                      : (u.gender === 'F' || u.gender === 'female') ? '여' : '';
     const card = document.createElement('div');
     card.className = 'profile-card';
     card.innerHTML = `
       <div class="name">${escHtml(u.nickname)}</div>
       <div class="meta">
-        ${u.gender === 'M' ? '남' : u.gender === 'F' ? '여' : ''} · ${age}세<br>
+        ${genderLabel} · ${age}세<br>
         ${u.interest ? escHtml(u.interest) : ''}
       </div>
       ${u.mbti ? `<span class="mbti-badge">${escHtml(u.mbti)}</span>` : ''}`;
@@ -848,15 +892,21 @@ function renderMatchResult(match_json) {
 }
 
 function updateMVPList() {
-  // fi_count는 WS vote/mvp 이벤트로 갱신 — 별도 폴링 없이 현재 알려진 정보 표시
   const list = document.getElementById('mvp-list');
   if (!list) return;
-  if (!state.approvedUsers.length) {
+
+  // mvp_update WS 이벤트로 받은 실시간 fi_count 우선, 없으면 승인된 참가자 기준으로 0
+  let rows = state.mvpList;
+  if (!rows.length) {
+    rows = state.approvedUsers.map(u => ({ uuid: u.uuid, nickname: u.nickname, fi_count: 0 }));
+  }
+  if (!rows.length) {
     list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">아직 투표 없음</div>';
     return;
   }
-  // 실시간 fi_count는 vote/mvp API 결과에 포함되지 않으므로 단순 목록만 표시
-  list.innerHTML = state.approvedUsers.map(u =>
+  // fi_count 내림차순
+  rows = [...rows].sort((a, b) => (b.fi_count || 0) - (a.fi_count || 0));
+  list.innerHTML = rows.map(u =>
     `<div class="mvp-row"><span>${escHtml(u.nickname)}</span><span class="fi-count">${u.fi_count || 0}표</span></div>`
   ).join('');
 }
@@ -870,11 +920,20 @@ function appendChatMsg(msg) {
   log.scrollTop = log.scrollHeight;
 }
 
+// ── 탭 → guest 표준 phase 매핑 ──────────────────────────────────────────────
+// 내부 탭 id 'ending' ↔ guest가 기대하는 current_tab 'closing'
+const TAB_TO_PHASE = { intro: 'intro', explore: 'explore', free: 'free', ending: 'closing' };
+
 // ── 이벤트 바인딩 ─────────────────────────────────────────────────────────────
 function bindEvents() {
-  // 탭 전환
+  // 탭 전환 — 클릭만으로도 게스트 상태 동기화
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      switchTab(tab);
+      const phase = TAB_TO_PHASE[tab] || tab;
+      updateState({ phase, current_tab: phase, question_index: state.currentQIdx });
+    });
   });
 
   // URL 복사
@@ -893,7 +952,9 @@ function bindEvents() {
 
   // 탐구 시작
   document.getElementById('start-explore-btn').addEventListener('click', () => {
-    updateState({ phase: 'explore', current_tab: 'explore' });
+    updateState({ phase: 'explore', current_tab: 'explore', question_index: 0 });
+    state.currentQIdx = 0;
+    renderQuestion();
     switchTab('explore');
   });
 
@@ -901,7 +962,7 @@ function bindEvents() {
   document.getElementById('next-q-btn').addEventListener('click', () => {
     if (state.currentQIdx < state.questions.length - 1) {
       state.currentQIdx++;
-      updateState({ phase: 'explore', question_index: state.currentQIdx });
+      updateState({ phase: 'explore', current_tab: 'explore', question_index: state.currentQIdx });
       renderQuestion();
     }
   });
@@ -928,9 +989,9 @@ function bindEvents() {
   // 질문 카드 던지기
   document.getElementById('throw-card-btn').addEventListener('click', throwCard);
 
-  // 마무리로 이동
+  // 마무리로 이동 (guest 는 current_tab='closing' 으로 받음)
   document.getElementById('go-ending-btn').addEventListener('click', () => {
-    updateState({ phase: 'ending', current_tab: 'ending' });
+    updateState({ phase: 'closing', current_tab: 'closing' });
     switchTab('ending');
   });
 
@@ -1074,9 +1135,21 @@ async function doMatch() {
 async function closeRoom() {
   if (!confirm('모임을 종료하시겠어요? 참가자에게 종료 알림이 전송됩니다.')) return;
   try {
-    await api(`/api/rooms/${state.roomCode}/close`, 'POST', { uuid: state.uuid });
+    const res = await api(`/api/rooms/${state.roomCode}/close`, 'POST', { host_uuid: state.uuid });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast('종료 실패: ' + (err.error || res.status));
+      return;
+    }
     location.href = '/create';
   } catch { toast('종료 실패'); }
+}
+
+function logout() {
+  if (!confirm('로그아웃하시겠어요? 진행 중인 방은 그대로 유지돼요.')) return;
+  try { if (state.ws) state.ws.close(); } catch {}
+  localStorage.removeItem('demo_uuid');
+  location.href = '/';
 }
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────

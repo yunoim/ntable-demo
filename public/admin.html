@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ntable 관리자</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c0c0e;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a32;
+    --text: #f0ede8;
+    --muted: #888;
+    --gold: #e8c97e;
+    --red: #f87171;
+    --green: #4ade80;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+  a { color: var(--gold); text-decoration: none; }
+
+  /* Login */
+  .login-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 28px; width: 100%; max-width: 360px;
+  }
+  .login-card h1 { font-size: 20px; margin-bottom: 6px; color: var(--gold); }
+  .login-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .login-card input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size: 15px;
+    padding: 12px 14px; outline: none; margin-bottom: 12px;
+  }
+  .login-card input:focus { border-color: var(--gold); }
+  .login-card button {
+    width: 100%; background: var(--gold); color: #0c0c0e;
+    border: none; border-radius: 10px; padding: 13px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .login-err { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+  /* App */
+  .app { display: none; min-height: 100vh; }
+  .app.active { display: block; }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 22px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .h-logo { font-size: 16px; font-weight: 700; color: var(--gold); letter-spacing: 0.05em; }
+  .h-right { display: flex; gap: 12px; align-items: center; }
+  .h-link { font-size: 13px; color: var(--muted); cursor: pointer; }
+  .h-link:hover { color: var(--text); }
+
+  nav.tabs {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; padding: 0 20px; overflow-x: auto;
+  }
+  .tab-btn {
+    background: none; border: none; color: var(--muted);
+    padding: 14px 16px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Stats */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--gold); margin-top: 6px; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* Table */
+  .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 12px; border-radius: 20px;
+    font-size: 12px; cursor: pointer;
+  }
+  .filter-btn.active { background: var(--gold); color: #0c0c0e; border-color: var(--gold); font-weight: 600; }
+  .search-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px;
+    color: var(--text); font-size: 13px; outline: none;
+    margin-left: auto; min-width: 180px;
+  }
+  .search-box:focus { border-color: var(--gold); }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 12px 14px; background: var(--surface2); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .status-tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+  .status-waiting { background: rgba(232,201,126,0.15); color: var(--gold); }
+  .status-open { background: rgba(74,222,128,0.15); color: var(--green); }
+  .status-closed { background: rgba(136,136,136,0.15); color: var(--muted); }
+  .btn-sm {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; cursor: pointer; margin-right: 4px;
+  }
+  .btn-sm:hover { background: var(--border); }
+  .btn-sm.red { color: var(--red); border-color: rgba(248,113,113,0.3); }
+  .btn-sm.red:hover { background: rgba(248,113,113,0.1); }
+
+  .empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: 20px;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; max-width: 700px; width: 100%;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 17px; margin-bottom: 14px; color: var(--gold); }
+  .modal pre { background: var(--bg); border-radius: 8px; padding: 12px; font-size: 11px; overflow-x: auto; color: var(--muted); max-height: 240px; }
+  .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+  .kv-row { display: flex; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-k { color: var(--muted); min-width: 110px; font-size: 12px; }
+  .kv-v { color: var(--text); word-break: break-all; }
+  .section-h { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 8px; }
+
+  .err-toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--red); color: white; padding: 10px 18px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 999;
+  }
+  .err-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <h1>ntable 관리자</h1>
+    <p>플랫폼 운영 콘솔</p>
+    <input type="password" id="passwordInput" placeholder="관리자 비밀번호" autocomplete="current-password" />
+    <button id="loginBtn">로그인</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div class="app" id="app">
+  <header>
+    <div class="h-logo">ntable · admin</div>
+    <div class="h-right">
+      <a class="h-link" href="/" target="_blank">데모 열기 ↗</a>
+      <span class="h-link" onclick="logout()">로그아웃</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">대시보드</button>
+    <button class="tab-btn" data-tab="rooms">방 관리</button>
+    <button class="tab-btn" data-tab="users">유저</button>
+    <button class="tab-btn" data-tab="surveys">후기</button>
+  </nav>
+
+  <main>
+    <!-- Dashboard -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="section-h">최근 방 (10개)</div>
+      <div class="table-wrap" id="dashRecentRooms"></div>
+    </div>
+
+    <!-- Rooms -->
+    <div class="panel" id="panel-rooms">
+      <div class="filters">
+        <button class="filter-btn active" data-filter="" onclick="filterRooms('')">전체</button>
+        <button class="filter-btn" data-filter="waiting" onclick="filterRooms('waiting')">대기</button>
+        <button class="filter-btn" data-filter="open" onclick="filterRooms('open')">진행 중</button>
+        <button class="filter-btn" data-filter="closed" onclick="filterRooms('closed')">종료</button>
+      </div>
+      <div class="table-wrap" id="roomsTable"></div>
+    </div>
+
+    <!-- Users -->
+    <div class="panel" id="panel-users">
+      <div class="filters">
+        <input class="search-box" id="userSearch" placeholder="닉네임 검색" oninput="onUserSearch()" />
+      </div>
+      <div class="table-wrap" id="usersTable"></div>
+    </div>
+
+    <!-- Surveys -->
+    <div class="panel" id="panel-surveys">
+      <div class="table-wrap" id="surveysTable"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="err-toast" id="errToast"></div>
+
+<script>
+const TOKEN_KEY = 'admin_token';
+let token = localStorage.getItem(TOKEN_KEY) || '';
+let userSearchTimer = null;
+
+const loginWrap = document.getElementById('loginWrap');
+const app = document.getElementById('app');
+
+function showApp() {
+  loginWrap.style.display = 'none';
+  app.classList.add('active');
+  loadDashboard();
+}
+function showLogin() {
+  loginWrap.style.display = 'flex';
+  app.classList.remove('active');
+}
+
+if (token) showApp(); else showLogin();
+
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('passwordInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+async function login() {
+  const password = document.getElementById('passwordInput').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if (!password) { errEl.textContent = '비밀번호를 입력해주세요.'; return; }
+
+  try {
+    const r = await fetch('/api/panel/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = '비밀번호가 맞지 않아요.'; return; }
+    token = data.token;
+    localStorage.setItem(TOKEN_KEY, token);
+    showApp();
+  } catch {
+    errEl.textContent = '서버에 연결할 수 없어요.';
+  }
+}
+
+function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  token = '';
+  showLogin();
+  document.getElementById('passwordInput').value = '';
+}
+
+async function api(path, opts = {}) {
+  opts.headers = Object.assign({ 'Content-Type': 'application/json', 'x-admin-token': token }, opts.headers || {});
+  const r = await fetch(path, opts);
+  if (r.status === 401) { logout(); throw new Error('UNAUTHORIZED'); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'ERROR');
+  return r.json();
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtDate(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function statusTag(s) {
+  const map = { waiting: '대기', open: '진행 중', closed: '종료' };
+  return `<span class="status-tag status-${s}">${map[s] || s}</span>`;
+}
+function errToast(msg) {
+  const el = document.getElementById('errToast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+    if (tab === 'dashboard') loadDashboard();
+    else if (tab === 'rooms') loadRooms();
+    else if (tab === 'users') loadUsers();
+    else if (tab === 'surveys') loadSurveys();
+  });
+});
+
+// ── Dashboard ──────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [stats, rooms] = await Promise.all([
+      api('/api/panel/stats'),
+      api('/api/panel/rooms?limit=10'),
+    ]);
+    renderStats(stats);
+    renderRoomsTable(rooms, 'dashRecentRooms', false);
+  } catch (e) { errToast(e.message); }
+}
+
+function renderStats(s) {
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">유저</div>
+      <div class="stat-value">${s.users}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">전체 방</div>
+      <div class="stat-value">${s.rooms.total}</div>
+      <div class="stat-sub">대기 ${s.rooms.waiting} · 진행 ${s.rooms.open} · 종료 ${s.rooms.closed}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">후기</div>
+      <div class="stat-value">${s.surveys.total}</div>
+      <div class="stat-sub">평균 ★${s.surveys.avg_satisfaction} · NPS ${s.surveys.avg_nps}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">재방문 응답</div>
+      <div class="stat-value">${s.surveys.revisit_yes}</div>
+      <div class="stat-sub">/ 전체 ${s.surveys.total}</div>
+    </div>
+  `;
+}
+
+// ── Rooms ──────────────────────────────────────────────────────────
+let roomsFilter = '';
+async function loadRooms() {
+  try {
+    const data = await api(`/api/panel/rooms${roomsFilter ? `?status=${roomsFilter}` : ''}`);
+    renderRoomsTable(data, 'roomsTable', true);
+  } catch (e) { errToast(e.message); }
+}
+function filterRooms(s) {
+  roomsFilter = s;
+  document.querySelectorAll('#panel-rooms .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === s));
+  loadRooms();
+}
+
+function renderRoomsTable(rooms, containerId, withActions) {
+  const c = document.getElementById(containerId);
+  if (!rooms.length) { c.innerHTML = '<div class="empty">방이 없어요.</div>'; return; }
+  c.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>CODE</th><th>제목</th><th>호스트</th><th>참가</th><th>상태</th><th>생성</th>
+        ${withActions ? '<th></th>' : ''}
+      </tr></thead>
+      <tbody>
+      ${rooms.map(r => `
+        <tr>
+          <td style="font-family:monospace;color:var(--gold)">${esc(r.room_code)}</td>
+          <td>${esc(r.title)}</td>
+          <td>${esc(r.host_nickname || '-')}</td>
+          <td>${r.participants}</td>
+          <td>${statusTag(r.status)}</td>
+          <td style="color:var(--muted);font-size:12px">${fmtDate(r.created_at)}</td>
+          ${withActions ? `<td>
+            <button class="btn-sm" onclick="viewRoom('${esc(r.room_code)}')">상세</button>
+            ${r.status !== 'closed' ? `<button class="btn-sm" onclick="closeRoom('${esc(r.room_code)}')">종료</button>` : ''}
+            <button class="btn-sm red" onclick="deleteRoom('${esc(r.room_code)}')">삭제</button>
+          </td>` : ''}
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function viewRoom(code) {
+  try {
+    const d = await api(`/api/panel/rooms/${code}`);
+    const r = d.room;
+    document.getElementById('modalBody').innerHTML = `
+      <h2>${esc(r.title)} <span style="color:var(--muted);font-size:13px">(${esc(r.room_code)})</span></h2>
+      <div class="kv-row"><span class="kv-k">호스트</span><span class="kv-v">${esc(r.host_nickname || '-')} · ${esc(r.host_uuid)}</span></div>
+      <div class="kv-row"><span class="kv-k">역할</span><span class="kv-v">${esc(r.host_role)}</span></div>
+      <div class="kv-row"><span class="kv-k">상태</span><span class="kv-v">${statusTag(r.status)}</span></div>
+      <div class="kv-row"><span class="kv-k">생성</span><span class="kv-v">${fmtDate(r.created_at)}</span></div>
+      <div class="section-h">참가자 ${d.members.length}명</div>
+      ${d.members.length ? `<table>
+        <thead><tr><th>닉네임</th><th>성별</th><th>MBTI</th><th>fi_count</th><th>투표수</th></tr></thead>
+        <tbody>
+        ${d.members.map(m => `<tr>
+          <td>${esc(m.nickname || '-')}</td>
+          <td>${m.gender || '-'}</td>
+          <td>${m.mbti || '-'}</td>
+          <td style="color:var(--gold);font-weight:600">${m.fi_count || 0}</td>
+          <td>${Object.keys(m.votes_json || {}).length}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">참가자 없음</div>'}
+      <div class="section-h">현재 상태</div>
+      <pre>${esc(JSON.stringify(d.state?.state_json || {}, null, 2))}</pre>
+      <div class="section-h">후기 ${d.surveys.length}건</div>
+      ${d.surveys.length ? d.surveys.map(s => `
+        <div class="kv-row">
+          <span class="kv-k">★${s.satisfaction} · NPS ${s.nps}</span>
+          <span class="kv-v">${esc(s.review || s.best_moment || '(내용 없음)')}</span>
+        </div>`).join('') : '<div class="empty">후기 없음</div>'}
+    `;
+    openModal();
+  } catch (e) { errToast(e.message); }
+}
+
+async function closeRoom(code) {
+  if (!confirm(`방 ${code}를 강제 종료하시겠어요?\n참가자들에게 종료 알림이 전송돼요.`)) return;
+  try {
+    await api(`/api/panel/rooms/${code}/close`, { method: 'POST' });
+    loadRooms();
+  } catch (e) { errToast(e.message); }
+}
+
+async function deleteRoom(code) {
+  if (!confirm(`⚠️ 방 ${code}의 모든 데이터(멤버/투표/후기)가 삭제돼요.\n되돌릴 수 없어요. 계속하시겠어요?`)) return;
+  try {
+    await api(`/api/panel/rooms/${code}`, { method: 'DELETE' });
+    loadRooms();
+  } catch (e) { errToast(e.message); }
+}
+
+// ── Users ──────────────────────────────────────────────────────────
+async function loadUsers(q = '') {
+  try {
+    const data = await api(`/api/panel/users${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    renderUsersTable(data);
+  } catch (e) { errToast(e.message); }
+}
+function onUserSearch() {
+  clearTimeout(userSearchTimer);
+  const q = document.getElementById('userSearch').value.trim();
+  userSearchTimer = setTimeout(() => loadUsers(q), 280);
+}
+function renderUsersTable(users) {
+  const c = document.getElementById('usersTable');
+  if (!users.length) { c.innerHTML = '<div class="empty">유저가 없어요.</div>'; return; }
+  c.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>닉네임</th><th>성별</th><th>출생</th><th>MBTI</th><th>지역</th><th>인스타</th>
+        <th>호스트</th><th>참가</th><th>가입</th><th></th>
+      </tr></thead>
+      <tbody>
+      ${users.map(u => `
+        <tr>
+          <td style="font-weight:600">${esc(u.nickname)}</td>
+          <td>${u.gender || '-'}</td>
+          <td>${u.birth_year || '-'}</td>
+          <td>${u.mbti || '-'}</td>
+          <td>${esc(u.region || '-')}</td>
+          <td>${u.instagram ? '@' + esc(u.instagram) : '-'}</td>
+          <td>${u.hosted_rooms}</td>
+          <td>${u.participations}</td>
+          <td style="color:var(--muted);font-size:12px">${fmtDate(u.created_at)}</td>
+          <td><button class="btn-sm red" onclick="deleteUser('${esc(u.uuid)}','${esc(u.nickname)}')">삭제</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function deleteUser(uuid, nickname) {
+  if (!confirm(`⚠️ "${nickname}" 유저와 관련 데이터 전부 삭제돼요.\n계속하시겠어요?`)) return;
+  try {
+    await api(`/api/panel/users/${uuid}`, { method: 'DELETE' });
+    loadUsers(document.getElementById('userSearch').value.trim());
+  } catch (e) { errToast(e.message); }
+}
+
+// ── Surveys ────────────────────────────────────────────────────────
+async function loadSurveys() {
+  try {
+    const data = await api('/api/panel/surveys');
+    renderSurveysTable(data);
+  } catch (e) { errToast(e.message); }
+}
+function renderSurveysTable(surveys) {
+  const c = document.getElementById('surveysTable');
+  if (!surveys.length) { c.innerHTML = '<div class="empty">후기가 없어요.</div>'; return; }
+  c.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>방</th><th>닉네임</th><th>★</th><th>재방문</th><th>NPS</th>
+        <th>베스트 순간</th><th>아쉬운 점</th><th>한 줄</th><th>작성</th>
+      </tr></thead>
+      <tbody>
+      ${surveys.map(s => `
+        <tr>
+          <td style="font-family:monospace;color:var(--gold);font-size:12px">${esc(s.room_code || '-')}</td>
+          <td>${esc(s.nickname || '-')}</td>
+          <td>${s.satisfaction}</td>
+          <td>${s.revisit ? '✓' : '✗'}</td>
+          <td>${s.nps}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.best_moment || '-')}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.regret || '-')}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.review || '-')}</td>
+          <td style="color:var(--muted);font-size:12px">${fmtDate(s.created_at)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// Modal
+function openModal() { document.getElementById('modalBackdrop').classList.add('active'); }
+function closeModal() { document.getElementById('modalBackdrop').classList.remove('active'); }
+</script>
+
+</body>
+</html>

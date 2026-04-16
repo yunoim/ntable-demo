@@ -81,7 +81,8 @@ async function initDB() {
         UNIQUE (uuid, room_id)
       `);
     } catch (e) {
-      if (e.code !== '42P07') throw e; // 42P07 = duplicate_table (제약 이미 존재)
+      // 42710 = duplicate_object (제약/인덱스 이미 존재), 42P07 = duplicate_table
+      if (e.code !== '42710' && e.code !== '42P07') throw e;
     }
 
 

@@ -1008,20 +1008,49 @@ async function handleWSMessage(msg) {
       showMatchingResult(msg.match_json);
       break;
 
+    case 'insta_mutual':
+      // 상대가 인스타 공개 → 내가 공개한 상태면 팝업에서 상대 정보 표시
+      if (msg.a_uuid === STATE.uuid || msg.b_uuid === STATE.uuid) {
+        const partner = msg.a_uuid === STATE.uuid ? msg.b : msg.a;
+        const box = document.getElementById('instaResultBox');
+        if (box && partner?.instagram && STATE.instaRevealed) {
+          box.style.display = 'block';
+          box.innerHTML = `📸 <strong>@${escHtml(partner.instagram)}</strong>`;
+          const btn = document.getElementById('instaRevealBtn');
+          if (btn) btn.style.display = 'none';
+        }
+      }
+      break;
+
     case 'room_closed':
       location.href = `/survey?room=${STATE.roomCode}`;
       break;
   }
 }
 
+// ─── helpers ─────────────────────────────────────────────────────────────────
+const CURRENT_YEAR = new Date().getFullYear();
+function genderAvatar(g) {
+  if (g === 'M' || g === 'male') return '👨';
+  if (g === 'F' || g === 'female') return '👩';
+  return '👤';
+}
+function genderLabel(g) {
+  if (g === 'M' || g === 'male') return '남성';
+  if (g === 'F' || g === 'female') return '여성';
+  return '';
+}
+function ageOf(year) {
+  return year ? `${CURRENT_YEAR - year + 1}세` : '';
+}
+
 // ─── MY PROFILE ──────────────────────────────────────────────────────────────
 function renderMyProfile() {
   const p = STATE.myProfile;
   if (!p) return;
-  const avatarEmoji = p.gender === 'M' ? '👨' : p.gender === 'F' ? '👩' : '👤';
-  document.getElementById('myAvatar').textContent = avatarEmoji;
+  document.getElementById('myAvatar').textContent = genderAvatar(p.gender);
   document.getElementById('myName').textContent = p.nickname || '—';
-  const age = p.birth_year ? `${2025 - p.birth_year}세` : '';
+  const age = ageOf(p.birth_year);
   document.getElementById('myMeta').textContent = [age, p.mbti].filter(Boolean).join(' · ');
   const tagsEl = document.getElementById('myTags');
   tagsEl.innerHTML = '';
@@ -1046,9 +1075,9 @@ function renderCarousel() {
   indicators.innerHTML = '';
 
   STATE.members.forEach((m, i) => {
-    const age = m.birth_year ? `${2025 - m.birth_year}세` : '';
-    const genderText = m.gender === 'M' ? '남성' : m.gender === 'F' ? '여성' : '';
-    const avatarEmoji = m.gender === 'M' ? '👨' : m.gender === 'F' ? '👩' : '👤';
+    const age = ageOf(m.birth_year);
+    const genderText = genderLabel(m.gender);
+    const avatarEmoji = genderAvatar(m.gender);
     const isMe = m.uuid === STATE.uuid;
 
     const card = document.createElement('div');
@@ -1273,7 +1302,7 @@ function renderVoteList(containerId, type) {
   STATE.members
     .filter(m => m.uuid !== STATE.uuid)
     .forEach(m => {
-      const age = m.birth_year ? `${2025 - m.birth_year}세` : '';
+      const age = ageOf(m.birth_year);
       const item = document.createElement('div');
       item.className = 'member-vote-item';
       item.dataset.uuid = m.uuid;
@@ -1321,28 +1350,50 @@ function selectVote(el, type, targetUuid) {
 }
 
 // ─── MATCHING RESULT ─────────────────────────────────────────────────────────
-function showMatchingResult(matchJson) {
-  let matched = null;
-  if (matchJson && matchJson[STATE.uuid]) {
-    matched = matchJson[STATE.uuid];
+// 서버 match_json 구조: { pairs: [{type, a:{uuid,nickname}, b:{uuid,nickname}}], mvp }
+// 내 uuid가 포함된 pair를 찾아 상대방 정보 추출 (mutual 우선, recommended 폴백)
+function findMyMatch(matchJson) {
+  if (!matchJson) return null;
+  const pairs = matchJson.pairs || [];
+  let mutualPartner = null;
+  let recommendedPartner = null;
+  for (const p of pairs) {
+    const partner = p.a?.uuid === STATE.uuid ? p.b
+                  : p.b?.uuid === STATE.uuid ? p.a : null;
+    if (!partner) continue;
+    if (p.type === 'mutual' && !mutualPartner) mutualPartner = { ...partner, type: 'mutual' };
+    else if (p.type === 'recommended' && !recommendedPartner) recommendedPartner = { ...partner, type: 'recommended' };
   }
+  return mutualPartner || recommendedPartner || null;
+}
+
+function showMatchingResult(matchJson) {
+  const matched = findMyMatch(matchJson);
+  STATE.matchedPartner = matched;
 
   const overlay = document.getElementById('matchingOverlay');
   const emoji = document.getElementById('matchEmoji');
   const title = document.getElementById('matchTitle');
   const sub = document.getElementById('matchSub');
   const instaBtn = document.getElementById('instaRevealBtn');
+  const resultBox = document.getElementById('instaResultBox');
+  resultBox.style.display = 'none';
+  resultBox.innerHTML = '';
+  STATE.instaRevealed = false;
+  instaBtn.disabled = false;
+  instaBtn.style.opacity = '';
+  instaBtn.textContent = '📸 인스타그램 공개하기';
 
   if (matched) {
-    const matchedMember = STATE.members.find(m => m.uuid === matched.uuid);
-    const name = matchedMember ? matchedMember.nickname : '상대방';
-    emoji.textContent = '🎉';
-    title.textContent = `${name}님과 매칭됐어요!`;
-    sub.textContent = '서로 관심 있다는 신호를 보냈어요 ✨';
+    emoji.textContent = matched.type === 'mutual' ? '💘' : '✨';
+    title.textContent = `${matched.nickname || '상대방'}님과 ${matched.type === 'mutual' ? '상호 매칭됐어요!' : '잘 맞아요!'}`;
+    sub.textContent = matched.type === 'mutual'
+      ? '서로 관심 있다는 신호를 보냈어요 ✨'
+      : '성향이 비슷한 참가자를 연결해드렸어요';
     instaBtn.style.display = 'block';
   } else {
     emoji.textContent = '🌙';
-    title.textContent = '오늘은 인연이 없었어요';
+    title.textContent = '오늘은 매칭이 없어요';
     sub.textContent = '다음 모임에서 다시 만나요 :)';
     instaBtn.style.display = 'none';
   }
@@ -1358,26 +1409,35 @@ async function revealInstagram() {
   btn.textContent = '⏳ 확인 중...';
   btn.style.opacity = '0.7';
 
-  // Get match partner
-  const matched = STATE.matchResult?.[STATE.uuid];
-  if (!matched) return;
-  const matchedUuid = matched.uuid || matched;
-
-  // Check if partner revealed too
-  // The match_json structure should show mutual match info
-  const partnerInsta = STATE.members.find(m => m.uuid === matchedUuid)?.instagram;
-  const partnerRevealed = STATE.matchResult?.[matchedUuid]?.instagram_revealed;
-
   const resultBox = document.getElementById('instaResultBox');
   resultBox.style.display = 'block';
 
-  if (partnerRevealed && partnerInsta) {
-    resultBox.innerHTML = `📸 <strong>@${partnerInsta}</strong>`;
-    btn.style.display = 'none';
-  } else {
-    resultBox.textContent = '상대방이 아직 공개하지 않았어요';
-    btn.textContent = '📸 인스타그램 공개됨';
-    btn.style.opacity = '0.5';
+  try {
+    const r = await fetch(`/api/rooms/${STATE.roomCode}/insta-reveal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid: STATE.uuid }),
+    });
+    const data = await r.json();
+
+    if (data.mutual && data.partner?.instagram) {
+      resultBox.innerHTML = `📸 <strong>@${escHtml(data.partner.instagram)}</strong>`;
+      btn.style.display = 'none';
+    } else if (data.pending) {
+      resultBox.textContent = '공개 의사를 전달했어요. 상대방이 공개하면 자동으로 알려드릴게요 ⏳';
+      btn.textContent = '✓ 공개 요청 완료';
+      btn.style.opacity = '0.5';
+      btn.disabled = true;
+    } else {
+      resultBox.textContent = '매칭 상대를 찾을 수 없어요.';
+      btn.style.display = 'none';
+    }
+  } catch {
+    resultBox.textContent = '오류가 발생했어요. 다시 시도해주세요.';
+    btn.textContent = '📸 인스타그램 공개하기';
+    btn.style.opacity = '';
+    btn.disabled = false;
+    STATE.instaRevealed = false;
   }
 }
 </script>

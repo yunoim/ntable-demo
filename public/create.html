@@ -21,13 +21,33 @@
       max-width: 480px;
       padding: 0 24px;
     }
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0 0;
+    }
+    .top-nav .logout-btn {
+      background: transparent;
+      border: 1px solid #2a2a30;
+      color: #9a9690;
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .top-nav .logout-btn:hover {
+      color: #f0ede8;
+      border-color: #4a4a54;
+    }
     .logo {
       font-size: 20px;
       font-weight: 700;
       color: #e8c97e;
       letter-spacing: 0.08em;
       text-align: center;
-      padding: 36px 0 8px;
+      padding: 20px 0 8px;
     }
     .welcome {
       font-size: 13px;
@@ -158,6 +178,10 @@
 </head>
 <body>
   <div class="container">
+    <div class="top-nav">
+      <span style="color:#9a9690;font-size:12px;" id="topNavUser"></span>
+      <button class="logout-btn" onclick="logout()">로그아웃</button>
+    </div>
     <div class="logo">ntable</div>
     <div class="welcome" id="welcomeMsg">로딩 중...</div>
 
@@ -219,10 +243,17 @@
         const data = await res.json();
         document.getElementById('welcomeMsg').innerHTML =
           `안녕하세요, <span>${data.nickname}</span>님! 지금 바로 모임을 열어보세요.`;
+        document.getElementById('topNavUser').textContent = `@${data.nickname}`;
       } catch {
         // 네트워크 오류 등 — 튕기지 않고 그냥 표시
         document.getElementById('welcomeMsg').textContent = '모임을 열어보세요.';
       }
+    }
+
+    function logout() {
+      if (!confirm('로그아웃하시겠어요?')) return;
+      localStorage.removeItem('demo_uuid');
+      window.location.href = '/';
     }
 
     function selectRole(role) {

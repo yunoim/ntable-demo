@@ -76,7 +76,7 @@ router.post('/rooms', async (req, res) => {
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_role, status FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });
@@ -122,20 +122,22 @@ router.post('/rooms/:code/approve', async (req, res) => {
   if (approve_all) {
     const clients = wsModule.getRoomClients(code);
     for (const uuid of clients) {
-      wsModule.broadcastToRoom(code, { type: 'approved', uuid }, null, uuid);
+      // 모든 클라이언트에게 broadcast (호스트·게스트 전부) — 호스트 UI 동기화 필수
+      wsModule.broadcastToRoom(code, { type: 'approved', uuid });
     }
     return res.json({ approved: clients });
   }
 
   if (!target_uuid) return res.status(400).json({ error: 'target_uuid required' });
-  wsModule.broadcastToRoom(code, { type: 'approved', uuid: target_uuid }, null, target_uuid);
+  wsModule.broadcastToRoom(code, { type: 'approved', uuid: target_uuid });
   res.json({ approved: [target_uuid] });
 });
 
 // POST /api/rooms/:code/close
 router.post('/rooms/:code/close', async (req, res) => {
   const { code } = req.params;
-  const { host_uuid } = req.body;
+  // host_uuid 또는 uuid 둘 다 허용 (클라이언트 파라미터 호환)
+  const host_uuid = req.body.host_uuid || req.body.uuid;
 
   const room = await pool.query(
     'SELECT id, host_uuid FROM rooms WHERE room_code = $1',
@@ -160,10 +162,14 @@ router.get('/rooms/:code/qr', async (req, res) => {
   const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
 
-  const url = `https://demo.ntable.kr/room/${code}`;
+  // Request host + protocol 기반 동적 URL (로컬/스테이징/프로덕션 공통 지원)
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const origin = process.env.PUBLIC_ORIGIN || `${proto}://${host}`;
+  const url = `${origin}/room/${code}`;
   try {
     const qr_data_url = await QRCode.toDataURL(url, { width: 300, margin: 2 });
-    res.json({ qr_data_url });
+    res.json({ qr_data_url, url });
   } catch (err) {
     console.error('QR error:', err);
     res.status(500).json({ error: 'QR generation failed' });
