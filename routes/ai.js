@@ -110,15 +110,17 @@ const MBTI_MAP = {
 
 // ─────────────────────────────────────────
 // votes_json → A/B 비율 계산
-// votes_json 예상 구조: [{ answer: 'A' | 'B' }, ...]
+// votes_json 확정 구조: { "1": "A", "2": "B", ... }
 // ─────────────────────────────────────────
 function calcVoteRatio(votes) {
-  if (!Array.isArray(votes) || votes.length === 0) {
+  if (!votes || typeof votes !== 'object' || Array.isArray(votes)) {
     return { aRatio: 0, bRatio: 0, total: 0 };
   }
-  const total = votes.length;
-  const aCount = votes.filter(v => v.answer === 'A').length;
-  const bCount = votes.filter(v => v.answer === 'B').length;
+  const answers = Object.values(votes);
+  const total = answers.length;
+  if (total === 0) return { aRatio: 0, bRatio: 0, total: 0 };
+  const aCount = answers.filter(a => a === 'A').length;
+  const bCount = answers.filter(a => a === 'B').length;
   return {
     aRatio: aCount / total,
     bRatio: bCount / total,
