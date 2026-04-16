@@ -6,3 +6,6 @@ cmds = []
 
 [start]
 cmd = "node server.js"
+
+[variables]
+PORT = "8001"
