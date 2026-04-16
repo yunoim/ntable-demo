@@ -6,6 +6,8 @@ const cors = require('cors');
 const path = require('path');
 const { initDB } = require('./db');
 const authRouter = require('./routes/auth');
+const roomsRouter = require('./routes/rooms');
+const wsRouter = require('./routes/ws');
 
 const app = express();
 
@@ -24,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/api', authRouter);
+app.use('/api', roomsRouter);
 
 // Fallback: serve login.html for non-api routes
 app.get('*', (req, res) => {
@@ -32,6 +35,8 @@ app.get('*', (req, res) => {
 
 // HTTP server (export for WebSocket in part2)
 const server = http.createServer(app);
+
+wsRouter.init(server);
 
 const PORT = process.env.PORT || 3000;
 

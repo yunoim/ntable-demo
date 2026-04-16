@@ -1,0 +1,173 @@
+const express = require('express');
+const router = express.Router();
+const { pool } = require('../db');
+const QRCode = require('qrcode');
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+// POST /api/rooms
+router.post('/rooms', async (req, res) => {
+  const { uuid, title, host_role } = req.body;
+  if (!uuid || !title || !host_role) {
+    return res.status(400).json({ error: 'uuid, title, host_role required' });
+  }
+  if (!['host_only', 'participant'].includes(host_role)) {
+    return res.status(400).json({ error: 'host_role must be host_only or participant' });
+  }
+  if (title.length > 100) {
+    return res.status(400).json({ error: 'title max 100 chars' });
+  }
+
+  // uuid 검증
+  const userCheck = await pool.query('SELECT uuid FROM users WHERE uuid = $1', [uuid]);
+  if (userCheck.rows.length === 0) {
+    return res.status(404).json({ error: 'user not found' });
+  }
+
+  // room_code 중복 없이 생성
+  let room_code;
+  let attempts = 0;
+  while (attempts < 10) {
+    const candidate = generateRoomCode();
+    const existing = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [candidate]);
+    if (existing.rows.length === 0) {
+      room_code = candidate;
+      break;
+    }
+    attempts++;
+  }
+  if (!room_code) {
+    return res.status(500).json({ error: 'Failed to generate unique room code' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const roomResult = await client.query(
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status)
+       VALUES ($1, $2, $3, $4, 'waiting') RETURNING id`,
+      [room_code, title, uuid, host_role]
+    );
+    const room_id = roomResult.rows[0].id;
+    await client.query(
+      `INSERT INTO room_state (room_id, state_json, updated_at)
+       VALUES ($1, $2, NOW())`,
+      [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
+    );
+    await client.query('COMMIT');
+    res.json({ room_code, title, host_role });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('POST /api/rooms error:', err);
+    res.status(500).json({ error: 'DB error' });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /api/rooms/:code
+router.get('/rooms/:code', async (req, res) => {
+  const { code } = req.params;
+  const result = await pool.query(
+    'SELECT room_code, title, host_role, status FROM rooms WHERE room_code = $1',
+    [code]
+  );
+  if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  res.json(result.rows[0]);
+});
+
+// GET /api/rooms/:code/members
+router.get('/rooms/:code/members', async (req, res) => {
+  const { code } = req.params;
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+
+  const wsModule = require('./ws');
+  const clients = wsModule.getRoomClients(code); // [uuid, ...]
+
+  if (clients.length === 0) return res.json([]);
+
+  const placeholders = clients.map((_, i) => `$${i + 1}`).join(',');
+  const users = await pool.query(
+    `SELECT uuid, nickname, gender, birth_year, mbti, interest
+     FROM users WHERE uuid IN (${placeholders})`,
+    clients
+  );
+  res.json(users.rows);
+});
+
+// POST /api/rooms/:code/approve
+router.post('/rooms/:code/approve', async (req, res) => {
+  const { code } = req.params;
+  const { host_uuid, target_uuid, approve_all } = req.body;
+
+  const room = await pool.query(
+    'SELECT id, host_uuid FROM rooms WHERE room_code = $1',
+    [code]
+  );
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  if (room.rows[0].host_uuid !== host_uuid) {
+    return res.status(403).json({ error: 'not authorized' });
+  }
+
+  const wsModule = require('./ws');
+
+  if (approve_all) {
+    const clients = wsModule.getRoomClients(code);
+    for (const uuid of clients) {
+      wsModule.broadcastToRoom(code, { type: 'approved', uuid }, null, uuid);
+    }
+    return res.json({ approved: clients });
+  }
+
+  if (!target_uuid) return res.status(400).json({ error: 'target_uuid required' });
+  wsModule.broadcastToRoom(code, { type: 'approved', uuid: target_uuid }, null, target_uuid);
+  res.json({ approved: [target_uuid] });
+});
+
+// POST /api/rooms/:code/close
+router.post('/rooms/:code/close', async (req, res) => {
+  const { code } = req.params;
+  const { host_uuid } = req.body;
+
+  const room = await pool.query(
+    'SELECT id, host_uuid FROM rooms WHERE room_code = $1',
+    [code]
+  );
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  if (room.rows[0].host_uuid !== host_uuid) {
+    return res.status(403).json({ error: 'not authorized' });
+  }
+
+  await pool.query("UPDATE rooms SET status = 'closed' WHERE room_code = $1", [code]);
+
+  const wsModule = require('./ws');
+  wsModule.broadcastToRoom(code, { type: 'room_closed' });
+
+  res.json({ status: 'closed' });
+});
+
+// GET /api/rooms/:code/qr
+router.get('/rooms/:code/qr', async (req, res) => {
+  const { code } = req.params;
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+
+  const url = `https://demo.ntable.kr/room/${code}`;
+  try {
+    const qr_data_url = await QRCode.toDataURL(url, { width: 300, margin: 2 });
+    res.json({ qr_data_url });
+  } catch (err) {
+    console.error('QR error:', err);
+    res.status(500).json({ error: 'QR generation failed' });
+  }
+});
+
+module.exports = router;
