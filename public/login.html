@@ -232,6 +232,61 @@
     }
     .legal a { color: var(--subtext); text-decoration: underline; }
     .legal a:hover { color: var(--gold); }
+
+    /* 게스트 방 참여 섹션 */
+    .join-section {
+      margin-top: 24px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+    }
+    .join-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+    .join-sub {
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .join-row {
+      display: flex;
+      gap: 10px;
+    }
+    .join-row input {
+      flex: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 600;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--gold-light);
+      border: 1.5px solid var(--gold-border);
+      border-radius: 12px;
+      padding: 14px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--gold);
+      background: var(--gold-dim);
+    }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .join-hint {
+      font-size: 11px;
+      color: var(--subtext);
+      margin-top: 12px;
+      line-height: 1.7;
+    }
+    .join-hint strong { color: var(--gold-light); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -252,7 +307,21 @@
         <input type="text" id="nickname-input" placeholder="닉네임을 입력하세요" maxlength="20" autocomplete="off" />
         <div class="nickname-status" id="nickname-status"></div>
       </div>
-      <button class="btn-primary" id="login-btn" disabled>계속하기</button>
+      <button class="btn-primary" id="login-btn" disabled>🎤 모임 열기 (호스트)</button>
+
+      <div class="join-section">
+        <div class="join-title">🙋 모임 참여하기 (게스트)</div>
+        <div class="join-sub">호스트에게 받은 6자리 방 코드를 입력하세요.</div>
+        <div class="join-row">
+          <input type="text" id="room-code-input" placeholder="ABC123" maxlength="6" autocomplete="off" />
+          <button class="btn-secondary" id="join-btn" disabled>참여</button>
+        </div>
+        <div class="nickname-status" id="join-status"></div>
+        <div class="join-hint">
+          방 코드는 <strong>호스트에게 받거나 QR을 스캔</strong>하세요.<br>
+          아직 열린 모임이 없다면 위에서 닉네임을 입력하고 <strong>[모임 열기]</strong>로 직접 여세요.
+        </div>
+      </div>
     </div>
 
     <!-- Step 2: 프로필 작성 -->
@@ -370,6 +439,15 @@
         }
       } else {
         showStep('step-login');
+        // 랜딩 '먼저 참여해보기'에서 ?mode=guest 로 진입 시 게스트 섹션 강조
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') === 'guest') {
+          setTimeout(() => {
+            const joinSection = document.querySelector('.join-section');
+            if (joinSection) joinSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('nickname-input')?.focus();
+          }, 200);
+        }
       }
     }
 
@@ -378,7 +456,8 @@
     const loginBtn = document.getElementById('login-btn');
 
     function updateLoginBtnLabel() {
-      loginBtn.textContent = nicknameExists ? '로그인' : '계속하기';
+      loginBtn.textContent = nicknameExists ? '🎤 로그인 후 모임 열기' : '🎤 모임 열기 (호스트)';
+      updateJoinBtn();
     }
 
     nicknameInput.addEventListener('input', () => {
@@ -418,6 +497,43 @@
       }, 300);
     });
 
+    // ─── 게스트: 방 코드 참여 ───
+    const roomCodeInput = document.getElementById('room-code-input');
+    const joinBtn = document.getElementById('join-btn');
+    const joinStatus = document.getElementById('join-status');
+
+    function updateJoinBtn() {
+      const code = roomCodeInput.value.trim().toUpperCase();
+      joinBtn.disabled = !(nicknameAvailable && code.length === 6);
+    }
+
+    roomCodeInput.addEventListener('input', () => {
+      roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      updateJoinBtn();
+      joinStatus.textContent = '';
+      joinStatus.className = 'nickname-status';
+    });
+
+    joinBtn.addEventListener('click', () => {
+      const code = roomCodeInput.value.trim().toUpperCase();
+      if (code.length !== 6) {
+        joinStatus.textContent = '6자리 방 코드를 입력하세요';
+        joinStatus.className = 'nickname-status err';
+        return;
+      }
+      if (!nicknameAvailable) {
+        joinStatus.textContent = '먼저 위에서 닉네임을 입력하세요';
+        joinStatus.className = 'nickname-status err';
+        return;
+      }
+      // URL에 next 파라미터를 주입하고 기존 로그인 플로우 재사용
+      history.replaceState(null, '', `/?next=/room/${encodeURIComponent(code)}`);
+      joinStatus.textContent = '방에 입장합니다…';
+      joinStatus.className = 'nickname-status info';
+      loginBtn.click();
+    });
+
+    // ─── 호스트: 기본 로그인 ───
     loginBtn.addEventListener('click', async () => {
       const nickname = nicknameInput.value.trim();
       if (!nickname || !nicknameAvailable) return;

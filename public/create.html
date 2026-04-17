@@ -237,6 +237,47 @@
       letter-spacing: 0.02em;
     }
 
+    /* 상단 태그라인 */
+    .tagline-hero {
+      background: linear-gradient(135deg, rgba(201,168,76,0.10), rgba(201,168,76,0.03));
+      border: 1px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--gold-light);
+      letter-spacing: 0.02em;
+      line-height: 1.55;
+    }
+    .tagline-hero strong { color: var(--gold); font-weight: 700; }
+
+    /* 모임 유형 선택 */
+    .type-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .type-btn {
+      background: var(--navy-light);
+      border: 1.5px solid var(--input-border);
+      border-radius: 12px;
+      color: var(--subtext);
+      font-size: 13px;
+      padding: 12px 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    .type-btn:hover { border-color: var(--gold-border); color: var(--white); }
+    .type-btn.selected {
+      border-color: var(--gold);
+      background: var(--gold-dim);
+      color: var(--gold-light);
+    }
+
     .divider {
       height: 1px;
       background: var(--border);
@@ -283,8 +324,21 @@
     <div class="welcome" id="welcomeMsg">로딩 중...</div>
 
     <div class="card">
+      <div class="tagline-hero">
+        누구나 <strong>5분 안에</strong> 모임을 열 수 있어요
+      </div>
       <div class="section-title">새 모임 만들기</div>
-      <div class="section-sub">모임을 열면 QR코드와 입장 링크가 생성돼요.</div>
+      <div class="section-sub">모임을 열면 QR코드와 입장 링크가 자동 생성돼요.</div>
+
+      <div class="field-group">
+        <label>모임 유형 <span style="opacity:0.5;font-weight:400;text-transform:none;letter-spacing:0;">(선택)</span></label>
+        <div class="type-options">
+          <button type="button" class="type-btn" data-type="소셜 모임" onclick="selectType('소셜 모임')">🫂 소셜 모임</button>
+          <button type="button" class="type-btn" data-type="팀빌딩" onclick="selectType('팀빌딩')">🤝 팀빌딩</button>
+          <button type="button" class="type-btn" data-type="친목·MT" onclick="selectType('친목·MT')">🎉 친목 · MT</button>
+          <button type="button" class="type-btn" data-type="" onclick="selectType('')">✨ 기타</button>
+        </div>
+      </div>
 
       <div class="field-group">
         <label>모임 제목<span class="required-mark">*</span></label>
@@ -327,6 +381,14 @@
   <script>
     let uuid = null;
     let selectedRole = null;
+    let selectedType = null;
+
+    function selectType(type) {
+      selectedType = type;
+      document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.type === type);
+      });
+    }
 
     async function init() {
       uuid = localStorage.getItem('demo_uuid');
@@ -376,8 +438,12 @@
     }
 
     async function createRoom() {
-      const title = titleInput.value.trim();
-      if (!title || !selectedRole) return;
+      const rawTitle = titleInput.value.trim();
+      if (!rawTitle || !selectedRole) return;
+
+      // 모임 유형이 선택됐으면 제목 앞에 프리픽스, 100자 이내로 캡
+      let title = selectedType ? `[${selectedType}] ${rawTitle}` : rawTitle;
+      if (title.length > 100) title = title.slice(0, 100);
 
       const btn = document.getElementById('createBtn');
       const errMsg = document.getElementById('errorMsg');
