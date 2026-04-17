@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
 <title>ntable — 호스트 프레젠테이션</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -726,13 +727,14 @@
     #action-bar { padding: 16px 28px; }
   }
   @media (max-width: 780px) {
-    body { flex-direction: column; }
-    #sidebar { width: 100%; min-width: 0; height: auto; max-height: 42vh; border-right: none; border-bottom: 1px solid var(--gold-border); }
-    #main { height: auto; min-height: 58vh; }
+    body { flex-direction: column; overflow: auto; min-height: auto; }
+    #sidebar { width: 100%; min-width: 0; height: auto; max-height: none; overflow: visible; border-right: none; border-bottom: 1px solid var(--gold-border); }
+    #waiting-section { overflow: visible; }
+    #main { height: auto; min-height: auto; overflow: visible; }
+    #stage { overflow: visible; padding: 28px 20px; }
     .phase-steps { gap: 12px; }
     .phase-step { font-size: 11px; }
     .phase-step .phase-label { display: none; }
-    #stage { padding: 28px 20px; }
     #action-bar { padding: 14px 20px; }
     .btn-gold { min-width: 0; flex: 1; }
   }
