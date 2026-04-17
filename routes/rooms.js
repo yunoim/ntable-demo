@@ -90,6 +90,31 @@ router.get('/rooms/:code', async (req, res) => {
   res.json(result.rows[0]);
 });
 
+// GET /api/rooms/:code/preview
+// 인증 전(게스트 대기 화면)에서 노출할 최소 공개 정보
+router.get('/rooms/:code/preview', async (req, res) => {
+  const { code } = req.params;
+  const r = await pool.query(
+    `SELECT r.room_code, r.title, r.status,
+            u.nickname AS host_nickname
+     FROM rooms r
+     LEFT JOIN users u ON u.uuid = r.host_uuid
+     WHERE r.room_code = $1`,
+    [code]
+  );
+  if (r.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const wsModule = require('./ws');
+  const member_count = wsModule.getRoomClients(code).length;
+  const row = r.rows[0];
+  res.json({
+    room_code: row.room_code,
+    title: row.title,
+    status: row.status,
+    host_nickname: row.host_nickname,
+    member_count,
+  });
+});
+
 // GET /api/rooms/:code/members
 router.get('/rooms/:code/members', async (req, res) => {
   const { code } = req.params;

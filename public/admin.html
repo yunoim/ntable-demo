@@ -8,22 +8,44 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0c0c0e;
-    --surface: #16161a;
-    --surface2: #1e1e24;
-    --border: #2a2a32;
-    --input-border: #5a5a66;
-    --placeholder: #9a948a;
-    --text: #f0ede8;
-    --muted: #a8a29a;
-    --gold: #e8c97e;
-    --red: #f87171;
-    --green: #4ade80;
+    /* Navy */
+    --navy:        #0a0f1e;
+    --navy-light:  #0f1628;
+    --navy-mid:    #141d35;
+    /* Surfaces */
+    --surface:     #141d35;
+    --surface-2:   #1a2442;
+    --surface-3:   #223056;
+    /* Gold (landing 기준) */
+    --gold:        #d4a843;
+    --gold-light:  #f0ca60;
+    --gold-dim:    rgba(212,168,67,0.18);
+    --gold-dim-2:  rgba(212,168,67,0.08);
+    --gold-border: rgba(212,168,67,0.35);
+    /* Text */
+    --white:       #f5f2ec;
+    --white-dim:   rgba(245,242,236,0.88);
+    --white-muted: rgba(245,242,236,0.72);
+    --text:        #ddd5bc;
+    --text-muted:  rgba(216,208,187,0.78);
+    --text-dim:    rgba(216,208,187,0.65);
+    --subtext:     rgba(216,208,187,0.78);
+    /* UI */
+    --border:      rgba(255,255,255,0.14);
+    --input-border:#5a6178;
+    --placeholder: rgba(216,208,187,0.65);
+    --danger:      #e87e7e;
+    --success:     #7ee8a2;
+    /* Motion */
+    --radius:      10px;
+    --radius-lg:   18px;
+    --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
   }
   body {
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--navy); color: var(--text);
+    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
     font-size: 14px;
+    font-feature-settings: 'tnum' 1; /* tabular nums: 테이블 숫자열 정렬 유지 */
     min-height: 100vh;
   }
   a { color: var(--gold); text-decoration: none; }
@@ -37,20 +59,20 @@
     border-radius: 16px; padding: 36px 28px; width: 100%; max-width: 360px;
   }
   .login-card h1 { font-size: 20px; margin-bottom: 6px; color: var(--gold); }
-  .login-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
   .login-card input {
-    width: 100%; background: var(--bg); border: 1px solid var(--input-border);
+    width: 100%; background: var(--navy); border: 1px solid var(--input-border);
     border-radius: 10px; color: var(--text); font-size: 15px;
     padding: 12px 14px; outline: none; margin-bottom: 12px;
   }
   .login-card input:focus { border-color: var(--gold); }
   .login-card input::placeholder { color: var(--placeholder); opacity: 1; }
   .login-card button {
-    width: 100%; background: var(--gold); color: #0c0c0e;
+    width: 100%; background: var(--gold); color: var(--navy);
     border: none; border-radius: 10px; padding: 13px;
     font-size: 15px; font-weight: 700; cursor: pointer;
   }
-  .login-err { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .login-err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
 
   /* App */
   .app { display: none; min-height: 100vh; }
@@ -59,9 +81,9 @@
     background: var(--surface); border-bottom: 1px solid var(--border);
     padding: 14px 22px; display: flex; align-items: center; justify-content: space-between;
   }
-  .h-logo { font-size: 16px; font-weight: 700; color: var(--gold); letter-spacing: 0.05em; }
+  .h-logo { font-size: 16px; font-weight: 700; color: var(--gold); letter-spacing: 0.05em; margin: 0; }
   .h-right { display: flex; gap: 12px; align-items: center; }
-  .h-link { font-size: 13px; color: var(--muted); cursor: pointer; }
+  .h-link { font-size: 13px; color: var(--text-muted); cursor: pointer; }
   .h-link:hover { color: var(--text); }
 
   nav.tabs {
@@ -69,7 +91,7 @@
     display: flex; padding: 0 20px; overflow-x: auto;
   }
   .tab-btn {
-    background: none; border: none; color: var(--muted);
+    background: none; border: none; color: var(--text-muted);
     padding: 14px 16px; font-size: 14px; font-weight: 600;
     cursor: pointer; border-bottom: 2px solid transparent;
   }
@@ -88,20 +110,20 @@
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 12px; padding: 18px;
   }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .stat-value { font-size: 28px; font-weight: 700; color: var(--gold); margin-top: 6px; }
-  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
   /* Table */
   .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .filter-btn {
-    background: var(--surface2); border: 1px solid var(--input-border);
-    color: var(--muted); padding: 6px 12px; border-radius: 20px;
+    background: var(--surface-2); border: 1px solid var(--input-border);
+    color: var(--text-muted); padding: 6px 12px; border-radius: 20px;
     font-size: 12px; cursor: pointer;
   }
-  .filter-btn.active { background: var(--gold); color: #0c0c0e; border-color: var(--gold); font-weight: 600; }
+  .filter-btn.active { background: var(--gold); color: var(--navy); border-color: var(--gold); font-weight: 600; }
   .search-box {
-    background: var(--surface2); border: 1px solid var(--input-border);
+    background: var(--surface-2); border: 1px solid var(--input-border);
     border-radius: 20px; padding: 6px 14px;
     color: var(--text); font-size: 13px; outline: none;
     margin-left: auto; min-width: 180px;
@@ -111,24 +133,26 @@
 
   .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 12px 14px; background: var(--surface2); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  th { text-align: left; padding: 12px 14px; background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
   td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
   .status-tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
-  .status-waiting { background: rgba(232,201,126,0.15); color: var(--gold); }
-  .status-open { background: rgba(74,222,128,0.15); color: var(--green); }
-  .status-closed { background: rgba(136,136,136,0.15); color: var(--muted); }
+  .status-waiting { background: rgba(212,168,67,0.15); color: var(--gold); }
+  .status-open { background: rgba(126,232,162,0.15); color: var(--success); }
+  .status-closed { background: rgba(136,136,136,0.15); color: var(--text-muted); }
   .btn-sm {
-    background: var(--surface2); border: 1px solid var(--input-border);
+    background: var(--surface-2); border: 1px solid var(--input-border);
     color: var(--text); padding: 4px 10px; border-radius: 6px;
     font-size: 11px; cursor: pointer; margin-right: 4px;
   }
   .btn-sm:hover { background: var(--border); }
-  .btn-sm.red { color: var(--red); border-color: rgba(248,113,113,0.3); }
-  .btn-sm.red:hover { background: rgba(248,113,113,0.1); }
+  .btn-sm.red { color: var(--danger); border-color: rgba(232,126,126,0.3); }
+  .btn-sm.red:hover { background: rgba(232,126,126,0.1); }
 
-  .empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+  .empty { padding: 54px 20px; text-align: center; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+  .empty-icon { display: block; font-size: 36px; opacity: 0.65; margin-bottom: 10px; filter: grayscale(0.3); }
+  .empty-hint { display: block; font-size: 12px; color: var(--text-dim); margin-top: 6px; }
 
   /* Modal */
   .modal-backdrop {
@@ -143,21 +167,103 @@
     max-height: 85vh; overflow-y: auto;
   }
   .modal h2 { font-size: 17px; margin-bottom: 14px; color: var(--gold); }
-  .modal pre { background: var(--bg); border-radius: 8px; padding: 12px; font-size: 11px; overflow-x: auto; color: var(--muted); max-height: 240px; }
-  .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+  .modal pre { background: var(--navy); border-radius: 8px; padding: 12px; font-size: 11px; overflow-x: auto; color: var(--text-muted); max-height: 240px; }
+  .modal-close { float: right; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
   .kv-row { display: flex; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .kv-row:last-child { border-bottom: none; }
-  .kv-k { color: var(--muted); min-width: 110px; font-size: 12px; }
+  .kv-k { color: var(--text-muted); min-width: 110px; font-size: 12px; }
   .kv-v { color: var(--text); word-break: break-all; }
-  .section-h { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 8px; }
+  .section-h { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 8px; }
 
   .err-toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    background: var(--red); color: white; padding: 10px 18px; border-radius: 8px;
+    background: var(--danger); color: white; padding: 10px 18px; border-radius: 8px;
     font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none;
     transition: opacity 0.3s; z-index: 999;
   }
   .err-toast.show { opacity: 1; }
+
+  /* ── Focus visible (A11y) ── */
+  button:focus-visible, input:focus-visible, a:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  /* ── Mobile (≤768px): 테이블 → 카드 리스트 ── */
+  @media (max-width: 768px) {
+    header { padding: 12px 16px; }
+    .h-logo { font-size: 14px; }
+    nav.tabs { padding: 0 8px; }
+    .tab-btn { padding: 12px 12px; font-size: 13px; }
+    main { padding: 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-card { padding: 14px; }
+    .stat-value { font-size: 22px; }
+    .stat-sub { font-size: 11px; }
+    .section-h { margin: 16px 0 8px; }
+    .filters { gap: 6px; margin-bottom: 10px; }
+    .filter-btn { padding: 5px 10px; font-size: 11px; }
+    .search-box { margin-left: 0; min-width: 0; width: 100%; }
+
+    /* 테이블을 카드 리스트로 변환 (스코프: .table-wrap만) */
+    .table-wrap { background: transparent; border: none; border-radius: 0; overflow: visible; }
+    .table-wrap table,
+    .table-wrap thead,
+    .table-wrap tbody,
+    .table-wrap th,
+    .table-wrap td,
+    .table-wrap tr { display: block; }
+    .table-wrap thead { position: absolute; left: -9999px; top: -9999px; }
+    .table-wrap tr {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+    }
+    .table-wrap tr:hover td { background: transparent; }
+    .table-wrap td {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      gap: 10px;
+      font-size: 13px;
+      max-width: none !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      word-break: break-word;
+    }
+    .table-wrap tr td:last-child { border-bottom: none; }
+    .table-wrap td::before {
+      content: attr(data-label);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .table-wrap td[data-label=""]::before { display: none; }
+    .table-wrap td[data-label=""] {
+      justify-content: flex-start;
+      padding-top: 10px;
+      flex-wrap: wrap;
+    }
+    .empty { padding: 24px 14px; }
+
+    /* Modal: 화면 맞춤 축소 (내부 테이블은 카드 변환 대상 아님 — .table-wrap 밖) */
+    .modal { padding: 18px; border-radius: 12px; }
+    .modal h2 { font-size: 16px; }
+    .modal pre { font-size: 10px; }
+    .modal table { font-size: 11px; }
+    .modal th, .modal td { padding: 7px 5px; }
+    .kv-row { flex-direction: column; gap: 2px; }
+    .kv-k { min-width: 0; }
+  }
 </style>
 </head>
 <body>
@@ -167,8 +273,8 @@
   <div class="login-card">
     <h1>ntable 관리자</h1>
     <p>플랫폼 운영 콘솔</p>
-    <input type="password" id="passwordInput" placeholder="관리자 비밀번호" autocomplete="current-password" />
-    <button id="loginBtn">로그인</button>
+    <input type="password" id="passwordInput" placeholder="관리자 비밀번호" autocomplete="current-password" aria-label="관리자 비밀번호" />
+    <button type="button" id="loginBtn">로그인</button>
     <div class="login-err" id="loginErr"></div>
   </div>
 </div>
@@ -176,7 +282,7 @@
 <!-- App -->
 <div class="app" id="app">
   <header>
-    <div class="h-logo">ntable · admin</div>
+    <h1 class="h-logo">ntable · admin</h1>
     <div class="h-right">
       <a class="h-link" href="/" target="_blank">데모 열기 ↗</a>
       <span class="h-link" onclick="logout()">로그아웃</span>
@@ -184,10 +290,10 @@
   </header>
 
   <nav class="tabs">
-    <button class="tab-btn active" data-tab="dashboard">대시보드</button>
-    <button class="tab-btn" data-tab="rooms">방 관리</button>
-    <button class="tab-btn" data-tab="users">유저</button>
-    <button class="tab-btn" data-tab="surveys">후기</button>
+    <button type="button" class="tab-btn active" data-tab="dashboard">대시보드</button>
+    <button type="button" class="tab-btn" data-tab="rooms">방 관리</button>
+    <button type="button" class="tab-btn" data-tab="users">유저</button>
+    <button type="button" class="tab-btn" data-tab="surveys">후기</button>
   </nav>
 
   <main>
@@ -201,10 +307,10 @@
     <!-- Rooms -->
     <div class="panel" id="panel-rooms">
       <div class="filters">
-        <button class="filter-btn active" data-filter="" onclick="filterRooms('')">전체</button>
-        <button class="filter-btn" data-filter="waiting" onclick="filterRooms('waiting')">대기</button>
-        <button class="filter-btn" data-filter="open" onclick="filterRooms('open')">진행 중</button>
-        <button class="filter-btn" data-filter="closed" onclick="filterRooms('closed')">종료</button>
+        <button type="button" class="filter-btn active" data-filter="" onclick="filterRooms('')">전체</button>
+        <button type="button" class="filter-btn" data-filter="waiting" onclick="filterRooms('waiting')">대기</button>
+        <button type="button" class="filter-btn" data-filter="open" onclick="filterRooms('open')">진행 중</button>
+        <button type="button" class="filter-btn" data-filter="closed" onclick="filterRooms('closed')">종료</button>
       </div>
       <div class="table-wrap" id="roomsTable"></div>
     </div>
@@ -212,7 +318,7 @@
     <!-- Users -->
     <div class="panel" id="panel-users">
       <div class="filters">
-        <input class="search-box" id="userSearch" placeholder="닉네임 검색" oninput="onUserSearch()" />
+        <input class="search-box" id="userSearch" placeholder="닉네임 검색" oninput="onUserSearch()" aria-label="닉네임 검색" />
       </div>
       <div class="table-wrap" id="usersTable"></div>
     </div>
@@ -227,7 +333,7 @@
 <!-- Modal -->
 <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal()">×</button>
+    <button type="button" class="modal-close" onclick="closeModal()" aria-label="모달 닫기">×</button>
     <div id="modalBody"></div>
   </div>
 </div>
@@ -382,7 +488,7 @@ function filterRooms(s) {
 
 function renderRoomsTable(rooms, containerId, withActions) {
   const c = document.getElementById(containerId);
-  if (!rooms.length) { c.innerHTML = '<div class="empty">방이 없어요.</div>'; return; }
+  if (!rooms.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>아직 열린 방이 없어요<span class="empty-hint">호스트가 방을 만들면 여기에 표시됩니다.</span></div>'; return; }
   c.innerHTML = `
     <table>
       <thead><tr>
@@ -392,16 +498,16 @@ function renderRoomsTable(rooms, containerId, withActions) {
       <tbody>
       ${rooms.map(r => `
         <tr>
-          <td style="font-family:monospace;color:var(--gold)">${esc(r.room_code)}</td>
-          <td>${esc(r.title)}</td>
-          <td>${esc(r.host_nickname || '-')}</td>
-          <td>${r.participants}</td>
-          <td>${statusTag(r.status)}</td>
-          <td style="color:var(--muted);font-size:12px">${fmtDate(r.created_at)}</td>
-          ${withActions ? `<td>
-            <button class="btn-sm" onclick="viewRoom('${esc(r.room_code)}')">상세</button>
-            ${r.status !== 'closed' ? `<button class="btn-sm" onclick="closeRoom('${esc(r.room_code)}')">종료</button>` : ''}
-            <button class="btn-sm red" onclick="deleteRoom('${esc(r.room_code)}')">삭제</button>
+          <td data-label="CODE" style="font-family:monospace;color:var(--gold)">${esc(r.room_code)}</td>
+          <td data-label="제목">${esc(r.title)}</td>
+          <td data-label="호스트">${esc(r.host_nickname || '-')}</td>
+          <td data-label="참가">${r.participants}</td>
+          <td data-label="상태">${statusTag(r.status)}</td>
+          <td data-label="생성" style="color:var(--text-muted);font-size:12px">${fmtDate(r.created_at)}</td>
+          ${withActions ? `<td data-label="">
+            <button type="button" class="btn-sm" onclick="viewRoom('${esc(r.room_code)}')">상세</button>
+            ${r.status !== 'closed' ? `<button type="button" class="btn-sm" onclick="closeRoom('${esc(r.room_code)}')">종료</button>` : ''}
+            <button type="button" class="btn-sm red" onclick="deleteRoom('${esc(r.room_code)}')">삭제</button>
           </td>` : ''}
         </tr>`).join('')}
       </tbody>
@@ -413,13 +519,13 @@ async function viewRoom(code) {
     const d = await api(`/api/panel/rooms/${code}`);
     const r = d.room;
     document.getElementById('modalBody').innerHTML = `
-      <h2>${esc(r.title)} <span style="color:var(--muted);font-size:13px">(${esc(r.room_code)})</span></h2>
+      <h2>${esc(r.title)} <span style="color:var(--text-muted);font-size:13px">(${esc(r.room_code)})</span></h2>
       <div class="kv-row"><span class="kv-k">호스트</span><span class="kv-v">${esc(r.host_nickname || '-')} · ${esc(r.host_uuid)}</span></div>
       <div class="kv-row"><span class="kv-k">역할</span><span class="kv-v">${esc(r.host_role)}</span></div>
       <div class="kv-row"><span class="kv-k">상태</span><span class="kv-v">${statusTag(r.status)}</span></div>
       <div class="kv-row"><span class="kv-k">생성</span><span class="kv-v">${fmtDate(r.created_at)}</span></div>
       <div class="section-h">참가자 ${d.members.length}명</div>
-      ${d.members.length ? `<table>
+      ${d.members.length ? `<table aria-label="참가자 목록">
         <thead><tr><th>닉네임</th><th>성별</th><th>MBTI</th><th>fi_count</th><th>투표수</th></tr></thead>
         <tbody>
         ${d.members.map(m => `<tr>
@@ -430,15 +536,16 @@ async function viewRoom(code) {
           <td>${Object.keys(m.votes_json || {}).length}</td>
         </tr>`).join('')}
         </tbody>
-      </table>` : '<div class="empty">참가자 없음</div>'}
+      </table>` : '<div class="empty" style="padding:28px 16px;"><span class="empty-icon" style="font-size:28px;">🪑</span>참가자가 없어요</div>'}
       <div class="section-h">현재 상태</div>
       <pre>${esc(JSON.stringify(d.state?.state_json || {}, null, 2))}</pre>
       <div class="section-h">후기 ${d.surveys.length}건</div>
       ${d.surveys.length ? d.surveys.map(s => `
+
         <div class="kv-row">
           <span class="kv-k">★${s.satisfaction} · NPS ${s.nps}</span>
           <span class="kv-v">${esc(s.review || s.best_moment || '(내용 없음)')}</span>
-        </div>`).join('') : '<div class="empty">후기 없음</div>'}
+        </div>`).join('') : '<div class="empty" style="padding:28px 16px;"><span class="empty-icon" style="font-size:28px;">💬</span>아직 후기가 없어요</div>'}
     `;
     openModal();
   } catch (e) { errToast(e.message); }
@@ -474,7 +581,7 @@ function onUserSearch() {
 }
 function renderUsersTable(users) {
   const c = document.getElementById('usersTable');
-  if (!users.length) { c.innerHTML = '<div class="empty">유저가 없어요.</div>'; return; }
+  if (!users.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">👥</span>등록된 유저가 없어요<span class="empty-hint">게스트가 처음 로그인하면 자동 생성됩니다.</span></div>'; return; }
   c.innerHTML = `
     <table>
       <thead><tr>
@@ -484,16 +591,16 @@ function renderUsersTable(users) {
       <tbody>
       ${users.map(u => `
         <tr>
-          <td style="font-weight:600">${esc(u.nickname)}</td>
-          <td>${u.gender || '-'}</td>
-          <td>${u.birth_year || '-'}</td>
-          <td>${u.mbti || '-'}</td>
-          <td>${esc(u.region || '-')}</td>
-          <td>${u.instagram ? '@' + esc(u.instagram) : '-'}</td>
-          <td>${u.hosted_rooms}</td>
-          <td>${u.participations}</td>
-          <td style="color:var(--muted);font-size:12px">${fmtDate(u.created_at)}</td>
-          <td><button class="btn-sm red" onclick="deleteUser('${esc(u.uuid)}','${esc(u.nickname)}')">삭제</button></td>
+          <td data-label="닉네임" style="font-weight:600">${esc(u.nickname)}</td>
+          <td data-label="성별">${u.gender || '-'}</td>
+          <td data-label="출생">${u.birth_year || '-'}</td>
+          <td data-label="MBTI">${u.mbti || '-'}</td>
+          <td data-label="지역">${esc(u.region || '-')}</td>
+          <td data-label="인스타">${u.instagram ? '@' + esc(u.instagram) : '-'}</td>
+          <td data-label="호스트">${u.hosted_rooms}</td>
+          <td data-label="참가">${u.participations}</td>
+          <td data-label="가입" style="color:var(--text-muted);font-size:12px">${fmtDate(u.created_at)}</td>
+          <td data-label=""><button type="button" class="btn-sm red" onclick="deleteUser('${esc(u.uuid)}','${esc(u.nickname)}')">삭제</button></td>
         </tr>`).join('')}
       </tbody>
     </table>`;
@@ -516,7 +623,7 @@ async function loadSurveys() {
 }
 function renderSurveysTable(surveys) {
   const c = document.getElementById('surveysTable');
-  if (!surveys.length) { c.innerHTML = '<div class="empty">후기가 없어요.</div>'; return; }
+  if (!surveys.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📝</span>아직 후기가 없어요<span class="empty-hint">모임 종료 시 게스트가 작성한 후기가 여기 쌓여요.</span></div>'; return; }
   c.innerHTML = `
     <table>
       <thead><tr>
@@ -526,15 +633,15 @@ function renderSurveysTable(surveys) {
       <tbody>
       ${surveys.map(s => `
         <tr>
-          <td style="font-family:monospace;color:var(--gold);font-size:12px">${esc(s.room_code || '-')}</td>
-          <td>${esc(s.nickname || '-')}</td>
-          <td>${s.satisfaction}</td>
-          <td>${s.revisit ? '✓' : '✗'}</td>
-          <td>${s.nps}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.best_moment || '-')}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.regret || '-')}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.review || '-')}</td>
-          <td style="color:var(--muted);font-size:12px">${fmtDate(s.created_at)}</td>
+          <td data-label="방" style="font-family:monospace;color:var(--gold);font-size:12px">${esc(s.room_code || '-')}</td>
+          <td data-label="닉네임">${esc(s.nickname || '-')}</td>
+          <td data-label="만족도">${s.satisfaction}</td>
+          <td data-label="재방문">${s.revisit ? '✓' : '✗'}</td>
+          <td data-label="NPS">${s.nps}</td>
+          <td data-label="베스트" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.best_moment || '-')}</td>
+          <td data-label="아쉬운" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.regret || '-')}</td>
+          <td data-label="한 줄" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.review || '-')}</td>
+          <td data-label="작성" style="color:var(--text-muted);font-size:12px">${fmtDate(s.created_at)}</td>
         </tr>`).join('')}
       </tbody>
     </table>`;

@@ -11,29 +11,38 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
+    /* Navy */
     --navy:        #0a0f1e;
     --navy-light:  #0f1628;
     --navy-mid:    #141d35;
+    /* Surfaces */
     --surface:     #141d35;
     --surface-2:   #1a2442;
     --surface-3:   #223056;
-    --gold:        #c9a84c;
-    --gold-light:  #dfc070;
-    --gold-dim:    rgba(201,168,76,0.14);
-    --gold-dim-2:  rgba(201,168,76,0.06);
-    --gold-border: rgba(201,168,76,0.25);
+    /* Gold (landing 기준) */
+    --gold:        #d4a843;
+    --gold-light:  #f0ca60;
+    --gold-dim:    rgba(212,168,67,0.18);
+    --gold-dim-2:  rgba(212,168,67,0.08);
+    --gold-border: rgba(212,168,67,0.35);
+    /* Text */
     --white:       #f5f2ec;
-    --white-dim:   rgba(245,242,236,0.7);
-    --white-muted: rgba(245,242,236,0.42);
-    --text:        #e6dfc9;
-    --subtext:     rgba(230,223,201,0.78);
+    --white-dim:   rgba(245,242,236,0.88);
+    --white-muted: rgba(245,242,236,0.72);
+    --text:        #ddd5bc;
+    --text-muted:  rgba(216,208,187,0.78);
+    --text-dim:    rgba(216,208,187,0.65);
+    --subtext:     rgba(216,208,187,0.78);
+    /* UI */
     --border:      rgba(255,255,255,0.14);
     --input-border:#5a6178;
-    --placeholder: rgba(230,223,201,0.62);
+    --placeholder: rgba(216,208,187,0.65);
     --danger:      #e87e7e;
     --success:     #7ee8a2;
-    --radius:      14px;
-    --radius-lg:   20px;
+    /* Motion */
+    --radius:      10px;
+    --radius-lg:   18px;
+    --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -54,7 +63,7 @@
     content: '';
     position: fixed; inset: 0;
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(201,168,76,0.09), transparent 55%),
+      radial-gradient(circle at 20% 10%, rgba(212,168,67,0.09), transparent 55%),
       radial-gradient(circle at 80% 90%, rgba(80,100,180,0.05), transparent 50%);
     pointer-events: none;
     z-index: 0;
@@ -131,7 +140,7 @@
     z-index: 9999;
     transform: translateY(-100%);
     transition: transform 0.35s ease;
-    box-shadow: 0 8px 30px rgba(201,168,76,0.28);
+    box-shadow: 0 8px 30px rgba(212,168,67,0.28);
   }
   #nudgeBanner.show { transform: translateY(0); }
 
@@ -254,7 +263,7 @@
     font-weight: 700;
     cursor: pointer;
     margin-bottom: 10px;
-    box-shadow: 0 4px 18px rgba(201,168,76,0.28);
+    box-shadow: 0 4px 18px rgba(212,168,67,0.28);
     transition: transform 0.15s;
   }
   .insta-reveal-btn:active { transform: scale(0.98); }
@@ -290,7 +299,7 @@
     cursor: pointer;
     text-decoration: none;
     letter-spacing: 0.02em;
-    box-shadow: 0 4px 18px rgba(201,168,76,0.28);
+    box-shadow: 0 4px 18px rgba(212,168,67,0.28);
   }
 
   /* ─── WAITING SCREEN ─── */
@@ -378,6 +387,206 @@
     color: var(--gold-light);
     border-color: var(--gold-border);
   }
+
+  /* ─── 대기 화면 리치업: Preview + Rules + Alert ─── */
+  .room-preview-card {
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 18px;
+    padding: 18px 22px;
+    width: 100%; max-width: 340px;
+  }
+  .preview-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .preview-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 600;
+    color: var(--white);
+    line-height: 1.3;
+    margin-bottom: 14px;
+  }
+  .preview-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+  .preview-host-chip, .preview-members-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 5px 12px;
+    color: var(--subtext);
+  }
+  .preview-host-chip strong { color: var(--gold-light); font-weight: 600; }
+  .preview-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(126,232,162,0.55);
+  }
+
+  .rules-accordion {
+    width: 100%; max-width: 340px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .rules-accordion summary {
+    padding: 14px 18px;
+    cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    color: var(--gold-light);
+    list-style: none;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: background 0.2s;
+  }
+  .rules-accordion summary::-webkit-details-marker { display: none; }
+  .rules-accordion summary:hover { background: var(--gold-dim-2); }
+  .accordion-arrow { transition: transform 0.25s; font-size: 12px; }
+  .rules-accordion[open] .accordion-arrow { transform: rotate(180deg); }
+  .rules-body { padding: 4px 18px 16px; border-top: 1px solid var(--border); }
+  .rule-item { font-size: 13px; color: var(--subtext); line-height: 1.65; padding: 6px 0; }
+  .rule-item strong { color: var(--gold); font-weight: 600; margin-right: 6px; }
+
+  .alert-host-btn {
+    width: 100%; max-width: 340px;
+    background: transparent;
+    border: 1.5px dashed var(--gold-border);
+    color: var(--gold-light);
+    border-radius: 14px;
+    padding: 13px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, border-style 0.2s, border-color 0.2s;
+  }
+  .alert-host-btn:hover:not(:disabled) { background: var(--gold-dim-2); border-style: solid; border-color: var(--gold); }
+  .alert-host-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .mini-toast {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translate(-50%, -14px);
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    color: var(--gold-light);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12.5px; font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.28s, transform 0.28s;
+    z-index: 9998;
+    pointer-events: none;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+  }
+  .mini-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .card-title-row .card-title { margin-bottom: 0; }
+  .profile-edit-link {
+    font-size: 11px;
+    color: var(--gold-light);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 2px 4px;
+  }
+  .profile-edit-link:hover { color: var(--gold); }
+
+  #profileEditModal {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10001;
+    padding: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  #profileEditModal[hidden] { display: none; }
+  .profile-edit-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(10,15,30,0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .profile-edit-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 20px;
+    padding: 30px 24px 24px;
+    max-width: 360px;
+    width: 100%;
+    z-index: 1;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  .profile-edit-card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 18px;
+  }
+  .profile-edit-card label {
+    display: block;
+    font-size: 11px;
+    color: var(--subtext);
+    margin: 14px 0 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .profile-edit-card select,
+  .profile-edit-card input {
+    width: 100%;
+    background: var(--navy-light);
+    border: 1.5px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--white);
+    font-size: 14px;
+    padding: 11px 14px;
+    outline: none;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .profile-edit-card select:focus, .profile-edit-card input:focus { border-color: var(--gold); }
+  .profile-edit-save {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    margin-top: 22px;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+  }
+  .profile-edit-close {
+    position: absolute; top: 10px; right: 10px;
+    background: transparent; border: none;
+    color: var(--text-muted); font-size: 24px;
+    width: 34px; height: 34px; border-radius: 50%;
+    cursor: pointer; font-family: inherit; line-height: 1;
+  }
+  .profile-edit-close:hover { color: var(--gold); background: var(--gold-dim-2); }
+  #profileEditStatus { font-size: 12px; color: var(--gold-light); margin-top: 10px; text-align: center; min-height: 16px; }
 
   /* ─── INTRO SCREEN ─── */
   #screenIntro { display: flex; flex-direction: column; }
@@ -569,9 +778,23 @@
     background: linear-gradient(90deg, var(--gold), var(--gold-light));
     border-radius: 5px;
     width: 0%;
-    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s;
   }
   .vote-bar-fill.b { background: linear-gradient(90deg, var(--subtext), var(--white-muted)); }
+  .vote-bar-fill.winning { box-shadow: 0 0 14px rgba(212,168,67,0.55); }
+  .vote-bar-fill.b.winning { box-shadow: 0 0 10px rgba(245,242,236,0.35); }
+  .winner-badge {
+    display: inline-block;
+    margin-left: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.12em;
+    padding: 2px 8px;
+    border: 1px solid var(--gold-border);
+    border-radius: 10px;
+    background: var(--gold-dim);
+  }
 
   /* ─── FREE SCREEN ─── */
   #screenFree { display: flex; flex-direction: column; }
@@ -654,7 +877,7 @@
     font-size: 18px;
     color: var(--navy);
     font-weight: 700;
-    box-shadow: 0 4px 14px rgba(201,168,76,0.3);
+    box-shadow: 0 4px 14px rgba(212,168,67,0.3);
     transition: transform 0.15s;
   }
   .chat-send-btn:active { transform: scale(0.94); }
@@ -782,9 +1005,35 @@
     #nudgeBanner.show { transform: translateX(-50%) translateY(0); }
     body > * { position: relative; z-index: 1; }
   }
+
+  /* ── Focus visible (A11y) ── */
+  button:focus-visible, input:focus-visible, a:focus-visible, .member-vote-item:focus-visible, .choice-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  /* ── Very small widths (≤360px): 타이포/패딩 추가 축소 ── */
+  @media (max-width: 360px) {
+    .top-bar { padding: 14px 14px 10px; padding-top: calc(14px + env(safe-area-inset-top)); gap: 8px; }
+    .logo { font-size: 18px; }
+    .tab-indicator, .room-tag { font-size: 10px; padding: 4px 8px; }
+    .question-area { padding: 22px 16px; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+    .q-text { font-size: 22px; }
+    .choice-btn { padding: 16px 14px; font-size: 15px; min-height: 56px; }
+    .chat-input-bar { padding: 12px 14px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+    .chat-input { padding: 10px 14px; font-size: 14px; }
+    .chat-send-btn { width: 40px; height: 40px; font-size: 16px; }
+    .closing-content { padding: 20px 16px 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+    .member-vote-item { padding: 14px 14px; min-height: 66px; }
+    .member-vote-name { font-size: 15px; }
+    .matching-card { padding: 34px 22px; }
+    .matching-emoji { font-size: 46px; margin-bottom: 14px; }
+    .matching-title { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">ntable — 모임 참여</h1>
 
 <!-- Nudge Banner -->
 <div id="nudgeBanner">자리를 이동해볼까요 🔀</div>
@@ -805,7 +1054,7 @@
     <div class="matching-emoji" id="matchEmoji">🎉</div>
     <div class="matching-title" id="matchTitle"></div>
     <div class="matching-sub" id="matchSub"></div>
-    <button class="insta-reveal-btn" id="instaRevealBtn" onclick="revealInstagram()" style="display:none">
+    <button type="button" class="insta-reveal-btn" id="instaRevealBtn" onclick="revealInstagram()" style="display:none">
       📸 인스타그램 공개하기
     </button>
     <div class="insta-result-box" id="instaResultBox"></div>
@@ -831,13 +1080,30 @@
 <div class="screen" id="screenWaiting">
   <div class="waiting-msg">
     <h2>호스트 승인을<br>기다리고 있어요</h2>
-    <p>잠시만 기다려주세요.<br>호스트가 확인 중이에요.</p>
+    <p id="waitingStatus">방금 도착. 호스트가 확인 중이에요.</p>
     <div class="dots-loader">
       <span></span><span></span><span></span>
     </div>
   </div>
+
+  <div class="room-preview-card" id="roomPreviewCard" hidden>
+    <div class="preview-label">오늘의 모임</div>
+    <div class="preview-title" id="previewTitle">—</div>
+    <div class="preview-meta">
+      <span class="preview-host-chip">
+        <span>🎤</span><span>호스트 <strong id="previewHost">—</strong></span>
+      </span>
+      <span class="preview-members-chip">
+        <span class="preview-dot"></span><span><strong id="previewMemberCount">0</strong>명 접속</span>
+      </span>
+    </div>
+  </div>
+
   <div class="my-profile-card" id="myProfileCard">
-    <div class="card-title">내 프로필</div>
+    <div class="card-title-row">
+      <span class="card-title">내 프로필</span>
+      <button type="button" class="profile-edit-link" onclick="openProfileEdit()" aria-label="프로필 수정">수정 ✎</button>
+    </div>
     <div class="profile-row">
       <div class="profile-avatar" id="myAvatar">👤</div>
       <div>
@@ -846,6 +1112,56 @@
       </div>
     </div>
     <div class="profile-tags" id="myTags"></div>
+  </div>
+
+  <details class="rules-accordion">
+    <summary>
+      <span>✨ 오늘 뭐 하는 건지 궁금하다면</span>
+      <span class="accordion-arrow">⌄</span>
+    </summary>
+    <div class="rules-body">
+      <div class="rule-item"><strong>① 소개</strong>모든 참가자 프로필을 카드로 확인</div>
+      <div class="rule-item"><strong>② 탐구</strong>A/B 밸런스 게임으로 성향·취향 탐구</div>
+      <div class="rule-item"><strong>③ 자유대화</strong>익명 채팅으로 편하게 대화</div>
+      <div class="rule-item"><strong>④ 마무리</strong>MVP·매칭 발표 + 결과 카드</div>
+    </div>
+  </details>
+
+  <button type="button" id="alertHostBtn" class="alert-host-btn" onclick="alertHost()" hidden aria-label="호스트에게 알림 보내기">
+    🔔 호스트에게 알림 보내기
+  </button>
+</div>
+
+<!-- Profile edit modal -->
+<div id="profileEditModal" hidden role="dialog" aria-modal="true" aria-labelledby="profileEditTitle">
+  <div class="profile-edit-backdrop" onclick="closeProfileEdit()"></div>
+  <div class="profile-edit-card">
+    <button type="button" class="profile-edit-close" onclick="closeProfileEdit()" aria-label="프로필 수정 닫기">×</button>
+    <h3 id="profileEditTitle">프로필 수정</h3>
+    <label for="editRegion">지역</label>
+    <select id="editRegion" aria-label="지역">
+      <option value="">선택</option>
+      <option>서울</option><option>경기</option><option>인천</option>
+      <option>부산</option><option>대구</option><option>대전</option>
+      <option>광주</option><option>울산</option><option>세종</option>
+      <option>강원</option><option>충북</option><option>충남</option>
+      <option>전북</option><option>전남</option><option>경북</option>
+      <option>경남</option><option>제주</option>
+    </select>
+    <label for="editMbti">MBTI</label>
+    <select id="editMbti" aria-label="MBTI">
+      <option value="">선택</option>
+      <option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option>
+      <option>INFJ</option><option>INFP</option><option>ENFJ</option><option>ENFP</option>
+      <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
+      <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
+    </select>
+    <label for="editInterest">관심사</label>
+    <input type="text" id="editInterest" placeholder="예: 등산, 독서, 요리" maxlength="30" aria-label="관심사" />
+    <label for="editInstagram">인스타그램 아이디</label>
+    <input type="text" id="editInstagram" placeholder="@ 제외하고 입력" maxlength="50" aria-label="인스타그램 아이디" />
+    <button type="button" class="profile-edit-save" onclick="saveProfileEdit()">저장</button>
+    <div id="profileEditStatus"></div>
   </div>
 </div>
 
@@ -900,9 +1216,9 @@
   <div class="free-status-bar">익명 채팅 — 상대방에게는 닉네임이 표시되지 않아요</div>
   <div class="chat-area" id="chatArea"></div>
   <div class="chat-input-bar">
-    <input class="chat-input" id="chatInput" type="text" placeholder="메시지 입력..." maxlength="200"
+    <input class="chat-input" id="chatInput" type="text" placeholder="메시지 입력..." maxlength="200" aria-label="채팅 메시지"
            onkeydown="if(event.key==='Enter') sendChat()">
-    <button class="chat-send-btn" onclick="sendChat()" aria-label="보내기">↑</button>
+    <button type="button" class="chat-send-btn" onclick="sendChat()" aria-label="보내기">↑</button>
   </div>
 </div>
 
@@ -1000,6 +1316,13 @@ function switchScreen(state) {
   };
   const id = map[state];
   if (id) document.getElementById(id)?.classList.add('active');
+
+  if (state === 'waiting') {
+    loadRoomPreview();
+    startWaitingTimer();
+  } else {
+    stopWaitingTimer();
+  }
 }
 
 function showError(msg) {
@@ -1057,6 +1380,17 @@ async function handleWSMessage(msg) {
       if (msg.uuid === STATE.uuid) {
         await loadIntroData();
         switchScreen('intro');
+      }
+      break;
+
+    case 'user_joined':
+      if (STATE.currentState === 'waiting' && msg.uuid !== STATE.uuid) {
+        showJoinToast(msg.nickname || '누군가');
+        const el = document.getElementById('previewMemberCount');
+        if (el) {
+          const cur = parseInt(el.textContent, 10) || 0;
+          el.textContent = cur + 1;
+        }
       }
       break;
 
@@ -1126,6 +1460,114 @@ function genderLabel(g) {
   return '';
 }
 function ageOf(year) { return year ? `${CURRENT_YEAR - year + 1}세` : ''; }
+
+// ─── 대기 화면 리치업: Preview + Timer + Alert + Toast ──
+let waitingStart = null;
+let waitingTimer = null;
+
+async function loadRoomPreview() {
+  try {
+    const r = await fetch(`/api/rooms/${STATE.roomCode}/preview`);
+    if (!r.ok) return;
+    const data = await r.json();
+    document.getElementById('previewTitle').textContent = data.title || '—';
+    document.getElementById('previewHost').textContent = data.host_nickname || '—';
+    document.getElementById('previewMemberCount').textContent = data.member_count || 0;
+    document.getElementById('roomPreviewCard').hidden = false;
+  } catch(_) {}
+}
+
+function startWaitingTimer() {
+  if (waitingTimer) clearInterval(waitingTimer);
+  waitingStart = Date.now();
+  const statusEl = document.getElementById('waitingStatus');
+  const alertBtn = document.getElementById('alertHostBtn');
+  waitingTimer = setInterval(() => {
+    const secs = Math.floor((Date.now() - waitingStart) / 1000);
+    const mins = Math.floor(secs / 60);
+    if (statusEl) {
+      if (secs < 60) statusEl.textContent = '방금 도착. 호스트가 확인 중이에요.';
+      else statusEl.textContent = `${mins}분 경과 · 호스트 확인을 기다리고 있어요`;
+    }
+    if (secs >= 300 && alertBtn && alertBtn.hidden) {
+      alertBtn.hidden = false;
+    }
+  }, 1000);
+}
+
+function stopWaitingTimer() {
+  if (waitingTimer) { clearInterval(waitingTimer); waitingTimer = null; }
+  waitingStart = null;
+}
+
+function alertHost() {
+  const btn = document.getElementById('alertHostBtn');
+  if (!STATE.ws || STATE.ws.readyState !== WebSocket.OPEN || !btn) return;
+  const mins = Math.floor((Date.now() - (waitingStart || Date.now())) / 60000);
+  STATE.ws.send(JSON.stringify({ type: 'waiting_too_long', minutes: Math.max(5, mins) }));
+  btn.textContent = '✓ 알림 전송됨';
+  btn.disabled = true;
+  setTimeout(() => {
+    if (!btn) return;
+    btn.textContent = '🔔 호스트에게 알림 보내기';
+    btn.disabled = false;
+  }, 60000);
+}
+
+function showJoinToast(nickname) {
+  const t = document.createElement('div');
+  t.className = 'mini-toast';
+  t.textContent = `${nickname}님 입장 👋`;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 300);
+  }, 2400);
+}
+
+// ─── Profile edit modal ───
+function openProfileEdit() {
+  const p = STATE.myProfile || {};
+  document.getElementById('editRegion').value = p.region || '';
+  document.getElementById('editMbti').value = p.mbti || '';
+  document.getElementById('editInterest').value = p.interest || '';
+  document.getElementById('editInstagram').value = p.instagram || '';
+  document.getElementById('profileEditStatus').textContent = '';
+  document.getElementById('profileEditModal').hidden = false;
+}
+function closeProfileEdit() {
+  const m = document.getElementById('profileEditModal');
+  if (m) m.hidden = true;
+}
+async function saveProfileEdit() {
+  const statusEl = document.getElementById('profileEditStatus');
+  if (!STATE.myProfile || !STATE.uuid) return;
+  const payload = {
+    uuid: STATE.uuid,
+    gender: STATE.myProfile.gender,
+    birth_year: STATE.myProfile.birth_year,
+    region: document.getElementById('editRegion').value || null,
+    industry: STATE.myProfile.industry || null,
+    mbti: document.getElementById('editMbti').value || null,
+    interest: document.getElementById('editInterest').value.trim() || null,
+    instagram: document.getElementById('editInstagram').value.trim() || null,
+  };
+  try {
+    const r = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error();
+    STATE.myProfile = { ...STATE.myProfile, ...payload };
+    renderMyProfile();
+    statusEl.textContent = '✓ 저장 완료';
+    setTimeout(closeProfileEdit, 900);
+  } catch {
+    statusEl.textContent = '저장에 실패했어요. 다시 시도해주세요.';
+  }
+}
 
 // ─── MY PROFILE ───────────────────────────────────
 function renderMyProfile() {
@@ -1278,20 +1720,29 @@ function renderVoteResult(questionId, counts) {
   const currentQ = STATE.questions[STATE.currentQIndex];
   if (currentQ && currentQ.id !== questionId) return;
 
-  const total = (counts.A || 0) + (counts.B || 0);
-  const pctA = total ? Math.round(counts.A * 100 / total) : 0;
-  const pctB = total ? Math.round(counts.B * 100 / total) : 0;
+  const a = counts.A || 0;
+  const b = counts.B || 0;
+  const total = a + b;
+  const pctA = total ? Math.round(a * 100 / total) : 0;
+  const pctB = total ? Math.round(b * 100 / total) : 0;
+  const aWins = total >= 2 && a > b;
+  const bWins = total >= 2 && b > a;
 
   document.getElementById('vPctA').textContent = `${pctA}%`;
   document.getElementById('vPctB').textContent = `${pctB}%`;
-  document.getElementById('vLabelA').textContent = `A · ${counts.A || 0}명`;
-  document.getElementById('vLabelB').textContent = `B · ${counts.B || 0}명`;
+  document.getElementById('vLabelA').innerHTML = `A · ${a}명${aWins ? '<span class="winner-badge">▲ 우세</span>' : ''}`;
+  document.getElementById('vLabelB').innerHTML = `B · ${b}명${bWins ? '<span class="winner-badge">▲ 우세</span>' : ''}`;
+
+  const barA = document.getElementById('vBarA');
+  const barB = document.getElementById('vBarB');
+  barA.classList.toggle('winning', aWins);
+  barB.classList.toggle('winning', bWins);
 
   const wrap = document.getElementById('voteResultWrap');
   wrap.classList.add('show');
   setTimeout(() => {
-    document.getElementById('vBarA').style.width = pctA + '%';
-    document.getElementById('vBarB').style.width = pctB + '%';
+    barA.style.width = pctA + '%';
+    barB.style.width = pctB + '%';
   }, 50);
 }
 

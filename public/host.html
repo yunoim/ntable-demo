@@ -12,24 +12,38 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
+    /* Navy */
     --navy:        #0a0f1e;
     --navy-light:  #0f1628;
     --navy-mid:    #141d35;
+    /* Surfaces */
     --surface:     #141d35;
     --surface-2:   #1a2442;
-    --gold:        #c9a84c;
-    --gold-light:  #dfc070;
-    --gold-dim:    rgba(201,168,76,0.15);
-    --gold-border: rgba(201,168,76,0.25);
+    --surface-3:   #223056;
+    /* Gold (landing 기준) */
+    --gold:        #d4a843;
+    --gold-light:  #f0ca60;
+    --gold-dim:    rgba(212,168,67,0.18);
+    --gold-dim-2:  rgba(212,168,67,0.08);
+    --gold-border: rgba(212,168,67,0.35);
+    /* Text */
     --white:       #f5f2ec;
-    --white-dim:   rgba(245,242,236,0.72);
-    --white-muted: rgba(245,242,236,0.62);
-    --text:        #e6dfc9;
-    --text-muted:  rgba(230,223,201,0.78);
+    --white-dim:   rgba(245,242,236,0.88);
+    --white-muted: rgba(245,242,236,0.72);
+    --text:        #ddd5bc;
+    --text-muted:  rgba(216,208,187,0.78);
+    --text-dim:    rgba(216,208,187,0.65);
+    --subtext:     rgba(216,208,187,0.78);
+    /* UI */
+    --border:      rgba(255,255,255,0.14);
+    --input-border:#5a6178;
+    --placeholder: rgba(216,208,187,0.65);
     --danger:      #e87e7e;
     --success:     #7ee8a2;
-    --radius:      14px;
-    --radius-lg:   20px;
+    /* Motion */
+    --radius:      10px;
+    --radius-lg:   18px;
+    --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
   }
 
   body {
@@ -48,7 +62,7 @@
     content: '';
     position: fixed; inset: 0;
     background-image:
-      radial-gradient(circle at 18% 22%, rgba(201,168,76,0.08), transparent 55%),
+      radial-gradient(circle at 18% 22%, rgba(212,168,67,0.08), transparent 55%),
       radial-gradient(circle at 82% 78%, rgba(80,100,180,0.06), transparent 55%);
     pointer-events: none;
     z-index: 0;
@@ -72,7 +86,7 @@
 
   .sidebar-head {
     padding: 22px 22px 16px;
-    border-bottom: 1px solid rgba(201,168,76,0.12);
+    border-bottom: 1px solid rgba(212,168,67,0.12);
   }
   .brand {
     font-family: 'Cormorant Garamond', serif;
@@ -92,7 +106,7 @@
   #qr-wrap {
     padding: 18px 22px;
     text-align: center;
-    border-bottom: 1px solid rgba(201,168,76,0.12);
+    border-bottom: 1px solid rgba(212,168,67,0.12);
   }
   #qr-img {
     width: 100%;
@@ -103,6 +117,119 @@
     margin: 0 auto;
     padding: 10px;
     box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    cursor: zoom-in;
+    transition: transform 0.18s;
+  }
+  #qr-img:hover { transform: scale(1.02); }
+  #qr-expand-btn {
+    margin-top: 10px;
+    width: 100%;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold-border);
+    color: var(--gold-light);
+    border-radius: 10px;
+    padding: 10px 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  #qr-expand-btn:hover { background: var(--gold-dim-2); border-color: var(--gold); }
+
+  /* ── QR 확대 모달 ── */
+  #qr-modal {
+    position: fixed; inset: 0;
+    background: rgba(10,15,30,0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+    padding: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    animation: qrModalIn 0.25s ease;
+  }
+  #qr-modal[hidden] { display: none; }
+  @keyframes qrModalIn { from { opacity: 0; } to { opacity: 1; } }
+  .qr-modal-backdrop { position: absolute; inset: 0; }
+  .qr-modal-card {
+    position: relative;
+    background: var(--navy-light);
+    border: 1px solid var(--gold-border);
+    border-radius: 24px;
+    padding: 34px 28px 30px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    z-index: 1;
+    animation: qrCardIn 0.32s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes qrCardIn {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .qr-modal-close {
+    position: absolute; top: 10px; right: 10px;
+    background: transparent; border: none;
+    color: var(--text-muted); font-size: 26px;
+    width: 36px; height: 36px; border-radius: 50%;
+    cursor: pointer; line-height: 1;
+    font-family: inherit;
+    transition: color 0.2s, background 0.2s;
+  }
+  .qr-modal-close:hover { color: var(--gold); background: var(--gold-dim-2); }
+  .qr-modal-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    margin-bottom: 18px;
+    text-transform: uppercase;
+  }
+  .qr-modal-img {
+    width: 70vmin; max-width: 340px;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    display: block;
+    margin: 0 auto 22px;
+  }
+  .qr-modal-code {
+    font-family: 'DM Sans', monospace;
+    font-size: 26px; font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.32em;
+    margin-bottom: 10px;
+  }
+  .qr-modal-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .qr-modal-copy-btn {
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    border: none;
+    border-radius: 12px;
+    padding: 13px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 18px rgba(212,168,67,0.28);
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .qr-modal-copy-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.4); }
+  @media (max-width: 480px) {
+    .qr-modal-card { padding: 28px 20px 24px; border-radius: 20px; }
+    .qr-modal-code { font-size: 22px; letter-spacing: 0.22em; }
   }
   #room-code {
     font-family: 'DM Sans', monospace;
@@ -173,14 +300,14 @@
     letter-spacing: 0.02em;
     transition: transform 0.15s, box-shadow 0.2s;
   }
-  #approve-all-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(201,168,76,0.3); }
+  #approve-all-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(212,168,67,0.3); }
 
   .waiting-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: var(--surface-2);
-    border: 1px solid rgba(201,168,76,0.1);
+    border: 1px solid rgba(212,168,67,0.1);
     border-radius: 10px;
     padding: 10px 12px;
     margin-bottom: 6px;
@@ -210,7 +337,7 @@
     color: var(--text);
     transition: background 0.15s;
   }
-  .approved-item:hover { background: rgba(201,168,76,0.05); }
+  .approved-item:hover { background: rgba(212,168,67,0.05); }
   .approved-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; box-shadow: 0 0 8px rgba(126,232,162,0.4); }
   .empty-msg { color: var(--text-muted); font-size: 13px; padding: 6px 2px; }
 
@@ -232,7 +359,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 40px;
-    border-bottom: 1px solid rgba(201,168,76,0.14);
+    border-bottom: 1px solid rgba(212,168,67,0.14);
     background: rgba(10,15,30,0.5);
     backdrop-filter: blur(10px);
     flex-shrink: 0;
@@ -262,7 +389,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(201,168,76,0.08);
+    background: rgba(212,168,67,0.08);
     color: var(--text-muted);
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
@@ -275,10 +402,10 @@
   .phase-step.active .phase-num {
     background: var(--gold);
     color: var(--navy);
-    box-shadow: 0 0 0 4px rgba(201,168,76,0.18);
+    box-shadow: 0 0 0 4px rgba(212,168,67,0.18);
   }
   .phase-step.done .phase-num {
-    background: rgba(201,168,76,0.35);
+    background: rgba(212,168,67,0.35);
     color: var(--white);
   }
   #user-menu {
@@ -291,7 +418,7 @@
   #user-nick { color: var(--gold-light); }
   #user-menu button {
     background: transparent;
-    border: 1px solid rgba(201,168,76,0.2);
+    border: 1px solid rgba(212,168,67,0.2);
     color: var(--text-muted);
     border-radius: 18px;
     padding: 6px 14px;
@@ -311,9 +438,9 @@
     flex-direction: column;
   }
   .panel { display: none; flex: 1; flex-direction: column; }
-  .panel.active { display: flex; animation: stagefade 0.35s ease; }
+  .panel.active { display: flex; animation: stagefade 0.18s cubic-bezier(0.4,0,0.2,1); }
   @keyframes stagefade {
-    from { opacity: 0; transform: translateY(14px); }
+    from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
@@ -363,7 +490,7 @@
   }
   #profile-carousel::-webkit-scrollbar { height: 6px; }
   #profile-carousel::-webkit-scrollbar-track { background: transparent; }
-  #profile-carousel::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.2); border-radius: 3px; }
+  #profile-carousel::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.2); border-radius: 3px; }
   .profile-card {
     min-width: 260px;
     background: var(--surface);
@@ -374,12 +501,12 @@
     flex-shrink: 0;
     transition: transform 0.25s, border-color 0.25s;
   }
-  .profile-card:hover { transform: translateY(-3px); border-color: rgba(201,168,76,0.45); }
+  .profile-card:hover { transform: translateY(-3px); border-color: rgba(212,168,67,0.45); }
   .profile-avatar {
     width: 64px; height: 64px;
     border-radius: 50%;
     background: var(--gold-dim);
-    border: 1px solid rgba(201,168,76,0.2);
+    border: 1px solid rgba(212,168,67,0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -406,7 +533,7 @@
     border-radius: 40px;
     font-size: 11px;
     letter-spacing: 0.04em;
-    background: rgba(201,168,76,0.08);
+    background: rgba(212,168,67,0.08);
     color: var(--text-muted);
   }
   .tag-chip.gold {
@@ -467,8 +594,24 @@
     height: 100%;
     background: linear-gradient(90deg, var(--gold), var(--gold-light));
     border-radius: 8px;
-    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
-    box-shadow: 0 0 12px rgba(201,168,76,0.35);
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1), box-shadow 0.4s;
+    box-shadow: 0 0 12px rgba(212,168,67,0.35);
+  }
+  .vote-bar-wrap.winning .vote-bar-fill {
+    box-shadow: 0 0 26px rgba(212,168,67,0.65), 0 0 10px rgba(212,168,67,0.45);
+  }
+  .winner-badge {
+    display: inline-block;
+    margin-left: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.14em;
+    padding: 3px 10px;
+    border: 1px solid var(--gold-border);
+    border-radius: 12px;
+    background: var(--gold-dim);
+    vertical-align: middle;
   }
 
   #host-vote-btns { display: none; gap: 12px; margin-bottom: 24px; }
@@ -529,7 +672,7 @@
   .timer-control-btn {
     flex: 1;
     background: var(--surface-2);
-    border: 1px solid rgba(201,168,76,0.14);
+    border: 1px solid rgba(212,168,67,0.14);
     color: var(--white);
     border-radius: 10px;
     padding: 12px 0;
@@ -552,7 +695,7 @@
     align-items: center;
     gap: 10px;
     background: var(--surface-2);
-    border: 1px solid rgba(201,168,76,0.1);
+    border: 1px solid rgba(212,168,67,0.1);
     border-radius: 10px;
     padding: 11px 14px;
     cursor: pointer;
@@ -560,7 +703,7 @@
     color: var(--text);
     transition: border-color 0.15s;
   }
-  .q-select-item:hover { border-color: rgba(201,168,76,0.3); }
+  .q-select-item:hover { border-color: rgba(212,168,67,0.3); }
   .q-select-item input[type="checkbox"] {
     accent-color: var(--gold);
     flex-shrink: 0;
@@ -576,11 +719,11 @@
     overflow-y: auto;
     font-size: 14px;
     color: var(--text-muted);
-    border: 1px solid rgba(201,168,76,0.08);
+    border: 1px solid rgba(212,168,67,0.08);
   }
   .chat-msg {
     padding: 6px 0;
-    border-bottom: 1px solid rgba(201,168,76,0.06);
+    border-bottom: 1px solid rgba(212,168,67,0.06);
     line-height: 1.5;
   }
   .chat-msg:last-child { border-bottom: none; }
@@ -598,7 +741,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 14px 4px;
-    border-bottom: 1px solid rgba(201,168,76,0.08);
+    border-bottom: 1px solid rgba(212,168,67,0.08);
     font-size: 18px;
   }
   .mvp-row:last-child { border-bottom: none; }
@@ -647,7 +790,7 @@
     justify-content: space-between;
     gap: 14px;
     padding: 20px 40px;
-    border-top: 1px solid rgba(201,168,76,0.14);
+    border-top: 1px solid rgba(212,168,67,0.14);
     background: rgba(10,15,30,0.75);
     backdrop-filter: blur(10px);
     flex-shrink: 0;
@@ -671,10 +814,10 @@
     background: linear-gradient(135deg, var(--gold), #a07828);
     color: var(--navy);
     border: none;
-    box-shadow: 0 4px 18px rgba(201,168,76,0.28);
+    box-shadow: 0 4px 18px rgba(212,168,67,0.28);
     min-width: 220px;
   }
-  .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(201,168,76,0.4); }
+  .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(212,168,67,0.4); }
   .btn-outline {
     background: transparent;
     color: var(--gold-light);
@@ -713,10 +856,19 @@
   /* ── Scrollbar ─────────────────────────────────── */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.18); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.32); }
+  ::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.18); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(212,168,67,0.32); }
 
-  /* ── Responsive (projection fallback → laptop) ── */
+  /* ── Focus visible (A11y) ── */
+  button:focus-visible, input:focus-visible, a:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  /* Mobile sidebar toggle — hidden on desktop */
+  #mobile-sidebar-toggle { display: none; }
+
+  /* ── Responsive: tablet → laptop (1100px 이하) ── */
   @media (max-width: 1100px) {
     #sidebar { width: 240px; min-width: 240px; }
     #stage { padding: 32px 36px 28px; }
@@ -726,17 +878,84 @@
     .phase-step { font-size: 13px; }
     #action-bar { padding: 16px 28px; }
   }
-  @media (max-width: 780px) {
-    body { flex-direction: column; overflow: auto; min-height: auto; }
-    #sidebar { width: 100%; min-width: 0; height: auto; max-height: none; overflow: visible; border-right: none; border-bottom: 1px solid var(--gold-border); }
-    #waiting-section { overflow: visible; }
-    #main { height: auto; min-height: auto; overflow: visible; }
-    #stage { overflow: visible; padding: 28px 20px; }
-    .phase-steps { gap: 12px; }
-    .phase-step { font-size: 11px; }
+
+  /* ── Mobile (≤768px): 사이드바 드로어형, 단일 컬럼 ── */
+  @media (max-width: 768px) {
+    body { flex-direction: column; overflow: auto; height: auto; min-height: 100dvh; }
+    #sidebar {
+      width: 100%; min-width: 0; height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--gold-border);
+      overflow: hidden;
+    }
+    #sidebar:not(.expanded) #qr-wrap,
+    #sidebar:not(.expanded) #waiting-section { display: none; }
+
+    .sidebar-head {
+      padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; border-bottom: none;
+    }
+    .brand { font-size: 18px; }
+    .brand-sub { display: none; }
+
+    #mobile-sidebar-toggle {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; border: 1px solid var(--gold-border);
+      color: var(--gold-light); border-radius: 20px;
+      padding: 6px 14px; font-size: 12px; cursor: pointer;
+      font-family: inherit; font-weight: 500;
+    }
+    #mobile-sidebar-toggle .toggle-arrow { transition: transform 0.25s; font-size: 10px; }
+    #sidebar.expanded #mobile-sidebar-toggle .toggle-arrow { transform: rotate(180deg); }
+
+    #qr-wrap { padding: 14px 16px 16px; }
+    #qr-img { max-width: 200px; }
+    #room-code { font-size: 18px; margin-top: 12px; }
+    #waiting-section { padding: 4px 16px 16px; overflow: visible; }
+
+    #main { height: auto; min-height: 60vh; overflow: visible; }
+    #stage { overflow: visible; padding: 22px 16px 28px; }
+
+    #phase-bar {
+      padding: 12px 14px; flex-direction: column; gap: 10px;
+      align-items: stretch;
+    }
+    #user-menu {
+      width: 100%; justify-content: space-between; order: -1;
+      padding-bottom: 10px; border-bottom: 1px solid rgba(212,168,67,0.08);
+    }
+    .phase-steps { gap: 0; justify-content: space-between; width: 100%; }
+    .phase-step { font-size: 10px; flex: 1; justify-content: center; padding: 4px 2px; gap: 6px; }
     .phase-step .phase-label { display: none; }
-    #action-bar { padding: 14px 20px; }
-    .btn-gold { min-width: 0; flex: 1; }
+    .phase-num { width: 24px; height: 24px; font-size: 11px; }
+
+    .stage-title { font-size: clamp(26px, 8vw, 38px); margin-bottom: 10px; }
+    .stage-tag { font-size: 11px; margin-bottom: 14px; }
+    .stage-sub { font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+
+    .q-text { font-size: clamp(22px, 6.4vw, 34px); margin-bottom: 24px; }
+    .q-number { font-size: 12px; margin-bottom: 12px; }
+    .vote-option { font-size: 16px; }
+    .vote-count { font-size: 22px; }
+    .vote-count .pct { font-size: 13px; }
+    .vote-option-btn { padding: 14px 16px; font-size: 15px; }
+
+    .profile-card { min-width: 220px; padding: 22px 18px; }
+    .profile-card .name { font-size: 20px; }
+
+    .free-grid, .closing-grid { grid-template-columns: 1fr; gap: 14px; margin-bottom: 18px; }
+    .free-card { padding: 20px 16px; }
+    .card-head { margin-bottom: 14px; }
+    #timer-display { font-size: clamp(54px, 14vw, 80px); padding: 12px 0 16px; }
+
+    #action-bar {
+      padding: 12px 14px; flex-direction: column; gap: 8px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+    .action-left, .action-right { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn { flex: 1; padding: 12px 16px; font-size: 14px; min-width: 0; }
+    .btn-gold { min-width: 0; }
   }
 </style>
 </head>
@@ -745,17 +964,24 @@
 <!-- SIDEBAR -->
 <aside id="sidebar">
   <div class="sidebar-head">
-    <div class="brand">ntable</div>
-    <div class="brand-sub">Host Panel</div>
+    <div>
+      <div class="brand">ntable</div>
+      <div class="brand-sub">Host Panel</div>
+    </div>
+    <button type="button" id="mobile-sidebar-toggle" onclick="toggleSidebar()" aria-label="호스트 도구 펼치기/접기">
+      <span>호스트 도구</span>
+      <span class="toggle-arrow">⌄</span>
+    </button>
   </div>
   <div id="qr-wrap">
-    <img id="qr-img" src="" alt="QR" />
+    <img id="qr-img" src="" alt="방 입장 QR 코드 — 탭하면 크게 보기" onclick="openQRModal()" />
     <div id="room-code">—</div>
-    <button id="copy-url-btn">입장 링크 복사</button>
+    <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기">🔍 QR 크게 보기</button>
+    <button type="button" id="copy-url-btn">입장 링크 복사</button>
   </div>
   <div id="waiting-section">
     <div class="section-label">대기 중 <span class="section-count" id="waiting-count">0</span></div>
-    <button id="approve-all-btn">전체 승인</button>
+    <button type="button" id="approve-all-btn">전체 승인</button>
     <div id="waiting-list"></div>
     <div class="section-label" style="margin-top:22px;">참가자 <span class="section-count" id="approved-count">0</span></div>
     <div id="approved-list"></div>
@@ -768,22 +994,23 @@
   <!-- PHASE BAR -->
   <nav id="phase-bar">
     <div class="phase-steps">
-      <button class="phase-step active" data-tab="intro">
-        <span class="phase-num">01</span><span class="phase-label">소개</span>
+      <button type="button" class="phase-step active" data-tab="intro" aria-label="1단계: 소개">
+        <span class="phase-num" aria-hidden="true">01</span><span class="phase-label">소개</span>
       </button>
-      <button class="phase-step" data-tab="explore">
-        <span class="phase-num">02</span><span class="phase-label">탐구</span>
+      <button type="button" class="phase-step" data-tab="explore" aria-label="2단계: 탐구">
+        <span class="phase-num" aria-hidden="true">02</span><span class="phase-label">탐구</span>
       </button>
-      <button class="phase-step" data-tab="free">
-        <span class="phase-num">03</span><span class="phase-label">자유대화</span>
+      <button type="button" class="phase-step" data-tab="free" aria-label="3단계: 자유대화">
+        <span class="phase-num" aria-hidden="true">03</span><span class="phase-label">자유대화</span>
       </button>
-      <button class="phase-step" data-tab="ending">
-        <span class="phase-num">04</span><span class="phase-label">마무리</span>
+      <button type="button" class="phase-step" data-tab="ending" aria-label="4단계: 마무리">
+        <span class="phase-num" aria-hidden="true">04</span><span class="phase-label">마무리</span>
       </button>
     </div>
     <div id="user-menu">
       <span id="user-nick"></span>
-      <button onclick="logout()">로그아웃</button>
+      <button type="button" onclick="location.href='/profile?next='+encodeURIComponent(location.pathname)">내 정보 ✎</button>
+      <button type="button" onclick="logout()">로그아웃</button>
     </div>
   </nav>
 
@@ -821,17 +1048,17 @@
           <div class="card-head">⏱ 셔플 타이머</div>
           <div id="timer-display">20:00</div>
           <div class="timer-controls">
-            <button class="timer-control-btn" id="timer-minus">− 5분</button>
-            <button class="timer-control-btn" id="timer-toggle">▶ 시작</button>
-            <button class="timer-control-btn" id="timer-plus">+ 5분</button>
+            <button type="button" class="timer-control-btn" id="timer-minus">− 5분</button>
+            <button type="button" class="timer-control-btn" id="timer-toggle">▶ 시작</button>
+            <button type="button" class="timer-control-btn" id="timer-plus">+ 5분</button>
           </div>
-          <button class="btn btn-outline" id="nudge-now-btn" style="width:100%;">지금 셔플 발동 🔀</button>
+          <button type="button" class="btn btn-outline" id="nudge-now-btn" style="width:100%;">지금 셔플 발동 🔀</button>
         </div>
 
         <div class="free-card">
           <div class="card-head">🃏 질문 카드</div>
           <div class="question-selector" id="free-q-list"></div>
-          <button class="btn btn-gold" id="throw-card-btn" style="width:100%;">선택한 카드 던지기</button>
+          <button type="button" class="btn btn-gold" id="throw-card-btn" style="width:100%;">선택한 카드 던지기</button>
         </div>
       </div>
 
@@ -864,17 +1091,30 @@
   <!-- ACTION BAR -->
   <div id="action-bar">
     <div class="action-left">
-      <button class="btn btn-outline" id="back-btn" style="display:none;">← 이전</button>
+      <button type="button" class="btn btn-outline" id="back-btn" style="display:none;">← 이전</button>
     </div>
     <div class="action-right">
-      <button class="btn btn-outline" id="force-match-btn" style="display:none;">강제 매칭</button>
-      <button class="btn btn-gold" id="primary-btn">탐구 시작 →</button>
-      <button class="btn btn-red" id="close-room-btn" style="display:none;">모임 종료</button>
+      <button type="button" class="btn btn-outline" id="force-match-btn" style="display:none;">강제 매칭</button>
+      <button type="button" class="btn btn-gold" id="primary-btn">탐구 시작 →</button>
+      <button type="button" class="btn btn-red" id="close-room-btn" style="display:none;">모임 종료</button>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
+
+<!-- QR 확대 모달 -->
+<div id="qr-modal" hidden role="dialog" aria-modal="true" aria-labelledby="qr-modal-code">
+  <div class="qr-modal-backdrop" onclick="closeQRModal()"></div>
+  <div class="qr-modal-card">
+    <button type="button" class="qr-modal-close" onclick="closeQRModal()" aria-label="QR 모달 닫기">×</button>
+    <div class="qr-modal-brand">ntable</div>
+    <img id="qr-modal-img" class="qr-modal-img" src="" alt="방 입장 QR 코드 (확대)" />
+    <div class="qr-modal-code" id="qr-modal-code">—</div>
+    <div class="qr-modal-hint">카메라로 스캔하거나 링크를 복사해서 공유하세요</div>
+    <button type="button" id="qr-modal-copy" class="qr-modal-copy-btn">입장 링크 복사</button>
+  </div>
+</div>
 
 <script>
 // ── STATE ─────────────────────────────────────────
@@ -1040,6 +1280,11 @@ function handleWSMessage(msg) {
     case 'chat':
       appendChatMsg(msg);
       break;
+    case 'waiting_too_long':
+      toast(`⏳ ${msg.nickname}님이 ${msg.minutes}분째 대기 중 — 승인을 확인해주세요`);
+      // 사이드바 자동 펼침 (모바일 드로어 대응)
+      document.getElementById('sidebar')?.classList.add('expanded');
+      break;
   }
 }
 
@@ -1068,7 +1313,7 @@ function renderWaitingList() {
     const el = document.createElement('div');
     el.className = 'waiting-item';
     el.innerHTML = `<span class="waiting-name">${escHtml(u.nickname)}</span>
-      <button class="approve-btn" onclick="approveUser('${u.uuid}')">승인</button>`;
+      <button type="button" class="approve-btn" onclick="approveUser('${u.uuid}')">승인</button>`;
     list.appendChild(el);
   }
 }
@@ -1150,16 +1395,22 @@ function renderVoteBars(question_id, counts) {
   const container = document.getElementById('vote-bars');
   if (!container) return;
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const optCounts = q.options.map(o => counts[o.split('.')[0].trim()] || 0);
+  const maxCount = Math.max(0, ...optCounts);
+  // 표가 충분하고(2표+) 유일 최댓값일 때만 승자 표시
+  const winnerCount = optCounts.filter(c => c === maxCount).length;
+  const hasWinner = total >= 2 && maxCount > 0 && winnerCount === 1;
   container.innerHTML = '';
   for (const opt of q.options) {
     const answer = opt.split('.')[0].trim();
     const cnt = counts[answer] || 0;
     const pct = total ? Math.round(cnt / total * 100) : 0;
+    const isWinner = hasWinner && cnt === maxCount;
     const div = document.createElement('div');
-    div.className = 'vote-bar-wrap';
+    div.className = 'vote-bar-wrap' + (isWinner ? ' winning' : '');
     div.innerHTML = `
       <div class="vote-label">
-        <span class="vote-option">${escHtml(opt)}</span>
+        <span class="vote-option">${escHtml(opt)}${isWinner ? '<span class="winner-badge">▲ 우세</span>' : ''}</span>
         <span class="vote-count">${cnt}<span class="pct">· ${pct}%</span></span>
       </div>
       <div class="vote-bar-bg"><div class="vote-bar-fill" style="width:${pct}%"></div></div>`;
@@ -1496,6 +1747,43 @@ function logout() {
   localStorage.removeItem('demo_uuid');
   location.href = '/';
 }
+
+function toggleSidebar() {
+  document.getElementById('sidebar')?.classList.toggle('expanded');
+}
+
+// ── QR 확대 모달 ──
+function openQRModal() {
+  const srcImg = document.getElementById('qr-img');
+  const modalImg = document.getElementById('qr-modal-img');
+  const codeEl = document.getElementById('qr-modal-code');
+  if (!srcImg?.src || !state.roomCode) return;
+  modalImg.src = srcImg.src;
+  codeEl.textContent = '#' + state.roomCode;
+  const modal = document.getElementById('qr-modal');
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeQRModal() {
+  const modal = document.getElementById('qr-modal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeQRModal();
+});
+
+document.getElementById('qr-modal-copy')?.addEventListener('click', () => {
+  const url = `${location.origin}/room/${state.roomCode}`;
+  navigator.clipboard.writeText(url).then(() => toast('입장 링크 복사됨 ✓')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('입장 링크 복사됨 ✓');
+  });
+});
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

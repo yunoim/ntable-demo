@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0f1e">
+  <meta name="color-scheme" content="dark">
+  <title>ntable — 내 정보</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #0a0f1e;
+      --navy-light:  #0f1628;
+      --navy-mid:    #141d35;
+      --surface:     #141d35;
+      --surface-2:   #1a2442;
+      --surface-3:   #223056;
+      --gold:        #d4a843;
+      --gold-light:  #f0ca60;
+      --gold-dim:    rgba(212,168,67,0.18);
+      --gold-dim-2:  rgba(212,168,67,0.08);
+      --gold-border: rgba(212,168,67,0.35);
+      --white:       #f5f2ec;
+      --white-dim:   rgba(245,242,236,0.88);
+      --white-muted: rgba(245,242,236,0.72);
+      --text:        #ddd5bc;
+      --text-muted:  rgba(216,208,187,0.78);
+      --text-dim:    rgba(216,208,187,0.65);
+      --subtext:     rgba(216,208,187,0.78);
+      --border:      rgba(255,255,255,0.14);
+      --input-border:#5a6178;
+      --placeholder: rgba(216,208,187,0.65);
+      --danger:      #e87e7e;
+      --success:     #7ee8a2;
+      --radius:      10px;
+      --radius-lg:   18px;
+      --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      min-height: 100vh;
+      padding: 20px 18px 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 520px; margin: 0 auto; }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 0;
+    }
+    .top-nav .back-btn {
+      background: transparent;
+      border: 1px solid var(--gold-border);
+      color: var(--subtext);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .top-nav .back-btn:hover { color: var(--gold); border-color: var(--gold); }
+    .top-nav .user-nick { color: var(--subtext); font-size: 12px; letter-spacing: 0.02em; }
+
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px; font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.14em;
+      text-align: center;
+      padding: 28px 0 6px;
+    }
+    .page-sub {
+      font-size: 13px;
+      color: var(--subtext);
+      text-align: center;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--gold-border);
+      border-radius: 20px;
+      padding: 30px 24px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 600;
+      color: var(--gold-light);
+      margin-bottom: 4px;
+    }
+    .section-sub {
+      font-size: 12px; color: var(--text-muted);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .required-mark { color: var(--gold); margin-left: 3px; }
+
+    .form-group select,
+    .form-group input[type="text"] {
+      width: 100%;
+      background: var(--navy-light);
+      border: 1px solid var(--input-border);
+      color: var(--white);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color var(--transition);
+    }
+    .form-group select:focus,
+    .form-group input[type="text"]:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+    .form-group input::placeholder { color: var(--placeholder); }
+
+    .gender-group { display: flex; gap: 12px; }
+    .gender-btn {
+      flex: 1;
+      background: var(--navy-light);
+      border: 1px solid var(--input-border);
+      color: var(--white-dim);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .gender-btn:hover { border-color: var(--gold-border); }
+    .gender-btn.selected {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+      color: var(--gold-light);
+      font-weight: 600;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 22px 0;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 8px;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--gold-light); }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status-msg {
+      font-size: 12px;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 16px;
+    }
+    .status-msg.ok { color: var(--success); }
+    .status-msg.err { color: var(--danger); }
+
+    .readonly-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .readonly-row .readonly-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .readonly-row .readonly-value {
+      font-size: 14px;
+      color: var(--white);
+      font-weight: 500;
+    }
+    .readonly-hint {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      .logo { font-size: 28px; padding: 22px 0 4px; }
+      .card { padding: 26px 20px; }
+      .gender-btn { padding: 13px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <button type="button" class="back-btn" onclick="goBack()">← 돌아가기</button>
+      <span class="user-nick" id="topNavUser"></span>
+    </div>
+
+    <div class="logo">ntable</div>
+    <div class="page-sub">내 정보를 확인하고 수정할 수 있어요.</div>
+
+    <div class="card">
+      <h2 class="section-title">내 정보</h2>
+      <div class="section-sub">모임 참가자들에게 보여질 기본 정보예요.</div>
+
+      <div class="form-group">
+        <div class="readonly-row">
+          <span class="readonly-label">닉네임</span>
+          <span class="readonly-value" id="nicknameRO">—</span>
+        </div>
+        <div class="readonly-hint">닉네임은 계정 식별자라서 변경할 수 없어요.</div>
+      </div>
+
+      <div class="form-group">
+        <label>성별<span class="required-mark">*</span></label>
+        <div class="gender-group">
+          <button type="button" class="gender-btn" data-value="male" onclick="selectGender(this)">남성</button>
+          <button type="button" class="gender-btn" data-value="female" onclick="selectGender(this)">여성</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>출생연도<span class="required-mark">*</span></label>
+        <select id="birth-year" aria-label="출생연도">
+          <option value="">선택하세요</option>
+        </select>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <label>지역</label>
+        <select id="region" aria-label="지역">
+          <option value="">선택하세요</option>
+          <option>서울</option><option>경기</option><option>인천</option>
+          <option>부산</option><option>대구</option><option>대전</option>
+          <option>광주</option><option>울산</option><option>세종</option>
+          <option>강원</option><option>충북</option><option>충남</option>
+          <option>전북</option><option>전남</option><option>경북</option>
+          <option>경남</option><option>제주</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>업종</label>
+        <select id="industry" aria-label="업종">
+          <option value="">선택하세요</option>
+          <option>IT/개발</option><option>디자인</option><option>마케팅/광고</option>
+          <option>금융/회계</option><option>교육</option><option>의료/보건</option>
+          <option>법률</option><option>공무원</option><option>서비스업</option>
+          <option>제조업</option><option>미디어/콘텐츠</option><option>스타트업</option>
+          <option>기타</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>MBTI</label>
+        <select id="mbti" aria-label="MBTI">
+          <option value="">선택하세요</option>
+          <option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option>
+          <option>INFJ</option><option>INFP</option><option>ENFJ</option><option>ENFP</option>
+          <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
+          <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>관심사</label>
+        <input type="text" id="interest" placeholder="예: 등산, 독서, 요리" maxlength="30" aria-label="관심사" />
+      </div>
+
+      <div class="form-group">
+        <label>인스타그램 아이디</label>
+        <input type="text" id="instagram" placeholder="@ 제외하고 입력" maxlength="50" aria-label="인스타그램 아이디" />
+      </div>
+
+      <button type="button" class="btn-primary" id="save-btn" disabled>저장</button>
+      <div class="status-msg" id="statusMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    const uuid = localStorage.getItem('demo_uuid');
+    let selectedGender = null;
+
+    // 출생연도 옵션
+    const birthSelect = document.getElementById('birth-year');
+    for (let y = 2007; y >= 1975; y--) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y + '년';
+      birthSelect.appendChild(opt);
+    }
+
+    function getNextUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('next') || null;
+    }
+
+    function goBack() {
+      const next = getNextUrl();
+      if (next) { window.location.href = next; return; }
+      if (document.referrer && document.referrer.indexOf(location.origin) === 0) {
+        history.back();
+        return;
+      }
+      window.location.href = '/create';
+    }
+
+    function selectGender(btn) {
+      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedGender = btn.dataset.value;
+      validateForm();
+    }
+
+    function validateForm() {
+      const birthYear = document.getElementById('birth-year').value;
+      document.getElementById('save-btn').disabled = !(selectedGender && birthYear);
+    }
+
+    document.getElementById('birth-year').addEventListener('change', validateForm);
+
+    async function loadProfile() {
+      if (!uuid) {
+        window.location.href = '/login.html?next=/profile';
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/api/me?uuid=${uuid}`);
+        if (!res.ok) throw new Error('profile load failed');
+        const p = await res.json();
+
+        document.getElementById('nicknameRO').textContent = p.nickname || '—';
+        document.getElementById('topNavUser').textContent = p.nickname ? `@${p.nickname}` : '';
+
+        if (p.gender) {
+          const btn = document.querySelector(`.gender-btn[data-value="${p.gender}"]`);
+          if (btn) selectGender(btn);
+        }
+        if (p.birth_year) document.getElementById('birth-year').value = p.birth_year;
+        if (p.region) document.getElementById('region').value = p.region;
+        if (p.industry) document.getElementById('industry').value = p.industry;
+        if (p.mbti) document.getElementById('mbti').value = p.mbti;
+        if (p.interest) document.getElementById('interest').value = p.interest;
+        if (p.instagram) document.getElementById('instagram').value = p.instagram;
+
+        validateForm();
+      } catch (err) {
+        showStatus('프로필을 불러오지 못했어요. 다시 로그인해주세요.', 'err');
+        setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+      }
+    }
+
+    function showStatus(text, kind) {
+      const el = document.getElementById('statusMsg');
+      el.textContent = text;
+      el.className = 'status-msg' + (kind ? ' ' + kind : '');
+    }
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      if (!selectedGender || !document.getElementById('birth-year').value) return;
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      const originalLabel = btn.textContent;
+      btn.textContent = '저장 중...';
+      showStatus('', '');
+
+      const payload = {
+        uuid,
+        gender: selectedGender,
+        birth_year: parseInt(document.getElementById('birth-year').value),
+        region: document.getElementById('region').value || null,
+        industry: document.getElementById('industry').value || null,
+        mbti: document.getElementById('mbti').value || null,
+        interest: document.getElementById('interest').value.trim() || null,
+        instagram: document.getElementById('instagram').value.trim() || null,
+      };
+
+      try {
+        const res = await fetch(`${API}/api/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(()=>({}));
+          throw new Error(err.error || 'save failed');
+        }
+        showStatus('✓ 저장 완료', 'ok');
+      } catch (err) {
+        showStatus('저장에 실패했어요. 다시 시도해주세요.', 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+        validateForm();
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

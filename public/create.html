@@ -13,21 +13,38 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
+      /* Navy */
       --navy:        #0a0f1e;
       --navy-light:  #0f1628;
+      --navy-mid:    #141d35;
+      /* Surfaces */
       --surface:     #141d35;
       --surface-2:   #1a2442;
-      --gold:        #c9a84c;
-      --gold-light:  #dfc070;
-      --gold-dim:    rgba(201,168,76,0.14);
-      --gold-border: rgba(201,168,76,0.25);
+      --surface-3:   #223056;
+      /* Gold (landing 기준) */
+      --gold:        #d4a843;
+      --gold-light:  #f0ca60;
+      --gold-dim:    rgba(212,168,67,0.18);
+      --gold-dim-2:  rgba(212,168,67,0.08);
+      --gold-border: rgba(212,168,67,0.35);
+      /* Text */
       --white:       #f5f2ec;
-      --text:        #e6dfc9;
-      --subtext:     rgba(230,223,201,0.78);
+      --white-dim:   rgba(245,242,236,0.88);
+      --white-muted: rgba(245,242,236,0.72);
+      --text:        #ddd5bc;
+      --text-muted:  rgba(216,208,187,0.78);
+      --text-dim:    rgba(216,208,187,0.65);
+      --subtext:     rgba(216,208,187,0.78);
+      /* UI */
       --border:      rgba(255,255,255,0.14);
       --input-border:#5a6178;
-      --placeholder: rgba(230,223,201,0.62);
+      --placeholder: rgba(216,208,187,0.65);
       --danger:      #e87e7e;
+      --success:     #7ee8a2;
+      /* Motion */
+      --radius:      10px;
+      --radius-lg:   18px;
+      --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
     }
 
     body {
@@ -49,7 +66,7 @@
       content: '';
       position: fixed; inset: 0;
       background-image:
-        radial-gradient(circle at 20% 15%, rgba(201,168,76,0.08), transparent 55%),
+        radial-gradient(circle at 20% 15%, rgba(212,168,67,0.08), transparent 55%),
         radial-gradient(circle at 80% 90%, rgba(80,100,180,0.05), transparent 50%);
       pointer-events: none;
       z-index: 0;
@@ -239,7 +256,7 @@
 
     /* 상단 태그라인 */
     .tagline-hero {
-      background: linear-gradient(135deg, rgba(201,168,76,0.10), rgba(201,168,76,0.03));
+      background: linear-gradient(135deg, rgba(212,168,67,0.10), rgba(212,168,67,0.03));
       border: 1px solid var(--gold-border);
       border-radius: 14px;
       padding: 14px 18px;
@@ -296,10 +313,10 @@
       cursor: pointer;
       transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
       letter-spacing: 0.04em;
-      box-shadow: 0 4px 18px rgba(201,168,76,0.25);
+      box-shadow: 0 4px 18px rgba(212,168,67,0.25);
       font-family: inherit;
     }
-    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.35); }
+    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.35); }
     .submit-btn:active { transform: scale(0.98); }
     .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
@@ -312,13 +329,44 @@
     }
 
     .required-mark { color: var(--gold); margin-left: 3px; }
+
+    /* ── Focus visible (A11y) ── */
+    button:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+
+    /* ── Mobile (≤480px) ── */
+    @media (max-width: 480px) {
+      .container { padding: 0 16px; }
+      .top-nav { padding: 16px 0 0; }
+      .logo { font-size: 28px; padding: 22px 0 4px; }
+      .welcome { font-size: 12.5px; margin-bottom: 28px; }
+      .card { padding: 26px 20px; border-radius: 18px; }
+      .section-title { font-size: 20px; }
+      .section-sub { font-size: 12.5px; }
+      .tagline-hero { padding: 12px 14px; font-size: 12px; }
+      /* 모임 유형은 2열 고정 — 4열로 벌리지 않음 */
+      .type-options { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .type-btn { font-size: 12.5px; padding: 11px 8px; }
+      input[type="text"] { padding: 13px 14px; font-size: 14.5px; }
+      .role-btn { font-size: 12.5px; padding: 14px 8px; }
+      .role-btn .role-icon { font-size: 20px; }
+      .qcount-value { font-size: 14px; min-width: 58px; }
+      .submit-btn { padding: 15px; font-size: 14.5px; }
+      .field-group { margin-bottom: 20px; }
+    }
   </style>
 </head>
 <body>
+  <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">ntable — 새 모임 만들기</h1>
   <div class="container">
     <div class="top-nav">
       <span class="user-nick" id="topNavUser"></span>
-      <button class="logout-btn" onclick="logout()">로그아웃</button>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="logout-btn" onclick="location.href='/profile?next=/create'">내 정보 ✎</button>
+        <button type="button" class="logout-btn" onclick="logout()">로그아웃</button>
+      </div>
     </div>
     <div class="logo">ntable</div>
     <div class="welcome" id="welcomeMsg">로딩 중...</div>
@@ -327,7 +375,7 @@
       <div class="tagline-hero">
         누구나 <strong>5분 안에</strong> 모임을 열 수 있어요
       </div>
-      <div class="section-title">새 모임 만들기</div>
+      <h2 class="section-title">새 모임 만들기</h2>
       <div class="section-sub">모임을 열면 QR코드와 입장 링크가 자동 생성돼요.</div>
 
       <div class="field-group">
@@ -342,18 +390,18 @@
 
       <div class="field-group">
         <label>모임 제목<span class="required-mark">*</span></label>
-        <input type="text" id="titleInput" placeholder="예: 6월 네트워킹 모임" maxlength="100" />
+        <input type="text" id="titleInput" placeholder="예: 6월 네트워킹 모임" maxlength="100" aria-label="모임 제목" />
         <div class="char-count"><span id="charCount">0</span> / 100</div>
       </div>
 
       <div class="field-group">
         <label>호스트 역할<span class="required-mark">*</span></label>
         <div class="role-options">
-          <button class="role-btn" data-role="host_only" onclick="selectRole('host_only')">
+          <button type="button" class="role-btn" data-role="host_only" onclick="selectRole('host_only')">
             <span class="role-icon">🎤</span>
             진행만 할게요
           </button>
-          <button class="role-btn" data-role="participant" onclick="selectRole('participant')">
+          <button type="button" class="role-btn" data-role="participant" onclick="selectRole('participant')">
             <span class="role-icon">🙋</span>
             저도 참여할게요
           </button>
@@ -363,7 +411,7 @@
       <div class="field-group">
         <label>탐구 문항 수<span class="required-mark">*</span></label>
         <div class="qcount-row">
-          <input type="range" id="qcountSlider" class="qcount-slider" min="5" max="15" value="10" step="1" />
+          <input type="range" id="qcountSlider" class="qcount-slider" min="5" max="15" value="10" step="1" aria-label="탐구 문항 수 (5~15)" />
           <span class="qcount-value"><span id="qcountValue">10</span>문항</span>
         </div>
         <div class="qcount-hint">5~15문항 사이에서 선택 · 시간이 짧으면 적게, 깊이 대화하려면 많이</div>
@@ -371,7 +419,7 @@
 
       <div class="divider"></div>
 
-      <button class="submit-btn" id="createBtn" onclick="createRoom()" disabled>
+      <button type="button" class="submit-btn" id="createBtn" onclick="createRoom()" disabled>
         모임 만들기
       </button>
       <div class="error-msg" id="errorMsg"></div>

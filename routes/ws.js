@@ -90,7 +90,7 @@ function init(server) {
       // user_joined broadcast (자신 제외)
       broadcastToRoom(room_code, { type: 'user_joined', uuid, nickname }, uuid);
 
-      ws.on('message', (data) => {
+      ws.on('message', async (data) => {
         try {
           const msg = JSON.parse(data.toString());
           if (msg.type === 'ping') {
@@ -105,6 +105,25 @@ function init(server) {
               message: text,
               ts: Date.now(),
             });
+          } else if (msg.type === 'waiting_too_long') {
+            // 게스트가 일정 시간 이상 대기 → 호스트에게만 알림
+            try {
+              const r = await pool.query(
+                'SELECT host_uuid FROM rooms WHERE room_code = $1',
+                [room_code]
+              );
+              if (r.rows.length === 0) return;
+              const host_uuid = r.rows[0].host_uuid;
+              const minutes = Math.max(1, Math.min(60, parseInt(msg.minutes, 10) || 5));
+              broadcastToRoom(
+                room_code,
+                { type: 'waiting_too_long', uuid, nickname, minutes },
+                null,
+                host_uuid
+              );
+            } catch (e) {
+              console.error('waiting_too_long handler error:', e.message);
+            }
           }
         } catch (e) {
           // ignore malformed messages
