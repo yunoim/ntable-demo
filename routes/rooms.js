@@ -25,11 +25,11 @@ router.post('/rooms', async (req, res) => {
     return res.status(400).json({ error: 'title max 100 chars' });
   }
 
-  // question_count: 5~15, 기본 10
+  // question_count: 1~15, 기본 10
   let question_count = parseInt(req.body.question_count, 10);
   if (!Number.isFinite(question_count)) question_count = 10;
-  if (question_count < 5 || question_count > 15) {
-    return res.status(400).json({ error: 'question_count must be between 5 and 15' });
+  if (question_count < 1 || question_count > 15) {
+    return res.status(400).json({ error: 'question_count must be between 1 and 15' });
   }
 
   // uuid 검증

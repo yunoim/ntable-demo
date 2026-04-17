@@ -25,6 +25,21 @@ async function verifyHost(room_code, host_uuid) {
   return room;
 }
 
+function parseFreeTopics() {
+  const filePath = path.join(__dirname, '../questions/free-topics.md');
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const topics = [];
+  let id = 1;
+  for (const raw of content.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line.startsWith('- ')) continue;
+    const text = line.slice(2).trim();
+    if (!text) continue;
+    topics.push({ id: id++, text });
+  }
+  return topics;
+}
+
 function parseQuestions() {
   const filePath = path.join(__dirname, '../questions/season1.md');
   const content = fs.readFileSync(filePath, 'utf-8');
@@ -72,6 +87,22 @@ router.get('/rooms/:code/questions', async (req, res) => {
   }
 });
 
+// ─── GET /api/rooms/:code/free-topics ───────────────────────────────────────
+
+router.get('/rooms/:code/free-topics', async (req, res) => {
+  const { code } = req.params;
+  try {
+    // 방 존재 검증 (코드 게이팅)
+    const { rows } = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+    if (!rows.length) return res.status(404).json({ error: 'room not found' });
+    const topics = parseFreeTopics();
+    res.json({ topics });
+  } catch (err) {
+    console.error('free-topics parse error:', err);
+    res.status(500).json({ error: 'free-topics 파싱 실패' });
+  }
+});
+
 // ─── POST /api/rooms/:code/state ─────────────────────────────────────────────
 
 router.post('/rooms/:code/state', async (req, res) => {
@@ -82,6 +113,19 @@ router.post('/rooms/:code/state', async (req, res) => {
   try {
     const room = await verifyHost(code, host_uuid);
     if (!room) return res.status(403).json({ error: '권한 없음' });
+
+    // 최소 2명(호스트 포함) 가드 — waiting → 활성 phase 전환 시 적용
+    if (state.phase && state.phase !== 'waiting') {
+      const memberCount = getRoomClients(code).length;
+      if (memberCount < 2) {
+        return res.status(400).json({
+          error: 'MIN_MEMBERS',
+          message: '호스트 포함 최소 2명이 있어야 시작할 수 있어요.',
+          current: memberCount,
+          required: 2,
+        });
+      }
+    }
 
     await pool.query(
       `INSERT INTO room_state (room_id, state_json, updated_at)

@@ -1124,6 +1124,7 @@ const state = {
   nickname: '',
   hostRole: 'host_only',
   questions: [],
+  freeTopics: [],
   currentQIdx: 0,
   currentVotes: {},
   myVotes: {},
@@ -1159,6 +1160,7 @@ function init() {
   loadRoomInfo();
   loadQR();
   loadQuestions();
+  loadFreeTopics();
   connectWS();
   bindEvents();
   updatePrimaryButton();
@@ -1202,8 +1204,16 @@ async function loadQuestions() {
     const res = await api(`/api/rooms/${state.roomCode}/questions`);
     state.questions = await res.json();
     renderQuestion();
-    renderFreeQList();
   } catch { console.error('questions load fail'); }
+}
+
+async function loadFreeTopics() {
+  try {
+    const res = await api(`/api/rooms/${state.roomCode}/free-topics`);
+    const data = await res.json();
+    state.freeTopics = Array.isArray(data.topics) ? data.topics : [];
+    renderFreeQList();
+  } catch { console.error('free-topics load fail'); }
 }
 
 function api(url, method = 'GET', body) {
@@ -1421,10 +1431,15 @@ function renderVoteBars(question_id, counts) {
 function renderFreeQList() {
   const list = document.getElementById('free-q-list');
   list.innerHTML = '';
-  for (const q of state.questions) {
+  const topics = state.freeTopics || [];
+  if (!topics.length) {
+    list.innerHTML = '<div class="empty-msg">주제 목록을 불러오는 중...</div>';
+    return;
+  }
+  for (const t of topics) {
     const item = document.createElement('label');
     item.className = 'q-select-item';
-    item.innerHTML = `<input type="checkbox" value="${q.id}"> <span>${escHtml(q.question)}</span>`;
+    item.innerHTML = `<input type="checkbox" value="${t.id}"> <span>${escHtml(t.text)}</span>`;
     list.appendChild(item);
   }
 }
@@ -1635,10 +1650,23 @@ async function approveAll() {
 
 async function updateState(stateData) {
   try {
-    await api(`/api/rooms/${state.roomCode}/state`, 'POST', {
+    const res = await api(`/api/rooms/${state.roomCode}/state`, 'POST', {
       host_uuid: state.uuid, state: stateData,
     });
-  } catch { console.error('state update fail'); }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (err.error === 'MIN_MEMBERS') {
+        toast(err.message || '호스트 포함 최소 2명부터 시작할 수 있어요');
+      } else {
+        toast('상태 전환 실패');
+      }
+      return false;
+    }
+    return true;
+  } catch {
+    console.error('state update fail');
+    return false;
+  }
 }
 
 async function submitHostVote(question_id, answer) {
@@ -1704,9 +1732,10 @@ async function throwCard() {
   const checked = document.querySelectorAll('#free-q-list input[type="checkbox"]:checked');
   if (!checked.length) { toast('카드를 선택해주세요'); return; }
   const texts = [];
+  const topics = state.freeTopics || [];
   checked.forEach(cb => {
-    const q = state.questions.find(q => String(q.id) === cb.value);
-    if (q) texts.push(q.question);
+    const t = topics.find(x => String(x.id) === cb.value);
+    if (t) texts.push(t.text);
     cb.checked = false;
   });
   for (const text of texts) {
