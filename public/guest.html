@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1e">
+<meta name="color-scheme" content="dark">
 <title>ntable — 모임 참여</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,8 +26,10 @@
     --white-dim:   rgba(245,242,236,0.7);
     --white-muted: rgba(245,242,236,0.42);
     --text:        #e6dfc9;
-    --subtext:     rgba(230,223,201,0.55);
-    --border:      rgba(255,255,255,0.08);
+    --subtext:     rgba(230,223,201,0.78);
+    --border:      rgba(255,255,255,0.14);
+    --input-border:#5a6178;
+    --placeholder: rgba(230,223,201,0.62);
     --danger:      #e87e7e;
     --success:     #7ee8a2;
     --radius:      14px;
@@ -486,7 +489,7 @@
     width: 100%;
     padding: 20px 18px;
     background: var(--surface);
-    border: 1.5px solid var(--border);
+    border: 1.5px solid var(--input-border);
     border-radius: 16px;
     text-align: left;
     cursor: pointer;
@@ -627,7 +630,7 @@
   .chat-input {
     flex: 1;
     background: var(--surface);
-    border: 1.5px solid var(--border);
+    border: 1.5px solid var(--input-border);
     border-radius: 24px;
     padding: 12px 18px;
     color: var(--white);
@@ -637,7 +640,7 @@
     transition: border-color 0.2s;
   }
   .chat-input:focus { border-color: var(--gold); }
-  .chat-input::placeholder { color: var(--subtext); }
+  .chat-input::placeholder { color: var(--placeholder); opacity: 1; }
   .chat-send-btn {
     width: 44px; height: 44px;
     border-radius: 50%;
@@ -698,7 +701,7 @@
     justify-content: space-between;
     padding: 16px 18px;
     background: var(--surface);
-    border: 1.5px solid var(--border);
+    border: 1.5px solid var(--input-border);
     border-radius: 16px;
     margin-bottom: 10px;
     cursor: pointer;
@@ -721,7 +724,7 @@
   .vote-check {
     width: 30px; height: 30px;
     border-radius: 50%;
-    border: 2px solid var(--border);
+    border: 2px solid var(--input-border);
     display: flex;
     align-items: center;
     justify-content: center;

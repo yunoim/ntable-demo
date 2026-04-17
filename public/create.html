@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0f1e">
+  <meta name="color-scheme" content="dark">
   <title>모임 만들기 · ntable</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,8 +23,10 @@
       --gold-border: rgba(201,168,76,0.25);
       --white:       #f5f2ec;
       --text:        #e6dfc9;
-      --subtext:     rgba(230,223,201,0.55);
-      --border:      rgba(255,255,255,0.08);
+      --subtext:     rgba(230,223,201,0.78);
+      --border:      rgba(255,255,255,0.14);
+      --input-border:#5a6178;
+      --placeholder: rgba(230,223,201,0.62);
       --danger:      #e87e7e;
     }
 
@@ -137,7 +140,7 @@
     input[type="text"] {
       width: 100%;
       background: var(--navy-light);
-      border: 1.5px solid var(--border);
+      border: 1.5px solid var(--input-border);
       border-radius: 12px;
       color: var(--white);
       font-size: 15px;
@@ -147,7 +150,7 @@
       font-family: inherit;
     }
     input[type="text"]:focus { border-color: var(--gold); }
-    input[type="text"]::placeholder { color: var(--subtext); opacity: 0.6; }
+    input[type="text"]::placeholder { color: var(--placeholder); opacity: 1; }
 
     .char-count {
       font-size: 11px;
@@ -162,7 +165,7 @@
     .role-btn {
       flex: 1;
       background: var(--navy-light);
-      border: 1.5px solid var(--border);
+      border: 1.5px solid var(--input-border);
       border-radius: 12px;
       color: var(--subtext);
       font-size: 13px;
@@ -209,7 +212,7 @@
     }
     .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.35); }
     .submit-btn:active { transform: scale(0.98); }
-    .submit-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
     .error-msg {
       font-size: 13px;

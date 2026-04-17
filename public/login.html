@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0f1e">
+  <meta name="color-scheme" content="dark">
   <title>ntable — 시작하기</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,8 +23,10 @@
       --gold-border: rgba(201,168,76,0.25);
       --white:       #f5f2ec;
       --text:        #e6dfc9;
-      --subtext:     rgba(230,223,201,0.55);
-      --border:      rgba(255,255,255,0.08);
+      --subtext:     rgba(230,223,201,0.78);
+      --border:      rgba(255,255,255,0.14);
+      --input-border:#5a6178;
+      --placeholder: rgba(230,223,201,0.62);
       --success:     #7ee8a2;
       --danger:      #e87e7e;
     }
@@ -120,7 +123,7 @@
     select {
       width: 100%;
       background: var(--navy-light);
-      border: 1.5px solid var(--border);
+      border: 1.5px solid var(--input-border);
       border-radius: 12px;
       padding: 14px 16px;
       font-size: 15px;
@@ -134,7 +137,7 @@
 
     input[type="text"]:focus,
     select:focus { border-color: var(--gold); }
-    input[type="text"]::placeholder { color: var(--subtext); opacity: 0.6; }
+    input[type="text"]::placeholder { color: var(--placeholder); opacity: 1; }
 
     select {
       background-image:
@@ -173,7 +176,7 @@
       font-family: inherit;
     }
     .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.35); }
-    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
     /* 성별 버튼 */
     .gender-group { display: flex; gap: 12px; }
@@ -181,7 +184,7 @@
       flex: 1;
       padding: 15px;
       background: var(--navy-light);
-      border: 1.5px solid var(--border);
+      border: 1.5px solid var(--input-border);
       border-radius: 12px;
       color: var(--subtext);
       font-size: 15px;
