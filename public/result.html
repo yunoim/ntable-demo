@@ -2,46 +2,232 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
 <title>오늘의 결과 — ntable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0c0c0e; color: #f0ede8; font-family: -apple-system, sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 40px 16px 60px; }
-  .container { width: 100%; max-width: 480px; }
-  h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-  .sub { color: #888; font-size: 14px; margin-bottom: 28px; }
-  .card { background: #16161a; border-radius: 16px; padding: 22px; margin-bottom: 16px; }
-  .card-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #666; margin-bottom: 12px; }
-  .personality-text { font-size: 15px; line-height: 1.7; color: #f0ede8; }
-  .loading { color: #555; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-  .spinner { width: 16px; height: 16px; border: 2px solid #333; border-top-color: #e8c97e; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+
+  :root {
+    --navy:        #0a0f1e;
+    --navy-light:  #0f1628;
+    --surface:     #141d35;
+    --surface-2:   #1a2442;
+    --gold:        #c9a84c;
+    --gold-light:  #dfc070;
+    --gold-dim:    rgba(201,168,76,0.14);
+    --gold-border: rgba(201,168,76,0.25);
+    --white:       #f5f2ec;
+    --text:        #e6dfc9;
+    --subtext:     rgba(230,223,201,0.55);
+    --border:      rgba(255,255,255,0.08);
+  }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    padding: 44px 18px 60px;
+    padding-top: calc(44px + env(safe-area-inset-top));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201,168,76,0.09), transparent 55%),
+      radial-gradient(circle at 80% 90%, rgba(80,100,180,0.06), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { width: 100%; max-width: 460px; position: relative; z-index: 1; }
+
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+  h1 em { font-style: italic; color: var(--gold-light); }
+  .sub {
+    color: var(--subtext);
+    font-size: 14px;
+    margin-bottom: 32px;
+    line-height: 1.7;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 18px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+  }
+  .card-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    margin-bottom: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    width: 18px; height: 1px;
+    background: var(--gold);
+  }
+  .personality-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .loading {
+    color: var(--subtext);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(201,168,76,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .match-name { font-size: 26px; font-weight: 700; color: #e8c97e; margin: 6px 0 4px; }
-  .match-sub { font-size: 13px; color: #777; }
-  .fi-badge { display: inline-block; background: rgba(232,201,126,.12); color: #e8c97e; border-radius: 8px; padding: 4px 10px; font-size: 13px; font-weight: 600; margin-top: 10px; }
-  .stats-row { display: flex; gap: 12px; margin-bottom: 14px; }
-  .stat-box { flex: 1; background: #0c0c0e; border-radius: 10px; padding: 14px; text-align: center; }
-  .stat-num { font-size: 24px; font-weight: 700; color: #e8c97e; }
-  .stat-label { font-size: 11px; color: #666; margin-top: 2px; }
-  .highlight-item { padding: 10px 0; border-bottom: 1px solid #1e1e22; font-size: 13px; }
+
+  .match-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--gold);
+    margin: 8px 0 6px;
+  }
+  .match-sub { font-size: 13px; color: var(--subtext); line-height: 1.6; }
+  .fi-badge {
+    display: inline-block;
+    background: var(--gold-dim);
+    color: var(--gold-light);
+    border: 1px solid var(--gold-border);
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 14px;
+  }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 18px; }
+  .stat-box {
+    flex: 1;
+    background: var(--navy-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 10px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--subtext);
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .highlight-item { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .highlight-item:last-child { border-bottom: none; }
-  .q-label { color: #666; font-size: 11px; margin-bottom: 3px; }
-  .q-bar { height: 6px; background: #1e1e22; border-radius: 3px; margin-top: 5px; }
-  .q-fill { height: 100%; background: #e8c97e; border-radius: 3px; transition: width .6s ease; }
-  .insta-btn { width: 100%; padding: 14px; background: transparent; border: 1.5px solid #e8c97e; color: #e8c97e; font-size: 15px; font-weight: 600; border-radius: 12px; cursor: pointer; transition: all .15s; }
-  .insta-btn:hover { background: rgba(232,201,126,.08); }
-  .insta-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .insta-reveal { font-size: 20px; font-weight: 700; color: #e8c97e; text-align: center; margin-top: 12px; }
-  .insta-pending { font-size: 13px; color: #666; text-align: center; margin-top: 12px; line-height: 1.6; }
-  .no-match { color: #555; font-size: 14px; }
+  .q-label {
+    color: var(--subtext);
+    font-size: 11px;
+    margin-bottom: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .q-top-answer { color: var(--white); font-weight: 500; }
+  .q-bar { height: 6px; background: var(--navy-light); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .q-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 3px; transition: width 0.7s ease; }
+
+  .insta-btn {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    border: 1.5px solid var(--gold-border);
+    color: var(--gold-light);
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .insta-btn:hover { background: var(--gold-dim); border-color: var(--gold); }
+  .insta-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .insta-reveal {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold);
+    text-align: center;
+    margin-top: 14px;
+  }
+  .insta-pending {
+    font-size: 13px;
+    color: var(--subtext);
+    text-align: center;
+    margin-top: 14px;
+    line-height: 1.7;
+  }
+  .no-match { color: var(--subtext); font-size: 14px; }
+
+  .hint-text {
+    font-size: 12px;
+    color: var(--subtext);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>오늘의 결과 🎉</h1>
-  <p class="sub">수고하셨어요! 오늘 모임을 정리해드릴게요.</p>
+  <div class="brand">ntable</div>
+  <h1>오늘의 <em>결과</em></h1>
+  <p class="sub">수고하셨어요. 오늘 모임을 정리해드릴게요 🎉</p>
 
-  <!-- AI 성향 분석 -->
   <div class="card">
     <div class="card-title">✨ AI 성향 분석</div>
     <div class="loading" id="personality-loading">
@@ -51,7 +237,6 @@
     <div class="personality-text" id="personality-text" style="display:none"></div>
   </div>
 
-  <!-- 베스트 매칭 -->
   <div class="card">
     <div class="card-title">💘 베스트 매칭</div>
     <div id="match-content">
@@ -59,7 +244,6 @@
     </div>
   </div>
 
-  <!-- 오늘 모임 요약 -->
   <div class="card">
     <div class="card-title">📊 오늘 모임 요약</div>
     <div id="summary-content">
@@ -67,10 +251,9 @@
     </div>
   </div>
 
-  <!-- 인스타그램 공개 (매칭 있을 때만 표시) -->
   <div class="card" id="insta-card" style="display:none">
     <div class="card-title">📸 인스타그램 교환</div>
-    <p style="font-size:13px;color:#888;margin-bottom:14px">상호 동의 시에만 공개돼요. 먼저 공개 의사를 표시해보세요!</p>
+    <p class="hint-text">상호 동의 시에만 공개돼요. 먼저 공개 의사를 표시해보세요.</p>
     <button class="insta-btn" id="insta-btn" onclick="requestInsta()">인스타 공개하기 📲</button>
     <div id="insta-result"></div>
   </div>
@@ -90,11 +273,10 @@
       const data = await r.json();
       document.getElementById('personality-loading').style.display = 'none';
       const el = document.getElementById('personality-text');
-      // 서버 응답: { uuid, nickname, personality, text, emoji }
       el.textContent = data.text || data.personality || '분석 결과를 불러올 수 없어요.';
       el.style.display = 'block';
     } catch {
-      document.getElementById('personality-loading').innerHTML = '<span style="color:#555">분석 결과를 불러올 수 없어요.</span>';
+      document.getElementById('personality-loading').innerHTML = '<span style="color:var(--subtext)">분석 결과를 불러올 수 없어요.</span>';
     }
   }
 
@@ -103,7 +285,6 @@
       const r = await fetch(`/api/result?uuid=${uuid}&room_code=${room_code}`);
       const data = await r.json();
 
-      // 베스트 매칭
       const matchEl = document.getElementById('match-content');
       if (data.match_nickname) {
         matchedUuid = data.match_uuid || null;
@@ -117,16 +298,15 @@
         matchEl.innerHTML = '<div class="no-match">매칭 결과가 아직 없어요.</div>';
       }
 
-      // 모임 요약
       const summEl = document.getElementById('summary-content');
       let hlHtml = '';
       if (data.question_highlights?.length) {
         const max = Math.max(...data.question_highlights.map(h => h.count));
-        hlHtml = `<div style="font-size:12px;color:#666;margin-bottom:8px">인기 선택지 TOP 5</div>` +
+        hlHtml = `<div style="font-size:12px;color:var(--subtext);margin-bottom:10px;letter-spacing:0.04em;">인기 선택지 TOP 5</div>` +
           data.question_highlights.slice(0, 5).map(h => `
             <div class="highlight-item">
               <div class="q-label">Q${h.question_id}</div>
-              <div>${h.top_answer}</div>
+              <div class="q-top-answer">${h.top_answer}</div>
               <div class="q-bar"><div class="q-fill" style="width:${Math.round(h.count/max*100)}%"></div></div>
             </div>
           `).join('');
@@ -145,8 +325,8 @@
         ${hlHtml}
       `;
     } catch {
-      document.getElementById('match-content').innerHTML = '<span style="color:#555">불러올 수 없어요.</span>';
-      document.getElementById('summary-content').innerHTML = '<span style="color:#555">불러올 수 없어요.</span>';
+      document.getElementById('match-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      document.getElementById('summary-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
     }
   }
 
@@ -165,7 +345,7 @@
       if (data.mutual && data.partner?.instagram) {
         resultEl.innerHTML = `<div class="insta-reveal">@${data.partner.instagram} 🎉</div>`;
       } else if (data.pending) {
-        resultEl.innerHTML = `<div class="insta-pending">공개 의사를 전달했어요!<br>상대방이 공개하면 알려드릴게요 ⏳</div>`;
+        resultEl.innerHTML = `<div class="insta-pending">공개 의사를 전달했어요<br>상대방이 공개하면 알려드릴게요 ⏳</div>`;
         btn.textContent = '✓ 공개 요청 완료';
       } else {
         resultEl.innerHTML = `<div class="insta-pending">매칭 상대 정보를 찾을 수 없어요.</div>`;
@@ -177,7 +357,6 @@
     }
   }
 
-  // 병렬 로드
   loadPersonality();
   loadResult();
 </script>

@@ -2,34 +2,205 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
 <title>모임 후기 — ntable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0c0c0e; color: #f0ede8; font-family: -apple-system, sans-serif; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px 60px; }
-  .container { width: 100%; max-width: 480px; }
-  h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-  .sub { color: #888; font-size: 14px; margin-bottom: 32px; }
-  .section { background: #16161a; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-  .label { font-size: 14px; color: #aaa; margin-bottom: 10px; }
-  .stars { display: flex; gap: 8px; }
-  .star { font-size: 28px; cursor: pointer; color: #333; transition: color .15s; user-select: none; }
-  .star.active { color: #e8c97e; }
+
+  :root {
+    --navy:        #0a0f1e;
+    --navy-light:  #0f1628;
+    --surface:     #141d35;
+    --surface-2:   #1a2442;
+    --gold:        #c9a84c;
+    --gold-light:  #dfc070;
+    --gold-dim:    rgba(201,168,76,0.14);
+    --gold-border: rgba(201,168,76,0.25);
+    --white:       #f5f2ec;
+    --text:        #e6dfc9;
+    --subtext:     rgba(230,223,201,0.55);
+    --border:      rgba(255,255,255,0.08);
+  }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 44px 18px 60px;
+    padding-top: calc(44px + env(safe-area-inset-top));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201,168,76,0.09), transparent 55%),
+      radial-gradient(circle at 80% 90%, rgba(80,100,180,0.06), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { width: 100%; max-width: 460px; position: relative; z-index: 1; }
+
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 10px;
+    line-height: 1.25;
+  }
+  .sub {
+    color: var(--subtext);
+    font-size: 14px;
+    margin-bottom: 32px;
+    line-height: 1.7;
+  }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .label {
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .label::before {
+    content: '';
+    width: 16px; height: 1px;
+    background: var(--gold);
+  }
+
+  .stars { display: flex; gap: 10px; justify-content: center; padding: 8px 0; }
+  .star {
+    font-size: 36px;
+    cursor: pointer;
+    color: var(--surface-2);
+    transition: color 0.15s, transform 0.1s;
+    user-select: none;
+  }
+  .star:hover { transform: scale(1.12); }
+  .star.active { color: var(--gold); text-shadow: 0 0 12px rgba(201,168,76,0.3); }
+
   .yn-group { display: flex; gap: 10px; }
-  .yn-btn { flex: 1; padding: 12px; border: 1.5px solid #333; border-radius: 10px; background: transparent; color: #f0ede8; font-size: 15px; cursor: pointer; transition: all .15s; }
-  .yn-btn.active { border-color: #e8c97e; color: #e8c97e; background: rgba(232,201,126,.08); }
-  input[type=range] { width: 100%; accent-color: #e8c97e; margin-top: 4px; }
-  .nps-labels { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 4px; }
-  .nps-val { text-align: center; font-size: 22px; font-weight: 700; color: #e8c97e; margin-top: 8px; }
-  textarea, input[type=text] { width: 100%; background: #0c0c0e; border: 1.5px solid #2a2a2e; border-radius: 10px; color: #f0ede8; font-size: 14px; padding: 12px; resize: none; outline: none; font-family: inherit; }
-  textarea:focus, input[type=text]:focus { border-color: #e8c97e; }
-  textarea { height: 80px; }
-  .submit-btn { width: 100%; padding: 16px; background: #e8c97e; color: #0c0c0e; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; margin-top: 8px; transition: opacity .15s; }
-  .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .yn-btn {
+    flex: 1;
+    padding: 15px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--navy-light);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .yn-btn:hover { border-color: var(--gold-border); }
+  .yn-btn.active {
+    border-color: var(--gold);
+    color: var(--gold-light);
+    background: var(--gold-dim);
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--gold);
+    margin-top: 4px;
+    height: 6px;
+  }
+  .nps-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--subtext);
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+  .nps-val {
+    font-family: 'Cormorant Garamond', serif;
+    text-align: center;
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-top: 10px;
+    line-height: 1;
+  }
+
+  textarea, input[type=text] {
+    width: 100%;
+    background: var(--navy-light);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--white);
+    font-size: 14px;
+    padding: 14px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+  }
+  textarea:focus, input[type=text]:focus { border-color: var(--gold); }
+  textarea::placeholder, input[type=text]::placeholder { color: var(--subtext); opacity: 0.7; }
+  textarea { height: 90px; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 17px;
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+    letter-spacing: 0.04em;
+    box-shadow: 0 4px 18px rgba(201,168,76,0.25);
+    font-family: inherit;
+  }
+  .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.35); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 </head>
 <body>
 <div class="container">
+  <div class="brand">ntable</div>
   <h1>오늘 모임 어떠셨나요?</h1>
   <p class="sub">솔직한 후기가 더 좋은 모임을 만들어요 🙏</p>
 
@@ -45,9 +216,9 @@
   </div>
 
   <div class="section">
-    <div class="label">다음 모임에도 참여하고 싶으신가요?</div>
+    <div class="label">다음 모임에도 참여하시겠어요?</div>
     <div class="yn-group">
-      <button class="yn-btn" id="yn-y" onclick="setYN(true)">✅ 네, 또 올게요!</button>
+      <button class="yn-btn" id="yn-y" onclick="setYN(true)">✅ 네, 또 올게요</button>
       <button class="yn-btn" id="yn-n" onclick="setYN(false)">🤔 아직 모르겠어요</button>
     </div>
   </div>
@@ -60,12 +231,12 @@
   </div>
 
   <div class="section">
-    <div class="label">오늘 가장 기억에 남는 순간은?</div>
+    <div class="label">오늘 가장 기억에 남는 순간</div>
     <textarea id="best" placeholder="예: 밸런스 게임 할 때 다들 웃었던 순간 😄"></textarea>
   </div>
 
   <div class="section">
-    <div class="label">아쉬웠던 점이 있다면?</div>
+    <div class="label">아쉬웠던 점</div>
     <textarea id="regret" placeholder="솔직하게 적어주세요. 더 나은 모임을 만드는 데 쓸게요."></textarea>
   </div>
 

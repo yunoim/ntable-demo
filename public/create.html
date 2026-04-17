@@ -2,184 +2,230 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0f1e">
   <title>모임 만들기 · ntable</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #0a0f1e;
+      --navy-light:  #0f1628;
+      --surface:     #141d35;
+      --surface-2:   #1a2442;
+      --gold:        #c9a84c;
+      --gold-light:  #dfc070;
+      --gold-dim:    rgba(201,168,76,0.14);
+      --gold-border: rgba(201,168,76,0.25);
+      --white:       #f5f2ec;
+      --text:        #e6dfc9;
+      --subtext:     rgba(230,223,201,0.55);
+      --border:      rgba(255,255,255,0.08);
+      --danger:      #e87e7e;
+    }
+
     body {
-      background: #0c0c0e;
-      color: #f0ede8;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       justify-content: center;
       align-items: flex-start;
       padding: 0 0 60px 0;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow-x: hidden;
     }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 15%, rgba(201,168,76,0.08), transparent 55%),
+        radial-gradient(circle at 80% 90%, rgba(80,100,180,0.05), transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .container {
       width: 100%;
-      max-width: 480px;
-      padding: 0 24px;
+      max-width: 460px;
+      padding: 0 22px;
+      position: relative;
+      z-index: 1;
     }
+
     .top-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 0 0;
+      padding: 20px 0 0;
+    }
+    .top-nav .user-nick {
+      color: var(--subtext);
+      font-size: 12px;
+      letter-spacing: 0.02em;
     }
     .top-nav .logout-btn {
       background: transparent;
-      border: 1px solid #2a2a30;
-      color: #9a9690;
-      border-radius: 16px;
+      border: 1px solid var(--gold-border);
+      color: var(--subtext);
+      border-radius: 20px;
       padding: 6px 14px;
       font-size: 12px;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.2s;
+      font-family: inherit;
     }
-    .top-nav .logout-btn:hover {
-      color: #f0ede8;
-      border-color: #4a4a54;
-    }
+    .top-nav .logout-btn:hover { color: var(--gold); border-color: var(--gold); }
+
     .logo {
-      font-size: 20px;
-      font-weight: 700;
-      color: #e8c97e;
-      letter-spacing: 0.08em;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.14em;
       text-align: center;
-      padding: 20px 0 8px;
+      padding: 28px 0 6px;
     }
     .welcome {
       font-size: 13px;
-      color: #9a9690;
+      color: var(--subtext);
       text-align: center;
       margin-bottom: 36px;
+      line-height: 1.6;
     }
-    .welcome span {
-      color: #f0ede8;
-      font-weight: 600;
-    }
+    .welcome span { color: var(--gold-light); font-weight: 600; }
+
     .card {
-      background: #16161a;
-      border-radius: 16px;
-      padding: 28px 24px;
-      border: 1px solid #2a2a30;
+      background: var(--surface);
+      border: 1px solid var(--gold-border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
     }
+
     .section-title {
-      font-size: 15px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
       font-weight: 600;
-      color: #f0ede8;
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      color: #9a9690;
+      color: var(--white);
       margin-bottom: 8px;
     }
+    .section-sub {
+      font-size: 13px;
+      color: var(--subtext);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 8px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
     input[type="text"] {
       width: 100%;
-      background: #0c0c0e;
-      border: 1px solid #2a2a30;
-      border-radius: 10px;
-      color: #f0ede8;
+      background: var(--navy-light);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      color: var(--white);
       font-size: 15px;
-      padding: 13px 16px;
+      padding: 14px 16px;
       outline: none;
       transition: border-color 0.2s;
+      font-family: inherit;
     }
-    input[type="text"]:focus {
-      border-color: #e8c97e;
-    }
-    input[type="text"]::placeholder {
-      color: #3a3a42;
-    }
+    input[type="text"]:focus { border-color: var(--gold); }
+    input[type="text"]::placeholder { color: var(--subtext); opacity: 0.6; }
+
     .char-count {
       font-size: 11px;
-      color: #3a3a42;
+      color: var(--subtext);
       text-align: right;
-      margin-top: 6px;
+      margin-top: 8px;
+      letter-spacing: 0.02em;
     }
-    .field-group {
-      margin-bottom: 24px;
-    }
-    .role-label {
-      font-size: 13px;
-      color: #9a9690;
-      margin-bottom: 10px;
-    }
-    .role-options {
-      display: flex;
-      gap: 10px;
-    }
+    .field-group { margin-bottom: 24px; }
+
+    .role-options { display: flex; gap: 10px; }
     .role-btn {
       flex: 1;
-      background: #0c0c0e;
-      border: 1px solid #2a2a30;
-      border-radius: 10px;
-      color: #9a9690;
+      background: var(--navy-light);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      color: var(--subtext);
       font-size: 13px;
-      padding: 12px 8px;
+      padding: 16px 10px;
       cursor: pointer;
       text-align: center;
       transition: all 0.2s;
-      line-height: 1.4;
+      line-height: 1.45;
+      font-family: inherit;
+      font-weight: 500;
     }
-    .role-btn:hover {
-      border-color: #4a4a54;
-      color: #f0ede8;
-    }
+    .role-btn:hover { border-color: var(--gold-border); color: var(--white); }
     .role-btn.selected {
-      border-color: #e8c97e;
-      background: rgba(232, 201, 126, 0.08);
-      color: #e8c97e;
+      border-color: var(--gold);
+      background: var(--gold-dim);
+      color: var(--gold-light);
     }
     .role-btn .role-icon {
-      font-size: 20px;
+      font-size: 22px;
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
+
     .divider {
       height: 1px;
-      background: #2a2a30;
-      margin: 24px 0;
+      background: var(--border);
+      margin: 26px 0;
     }
+
     .submit-btn {
       width: 100%;
-      background: #e8c97e;
-      color: #0c0c0e;
+      background: linear-gradient(135deg, var(--gold), #a07828);
+      color: var(--navy);
       border: none;
       border-radius: 12px;
       font-size: 15px;
       font-weight: 700;
-      padding: 15px;
+      padding: 16px;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      letter-spacing: 0.02em;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      letter-spacing: 0.04em;
+      box-shadow: 0 4px 18px rgba(201,168,76,0.25);
+      font-family: inherit;
     }
-    .submit-btn:hover {
-      opacity: 0.9;
-    }
-    .submit-btn:active {
-      transform: scale(0.98);
-    }
-    .submit-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.35); }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
     .error-msg {
       font-size: 13px;
-      color: #e85c5c;
+      color: var(--danger);
       text-align: center;
-      margin-top: 12px;
+      margin-top: 14px;
       min-height: 18px;
     }
+
+    .required-mark { color: var(--gold); margin-left: 3px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="top-nav">
-      <span style="color:#9a9690;font-size:12px;" id="topNavUser"></span>
+      <span class="user-nick" id="topNavUser"></span>
       <button class="logout-btn" onclick="logout()">로그아웃</button>
     </div>
     <div class="logo">ntable</div>
@@ -187,20 +233,16 @@
 
     <div class="card">
       <div class="section-title">새 모임 만들기</div>
+      <div class="section-sub">모임을 열면 QR코드와 입장 링크가 생성돼요.</div>
 
       <div class="field-group">
-        <label for="titleInput">모임 제목 <span style="color:#e8c97e">*</span></label>
-        <input
-          type="text"
-          id="titleInput"
-          placeholder="예: 6월 네트워킹 모임"
-          maxlength="100"
-        />
+        <label>모임 제목<span class="required-mark">*</span></label>
+        <input type="text" id="titleInput" placeholder="예: 6월 네트워킹 모임" maxlength="100" />
         <div class="char-count"><span id="charCount">0</span> / 100</div>
       </div>
 
       <div class="field-group">
-        <div class="role-label">호스트 역할 <span style="color:#e8c97e">*</span></div>
+        <label>호스트 역할<span class="required-mark">*</span></label>
         <div class="role-options">
           <button class="role-btn" data-role="host_only" onclick="selectRole('host_only')">
             <span class="role-icon">🎤</span>
@@ -228,30 +270,21 @@
 
     async function init() {
       uuid = localStorage.getItem('demo_uuid');
-      if (!uuid) {
-        window.location.href = '/';
-        return;
-      }
+      if (!uuid) { window.location.href = '/'; return; }
       try {
         const res = await fetch(`/api/me?uuid=${uuid}`);
-        if (!res.ok) {
-          // uuid 무효 → localStorage 초기화 후 로그인으로
-          localStorage.removeItem('demo_uuid');
-          window.location.href = '/';
-          return;
-        }
+        if (!res.ok) { localStorage.removeItem('demo_uuid'); window.location.href = '/'; return; }
         const data = await res.json();
         document.getElementById('welcomeMsg').innerHTML =
-          `안녕하세요, <span>${data.nickname}</span>님! 지금 바로 모임을 열어보세요.`;
+          `안녕하세요, <span>${data.nickname}</span>님<br>지금 바로 모임을 열어보세요.`;
         document.getElementById('topNavUser').textContent = `@${data.nickname}`;
       } catch {
-        // 네트워크 오류 등 — 튕기지 않고 그냥 표시
         document.getElementById('welcomeMsg').textContent = '모임을 열어보세요.';
       }
     }
 
     function logout() {
-      if (!confirm('로그아웃하시겠어요?')) return;
+      if (!confirm('로그아웃할까요?')) return;
       localStorage.removeItem('demo_uuid');
       window.location.href = '/';
     }
