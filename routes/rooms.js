@@ -25,6 +25,13 @@ router.post('/rooms', async (req, res) => {
     return res.status(400).json({ error: 'title max 100 chars' });
   }
 
+  // question_count: 5~15, 기본 10
+  let question_count = parseInt(req.body.question_count, 10);
+  if (!Number.isFinite(question_count)) question_count = 10;
+  if (question_count < 5 || question_count > 15) {
+    return res.status(400).json({ error: 'question_count must be between 5 and 15' });
+  }
+
   // uuid 검증
   const userCheck = await pool.query('SELECT uuid FROM users WHERE uuid = $1', [uuid]);
   if (userCheck.rows.length === 0) {
@@ -51,9 +58,9 @@ router.post('/rooms', async (req, res) => {
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status)
-       VALUES ($1, $2, $3, $4, 'waiting') RETURNING id`,
-      [room_code, title, uuid, host_role]
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count)
+       VALUES ($1, $2, $3, $4, 'waiting', $5) RETURNING id`,
+      [room_code, title, uuid, host_role, question_count]
     );
     const room_id = roomResult.rows[0].id;
     await client.query(
@@ -62,7 +69,7 @@ router.post('/rooms', async (req, res) => {
       [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
     );
     await client.query('COMMIT');
-    res.json({ room_code, title, host_role });
+    res.json({ room_code, title, host_role, question_count });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('POST /api/rooms error:', err);
@@ -76,7 +83,7 @@ router.post('/rooms', async (req, res) => {
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_uuid, host_role, status FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status, question_count FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });

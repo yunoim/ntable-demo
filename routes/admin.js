@@ -53,10 +53,19 @@ function parseQuestions() {
 
 // ─── GET /api/rooms/:code/questions ─────────────────────────────────────────
 
-router.get('/rooms/:code/questions', (req, res) => {
+router.get('/rooms/:code/questions', async (req, res) => {
+  const { code } = req.params;
   try {
     const questions = parseQuestions();
-    res.json(questions);
+    // 방의 question_count 조회 (없으면 기본 10)
+    let limit = 10;
+    try {
+      const r = await pool.query('SELECT question_count FROM rooms WHERE room_code = $1', [code]);
+      if (r.rows.length && Number.isFinite(r.rows[0].question_count)) {
+        limit = r.rows[0].question_count;
+      }
+    } catch (_) { /* 컬럼 미존재 등: 기본 10 사용 */ }
+    res.json(questions.slice(0, limit));
   } catch (err) {
     console.error('questions parse error:', err);
     res.status(500).json({ error: 'questions 파싱 실패' });

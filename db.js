@@ -33,9 +33,18 @@ async function initDB() {
         host_uuid VARCHAR REFERENCES users(uuid),
         host_role VARCHAR(20) DEFAULT 'host_only',
         status VARCHAR(20) DEFAULT 'waiting',
+        question_count INTEGER DEFAULT 10,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+
+    // 기존 배포 테이블에 question_count 컬럼 없을 경우 추가
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN question_count INTEGER DEFAULT 10`);
+    } catch (e) {
+      // 42701 = duplicate_column
+      if (e.code !== '42701') throw e;
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_state (

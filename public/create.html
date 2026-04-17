@@ -189,6 +189,54 @@
       margin-bottom: 6px;
     }
 
+    .qcount-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .qcount-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: var(--input-border);
+      border-radius: 2px;
+      outline: none;
+    }
+    .qcount-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      border: 2px solid var(--navy);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .qcount-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      border: 2px solid var(--navy);
+    }
+    .qcount-value {
+      min-width: 70px;
+      text-align: right;
+      color: var(--gold-light);
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+    }
+    .qcount-hint {
+      font-size: 11px;
+      color: var(--subtext);
+      margin-top: 8px;
+      letter-spacing: 0.02em;
+    }
+
     .divider {
       height: 1px;
       background: var(--border);
@@ -258,6 +306,15 @@
         </div>
       </div>
 
+      <div class="field-group">
+        <label>탐구 문항 수<span class="required-mark">*</span></label>
+        <div class="qcount-row">
+          <input type="range" id="qcountSlider" class="qcount-slider" min="5" max="15" value="10" step="1" />
+          <span class="qcount-value"><span id="qcountValue">10</span>문항</span>
+        </div>
+        <div class="qcount-hint">5~15문항 사이에서 선택 · 시간이 짧으면 적게, 깊이 대화하려면 많이</div>
+      </div>
+
       <div class="divider"></div>
 
       <button class="submit-btn" id="createBtn" onclick="createRoom()" disabled>
@@ -307,6 +364,12 @@
       checkReady();
     });
 
+    const qcountSlider = document.getElementById('qcountSlider');
+    const qcountValue = document.getElementById('qcountValue');
+    qcountSlider.addEventListener('input', () => {
+      qcountValue.textContent = qcountSlider.value;
+    });
+
     function checkReady() {
       const ready = titleInput.value.trim().length > 0 && selectedRole !== null;
       document.getElementById('createBtn').disabled = !ready;
@@ -323,10 +386,11 @@
       errMsg.textContent = '';
 
       try {
+        const question_count = parseInt(qcountSlider.value, 10) || 10;
         const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid, title, host_role: selectedRole })
+          body: JSON.stringify({ uuid, title, host_role: selectedRole, question_count })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');
