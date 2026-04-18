@@ -16,13 +16,104 @@
     color: #ffffff;
     font-family: 'DM Sans', 'Noto Sans KR', sans-serif;
     line-height: 1.6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 24px;
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding: 0 24px;
+    padding-top: calc(60px + env(safe-area-inset-top));
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
+
+  /* HEADER (fixed) */
+  .app-header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    background: rgba(14,22,40,0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(212,168,67,0.2);
+  }
+  .h-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 600;
+    color: #d4a843; letter-spacing: 0.14em;
+  }
+  .login-toggle {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px; color: #c0c0c0;
+    cursor: pointer; background: none; border: none;
+    padding: 6px 10px; border-radius: 8px;
+    font-family: inherit;
+    transition: color 0.2s, background 0.2s;
+  }
+  .login-toggle:hover { color: #e8b84b; background: rgba(212,168,67,0.06); }
+  .login-toggle .switch {
+    width: 30px; height: 16px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 999px; position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .login-toggle .switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px;
+    background: #c0c0c0; border-radius: 50%;
+    transition: left 0.2s, background 0.2s;
+  }
+  .login-toggle[data-on="true"] { color: #7ee8a2; }
+  .login-toggle[data-on="true"] .switch { background: rgba(126,232,162,0.35); }
+  .login-toggle[data-on="true"] .switch::after { left: 16px; background: #7ee8a2; }
+
+  /* ACCORDION (under header) */
+  .login-accordion {
+    position: fixed;
+    top: calc(48px + env(safe-area-inset-top));
+    left: 0; right: 0; z-index: 99;
+    background: rgba(14,22,40,0.96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(212,168,67,0.2);
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.32s ease;
+  }
+  .login-accordion[data-open="true"] { max-height: 220px; }
+  .login-accordion-inner {
+    padding: 14px 18px;
+    max-width: 420px; margin: 0 auto;
+  }
+  .acc-intro {
+    font-size: 11px; color: #9aa0ac;
+    letter-spacing: 0.04em; margin-bottom: 10px;
+    text-align: center;
+  }
+  .acc-buttons { display: flex; gap: 8px; }
+  .acc-buttons button {
+    flex: 1; padding: 10px;
+    border-radius: 8px;
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-google { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
+  .btn-kakao { background: #FEE500; color: #3a1d1d; border: none; font-weight: 700; }
+  .acc-badge {
+    padding: 10px;
+    background: rgba(126,232,162,0.08);
+    border: 1px dashed rgba(126,232,162,0.3);
+    border-radius: 8px;
+    font-size: 12px; color: #7ee8a2;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .acc-badge button {
+    padding: 6px 12px; background: transparent;
+    border: 1px solid rgba(126,232,162,0.4);
+    border-radius: 6px; color: #7ee8a2;
+    font-size: 11.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* MAIN */
   .root {
     width: 100%;
     max-width: 420px;
@@ -30,88 +121,96 @@
   }
   .brand {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 52px;
-    font-weight: 600;
+    font-size: 52px; font-weight: 600;
     letter-spacing: 0.12em;
-    color: #d4a843;
-    margin-bottom: 8px;
+    color: #d4a843; margin-bottom: 8px;
   }
   .tagline {
-    font-size: 13px;
-    color: #c0c0c0;
-    letter-spacing: 0.04em;
-    margin-bottom: 36px;
+    font-size: 13px; color: #c0c0c0;
+    letter-spacing: 0.04em; margin-bottom: 36px;
   }
-  .hero {
-    margin-bottom: 48px;
-  }
+  .hero { margin-bottom: 36px; }
   .hero h1 {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 38px;
-    font-weight: 600;
-    color: #ffffff;
-    line-height: 1.25;
+    font-size: 38px; font-weight: 600;
+    color: #ffffff; line-height: 1.25;
     margin-bottom: 16px;
   }
-  .hero h1 em {
-    font-style: italic;
-    color: #e8b84b;
-  }
+  .hero h1 em { font-style: italic; color: #e8b84b; }
   .hero p {
-    font-size: 15px;
-    color: #e8e8e8;
-    font-weight: 300;
-    line-height: 1.7;
+    font-size: 15px; color: #e8e8e8;
+    font-weight: 300; line-height: 1.7;
   }
+
+  /* HOST CTA (1차) */
   .cta-primary {
-    display: block;
-    width: 100%;
-    padding: 18px;
-    background: #e8b84b;
-    color: #0a0f1e;
-    border: none;
-    border-radius: 14px;
-    font-size: 17px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
+    display: block; width: 100%; padding: 18px;
+    background: #e8b84b; color: #0a0f1e;
+    border: none; border-radius: 14px;
+    font-size: 17px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
     box-shadow: 0 0 16px rgba(232,184,75,0.35);
     text-decoration: none;
-    margin-bottom: 16px;
     transition: transform 0.15s, box-shadow 0.2s;
   }
   .cta-primary:hover { transform: translateY(-1px); box-shadow: 0 0 26px rgba(232,184,75,0.5); }
   .cta-primary:active { transform: scale(0.98); }
+
+  .anon-note {
+    margin-top: 16px;
+    font-size: 12px; color: #7ee8a2;
+    opacity: 0.85; line-height: 1.55;
+  }
+  .anon-note strong { color: #d4a843; }
+
+  /* GUEST (2차) */
   .guest-info {
-    margin-top: 28px;
+    margin-top: 36px;
     padding: 20px;
     background: rgba(212,168,67,0.06);
     border: 1px dashed rgba(212,168,67,0.3);
     border-radius: 12px;
-    font-size: 13.5px;
-    color: #c0c0c0;
+    font-size: 13.5px; color: #c0c0c0;
     line-height: 1.6;
   }
   .guest-info strong { color: #e8b84b; }
+
+  /* FOOTER */
   .footer-info {
-    margin-top: 40px;
-    font-size: 11.5px;
-    color: #c0c0c0;
-    opacity: 0.7;
-    line-height: 1.6;
+    margin-top: 36px;
+    font-size: 11.5px; color: #c0c0c0;
+    opacity: 0.7; line-height: 1.6;
   }
   .footer-info a { color: inherit; text-decoration: underline; }
-  .anon-note {
-    margin-top: 20px;
-    font-size: 12px;
-    color: #7ee8a2;
-    opacity: 0.85;
-  }
-  .anon-note strong { color: #d4a843; }
 </style>
 <script src="/sentry-init.js" data-page="welcome" defer></script>
 </head>
 <body>
+
+<!-- 헤더 (fixed) — 좌: 로고 / 우: 로그인 토글 -->
+<header class="app-header">
+  <span class="h-brand">ntable</span>
+  <button type="button" class="login-toggle" id="loginToggle" data-on="false" aria-expanded="false" aria-controls="loginAccordion" hidden>
+    <span class="toggle-label">↻ 다음에도 쓰기</span>
+    <span class="switch" aria-hidden="true"></span>
+  </button>
+</header>
+
+<!-- 로그인 아코디언 (헤더 아래 펼침) -->
+<div class="login-accordion" id="loginAccordion" data-open="false" aria-hidden="true">
+  <div class="login-accordion-inner">
+    <div class="acc-intro" id="accIntro">다음 입장부터 자동 완성 — 로그인 (선택)</div>
+    <div class="acc-buttons" id="accButtons">
+      <button type="button" class="btn-google" id="googleBtn" hidden>Google</button>
+      <button type="button" class="btn-kakao" id="kakaoBtn" hidden>카카오</button>
+    </div>
+    <div class="acc-badge" id="authedBadge" hidden>
+      <span style="flex:1;">✓ <strong id="authedName">로그인됨</strong> — 다음 입장부터 자동 완성</span>
+      <button type="button" id="logoutBtn">로그아웃</button>
+    </div>
+  </div>
+</div>
+
 <div class="root">
   <div class="brand">ntable</div>
   <div class="tagline">소셜 모임 진행 플랫폼</div>
@@ -121,7 +220,14 @@
     <p>호스트 한 명, 스마트폰 하나면 시작됩니다.</p>
   </div>
 
-  <!-- 참가자 진입 (다수) — 위로 노출 -->
+  <!-- 호스트 1차 CTA -->
+  <button type="button" class="cta-primary" id="openRoomBtn">익명으로 모임 열기 →</button>
+
+  <div class="anon-note">
+    🔒 <strong>방 안에서만 닉네임으로 표시</strong>됩니다.<br>방이 끝나면 표시는 사라져요.
+  </div>
+
+  <!-- 참가자 2차 -->
   <div class="guest-info" id="guestSection">
     <div style="font-size:14px;color:#ffffff;margin-bottom:10px;font-weight:600;">참가자세요?</div>
     링크·QR이 있다면 바로 입장,<br>참여 코드를 받았다면 아래 입력하세요.
@@ -132,23 +238,6 @@
     <div style="font-size:11px;color:#9aa0ac;margin-top:8px;letter-spacing:0.02em;">참여 코드 6자리 (영문·숫자, 대소문자 무관)</div>
   </div>
 
-  <!-- 호스트 — '모임 열기' 메인 CTA -->
-  <div style="margin-top:32px;font-size:11px;color:#9aa0ac;letter-spacing:0.18em;text-transform:uppercase;">호스트</div>
-  <button type="button" class="cta-primary" id="openRoomBtn" style="margin-top:10px;">모임 열기 →</button>
-
-  <!-- OAuth — 톤다운, 명확히 분리된 보조 영역 -->
-  <div id="oauthArea" style="margin-top:18px;display:none;padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
-    <div id="oauthIntro" style="font-size:11px;color:#9aa0ac;letter-spacing:0.04em;margin-bottom:10px;">다음 입장부터 자동 완성 — 로그인 (선택)</div>
-    <div id="oauthButtons" style="display:flex;gap:8px;">
-      <button type="button" id="googleBtn" hidden style="flex:1;padding:10px;background:rgba(255,255,255,0.92);color:#3c4043;border:1px solid rgba(218,220,224,0.5);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;opacity:0.85;">Google</button>
-      <button type="button" id="kakaoBtn" hidden style="flex:1;padding:10px;background:#FEE500;color:#3a1d1d;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.85;">카카오</button>
-    </div>
-    <div id="authedBadge" hidden style="padding:10px;background:rgba(126,232,162,0.08);border:1px dashed rgba(126,232,162,0.3);border-radius:8px;font-size:12px;color:#7ee8a2;display:flex;align-items:center;gap:10px;">
-      <span style="flex:1;">✓ <strong id="authedName">로그인됨</strong> — 다음 입장부터 자동 완성</span>
-      <button type="button" id="logoutBtn" style="padding:6px 12px;background:transparent;border:1px solid rgba(126,232,162,0.4);border-radius:6px;color:#7ee8a2;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">로그아웃</button>
-    </div>
-  </div>
-
   <div class="footer-info">
     <a href="https://ntable.kr/privacy.html">개인정보처리방침</a> ·
     <a href="https://ntable.kr/terms.html">이용약관</a><br>
@@ -157,7 +246,6 @@
 </div>
 
 <script>
-// uuid 자동 생성 (없으면). 닉네임/프로필 입력은 방 만들기/입장 단계에서 받음.
 function ensureUuid() {
   let uuid = '';
   try { uuid = localStorage.getItem('demo_uuid') || ''; } catch (_) {}
@@ -171,7 +259,6 @@ function ensureUuid() {
 
 document.getElementById('openRoomBtn').addEventListener('click', () => {
   ensureUuid();
-  // next 파라미터로 들어온 게스트는 그 방 직접 입장
   const next = new URLSearchParams(location.search).get('next');
   if (next && /^\/room\/[A-Z0-9]{6}/.test(next)) {
     location.href = next;
@@ -180,7 +267,6 @@ document.getElementById('openRoomBtn').addEventListener('click', () => {
   }
 });
 
-// 페이지 로드 시 uuid 자동 보장 (백그라운드)
 ensureUuid();
 
 // OAuth 콜백 토큰 처리
@@ -198,42 +284,68 @@ ensureUuid();
   }
 })();
 
-// OAuth 활성 provider 조회 + 로그인 상태 표시
+// 토글·아코디언 제어
+const loginToggle = document.getElementById('loginToggle');
+const accordion = document.getElementById('loginAccordion');
+const accButtons = document.getElementById('accButtons');
+const accIntro = document.getElementById('accIntro');
+const authedBadge = document.getElementById('authedBadge');
+
+function setToggle(on) {
+  loginToggle.dataset.on = on ? 'true' : 'false';
+  loginToggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+  accordion.dataset.open = on ? 'true' : 'false';
+  accordion.setAttribute('aria-hidden', on ? 'false' : 'true');
+}
+
+function showAuthedUI(me) {
+  authedBadge.hidden = false;
+  accButtons.style.display = 'none';
+  accIntro.style.display = 'none';
+  const nameEl = document.getElementById('authedName');
+  if (nameEl) nameEl.textContent = me.name || me.email || '로그인됨';
+}
+
+function showLoginButtonsUI() {
+  authedBadge.hidden = true;
+  accButtons.style.display = 'flex';
+  accIntro.style.display = 'block';
+}
+
 (async () => {
+  // OAuth provider config — 활성된 provider만 노출
+  let cfgGoogle = false, cfgKakao = false;
   try {
     const r = await fetch('/api/auth/status');
     const cfg = r.ok ? await r.json() : {};
-    const area = document.getElementById('oauthArea');
-    if (cfg.google || cfg.kakao) {
-      area.style.display = 'block';
-      if (cfg.google) document.getElementById('googleBtn').hidden = false;
-      if (cfg.kakao) document.getElementById('kakaoBtn').hidden = false;
-    }
+    cfgGoogle = !!cfg.google;
+    cfgKakao = !!cfg.kakao;
   } catch (_) {}
-  // 현재 로그인 정보 표시 — 로그인 시 OAuth 버튼·안내 모두 숨김 (배지만 노출)
+  if (cfgGoogle) document.getElementById('googleBtn').hidden = false;
+  if (cfgKakao) document.getElementById('kakaoBtn').hidden = false;
+  // 둘 다 비활성이면 토글 자체 숨김
+  if (!cfgGoogle && !cfgKakao) {
+    loginToggle.style.display = 'none';
+    return;
+  }
+  loginToggle.hidden = false;
+
+  // 로그인 상태 확인 → 자동 토글 ON + 배지
   try {
     const tok = localStorage.getItem('user_token');
     if (tok) {
       const r = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
       const me = r.ok ? await r.json() : {};
       if (me.authed) {
-        // 로그인 성공 — 배지만 노출, OAuth 버튼·안내 그룹 모두 숨김
-        document.getElementById('oauthArea').style.display = 'block';
-        document.getElementById('authedBadge').hidden = false;
-        const nameEl = document.getElementById('authedName');
-        if (nameEl) nameEl.textContent = me.name || me.email || '로그인됨';
-        const buttons = document.getElementById('oauthButtons');
-        if (buttons) buttons.style.display = 'none';
-        const intro = document.getElementById('oauthIntro');
-        if (intro) intro.style.display = 'none';
+        setToggle(true);
+        showAuthedUI(me);
       } else {
-        // 토큰은 있지만 서버 세션 만료/무효 — 정리하고 비로그인 흐름으로
         try { localStorage.removeItem('user_token'); } catch (_) {}
       }
     }
   } catch (_) {}
 
-  // ?role=guest 로 들어오면 참가자 섹션으로 자동 스크롤·포커스
+  // ?role=guest 자동 스크롤
   try {
     if (new URLSearchParams(location.search).get('role') === 'guest') {
       const guest = document.getElementById('guestSection');
@@ -244,6 +356,12 @@ ensureUuid();
   } catch (_) {}
 })();
 
+// 토글 클릭 — 펼침/접힘
+loginToggle.addEventListener('click', () => {
+  const isOn = loginToggle.dataset.on === 'true';
+  setToggle(!isOn);
+});
+
 document.getElementById('googleBtn').addEventListener('click', () => { location.href = '/api/auth/google'; });
 document.getElementById('kakaoBtn').addEventListener('click', () => { location.href = '/api/auth/kakao'; });
 document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -253,7 +371,9 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-user-token': tok } }); } catch (_) {}
   }
   try { localStorage.removeItem('user_token'); } catch (_) {}
-  location.reload();
+  // 로그아웃 → 토글 OFF, 버튼 복원
+  showLoginButtonsUI();
+  setToggle(false);
 });
 
 // 참여 코드 입장
