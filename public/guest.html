@@ -2057,19 +2057,24 @@ function genderLabel(g) {
 }
 function ageOf(year) { return year ? `${CURRENT_YEAR - year + 1}세` : ''; }
 
-// 출생연도 표시 — 호스트가 'decade_half' 선택 시 "30초/30중/30후" 형태
+// 출생연도 표시 — 'exact' (1990년생) / 'decade_half' (30초·중·후) / 'decade' (30대)
 function formatBirthYear(year, format) {
   if (!year) return '';
+  const age = CURRENT_YEAR - year + 1;
   if (format === 'decade_half') {
-    const age = CURRENT_YEAR - year + 1;
     if (age < 20) return '10대';
     const decade = Math.floor(age / 10) * 10;
     const half = age % 10;
-    let label;
-    if (half <= 3) label = '초';
-    else if (half <= 6) label = '중';
-    else label = '후';
+    const label = half <= 3 ? '초' : half <= 6 ? '중' : '후';
     return `${decade}${label}`;
+  }
+  if (format === 'decade') {
+    if (age < 20) return '10대';
+    if (age < 30) return '20대';
+    if (age < 40) return '30대';
+    if (age < 50) return '40대';
+    if (age < 60) return '50대';
+    return '60대 이상';
   }
   return `${year}년생`;
 }

@@ -112,7 +112,7 @@
     margin-bottom: 8px;
     letter-spacing: 0.04em;
   }
-  input[type=text], input[type=number] {
+  input[type=text], input[type=number], select.year-select {
     width: 100%;
     padding: 14px 16px;
     background: rgba(212,168,67,0.06);
@@ -123,7 +123,9 @@
     font-family: inherit;
     text-align: center;
   }
-  input:focus { outline: none; border-color: #e8b84b; background: rgba(212,168,67,0.12); }
+  select.year-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+  select.year-select option { background: #131c33; color: #ffffff; }
+  input:focus, select:focus { outline: none; border-color: #e8b84b; background: rgba(212,168,67,0.12); }
   input::placeholder { color: #6f7889; }
   .hint { font-size: 12px; color: #c0c0c0; margin-top: 8px; line-height: 1.5; text-align: center; }
 
@@ -344,6 +346,7 @@ function renderStep() {
         <div class="step-num">${stepNum} · 시작</div>
         <h2 class="step-title">닉네임을 정해주세요</h2>
         <p class="step-sub">이 방 안에서만 사용. <strong>방이 끝나면 사라져요.</strong></p>
+        ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 호스트가 입력하는 모든 정보는 <strong>오늘 모임 게스트들의 카드</strong>에 공유됩니다.</div>` : ''}
         <div class="field">
           <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" autocomplete="off" autocapitalize="off" autocorrect="off" value="${escHtml(data.nickname)}">
         </div>
@@ -354,10 +357,24 @@ function renderStep() {
       `;
       break;
     case 'basic':
+      const yearOpts = (() => {
+        const cur = new Date().getFullYear();
+        let html = '<option value="">선택하세요</option>';
+        for (let y = cur - 10; y >= 1940; y--) {
+          html += `<option value="${y}"${data.birth_year===y?' selected':''}>${y}년</option>`;
+        }
+        return html;
+      })();
+      const fmtHint = ROOM.birth_year_format === 'decade_half'
+        ? '카드에 "30초/30중/30후" 형태로 표시'
+        : ROOM.birth_year_format === 'decade'
+          ? '카드에 "30대" 형태로 표시'
+          : '카드에 정확한 연도가 표시됩니다';
       body = `
         <div class="step-num">${stepNum} · 기본 정보</div>
         <h2 class="step-title">간단히 알려주세요</h2>
         <p class="step-sub">성별과 출생연도. <strong>건너뛰어도 OK.</strong></p>
+        ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 입력값은 게스트 카드에 공유됩니다.</div>` : ''}
         <div class="field">
           <div class="field-label">성별</div>
           <div class="chip-row">
@@ -367,8 +384,8 @@ function renderStep() {
         </div>
         <div class="field">
           <div class="field-label">출생연도</div>
-          <input type="number" id="birthYearInput" min="1940" max="2015" placeholder="예: 1990" value="${data.birth_year || ''}">
-          <div class="hint">${ROOM.birth_year_format === 'decade_half' ? '카드에 "30초/30중/30후"로 표시' : '카드에 정확한 연도가 표시됩니다'}</div>
+          <select id="birthYearInput" class="year-select">${yearOpts}</select>
+          <div class="hint">${fmtHint}</div>
         </div>
         <div class="actions">
           ${prevBtn}
@@ -521,11 +538,15 @@ document.addEventListener('click', (e) => {
   }
 });
 
-document.addEventListener('input', (e) => {
+document.addEventListener('change', (e) => {
   if (e.target.id === 'birthYearInput') {
     const y = parseInt(e.target.value, 10);
     data.birth_year = (y >= 1940 && y <= 2030) ? y : null;
-  } else if (e.target.id === 'interestInput') {
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'interestInput') {
     // 직접 입력 — 콤마로 구분된 문자열 그대로 저장. chip 자동선택은 끔(자유 텍스트)
     const v = e.target.value.trim();
     data.interest = v || null;

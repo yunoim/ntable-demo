@@ -383,13 +383,21 @@ function escHtml(s) {
 function ageOf(year) { return year ? `${new Date().getFullYear() - year + 1}세` : ''; }
 function formatBirthYear(year, fmt) {
   if (!year) return '';
+  const age = new Date().getFullYear() - year + 1;
   if (fmt === 'decade_half') {
-    const age = new Date().getFullYear() - year + 1;
     if (age < 20) return '10대';
     const decade = Math.floor(age / 10) * 10;
     const half = age % 10;
     const label = half <= 3 ? '초' : half <= 6 ? '중' : '후';
     return `${decade}${label}`;
+  }
+  if (fmt === 'decade') {
+    if (age < 20) return '10대';
+    if (age < 30) return '20대';
+    if (age < 40) return '30대';
+    if (age < 50) return '40대';
+    if (age < 60) return '50대';
+    return '60대 이상';
   }
   return `${year}년생`;
 }

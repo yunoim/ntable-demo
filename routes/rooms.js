@@ -46,7 +46,7 @@ router.post('/rooms', async (req, res) => {
     ? req.body.display_fields.filter(f => ALLOWED_FIELDS.includes(f))
     : ALLOWED_FIELDS;
   if (display_fields.length === 0) display_fields = ALLOWED_FIELDS;
-  const birth_year_format = ['exact', 'decade_half'].includes(req.body.birth_year_format)
+  const birth_year_format = ['exact', 'decade_half', 'decade'].includes(req.body.birth_year_format)
     ? req.body.birth_year_format : 'exact';
   const display_mode = ['mobile', 'presenter'].includes(req.body.display_mode)
     ? req.body.display_mode : 'mobile';
