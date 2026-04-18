@@ -18,10 +18,11 @@ const panelRouter = require('./routes/panel');
 
 const app = express();
 
-// CORS — app 우선, demo/ntable.kr 도 전환기 동안 유지
+// CORS — app 우선, demo/ntable.kr/admin 도 포함
 app.use(cors({
   origin: [
     'https://app.ntable.kr',
+    'https://admin.ntable.kr',
     'https://demo.ntable.kr',
     'https://ntable.kr',
     'https://www.ntable.kr',
@@ -31,12 +32,23 @@ app.use(cors({
   credentials: true,
 }));
 
-// demo.ntable.kr 로 들어온 요청 → app.ntable.kr 로 301 리다이렉트
-// (기존 QR·공유 링크 보호. Phase 4에서 제거 예정.)
+// 호스트별 라우팅
+// - demo.ntable.kr → app.ntable.kr 로 301 redirect (기존 QR·공유 링크 보호)
+// - admin.ntable.kr → /admin·/api/* 외 경로는 /admin 으로 정돈 (관리자 전용 도메인)
 app.use((req, res, next) => {
   const host = (req.headers['x-forwarded-host'] || req.headers.host || '').toLowerCase();
   if (host === 'demo.ntable.kr') {
     return res.redirect(301, `https://app.ntable.kr${req.originalUrl}`);
+  }
+  if (host === 'admin.ntable.kr') {
+    const p = req.path;
+    const isAdminPath = p === '/admin' || p.startsWith('/admin/');
+    const isApi = p.startsWith('/api/');
+    const isStaticAsset = /\.(css|js|png|jpg|jpeg|svg|ico|woff2?|ttf|map)$/i.test(p);
+    const isSentryConfig = p === '/api/sentry-config';
+    if (!isAdminPath && !isApi && !isStaticAsset && !isSentryConfig) {
+      return res.redirect(301, `https://admin.ntable.kr/admin${req.originalUrl === '/' ? '' : req.originalUrl}`);
+    }
   }
   next();
 });
