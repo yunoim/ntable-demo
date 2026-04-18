@@ -1983,6 +1983,11 @@ function handleWSMessage(msg) {
       renderApprovedList();
       renderProfiles();
       break;
+    case 'insta_mutual':
+      // 인스타 매칭 공개 — 호스트는 인스타 자체 안 보고 카운트만
+      state.instaRevealCount = (state.instaRevealCount || 0) + 1;
+      if (typeof toast === 'function') toast(`💌 인스타 공개 매칭 +1 (총 ${state.instaRevealCount}쌍)`);
+      break;
     case 'photo_banlist':
       // 호스트 전용 — 차단 목록 sync
       state.bannedPhotos = new Set(msg.banned || []);
