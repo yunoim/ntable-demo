@@ -449,6 +449,33 @@
 
   let matchedUuid = null;
 
+  // ws 연결 — insta_mutual broadcast 수신 시 자동 갱신
+  let _ws = null;
+  function connectResultWs() {
+    try {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      _ws = new WebSocket(`${proto}://${location.host}/ws/${room_code}/${uuid}`);
+      _ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'insta_mutual') {
+            // 본인이 페어인지 확인
+            const ig = msg.a_uuid === uuid ? msg.b?.instagram : (msg.b_uuid === uuid ? msg.a?.instagram : null);
+            if (ig) {
+              const resultEl = document.getElementById('insta-result');
+              if (resultEl) resultEl.innerHTML = `<div class="insta-reveal"><a href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">@${ig} 🎉</a></div>`;
+              const btn = document.getElementById('insta-btn');
+              if (btn) btn.style.display = 'none';
+            }
+          }
+        } catch (_) {}
+      };
+      _ws.onclose = () => { setTimeout(connectResultWs, 5000); };
+      _ws.onerror = () => { try { _ws.close(); } catch (_) {} };
+    } catch (_) {}
+  }
+  connectResultWs();
+
   async function loadPersonality() {
     try {
       const r = await fetch(`/api/personality?uuid=${uuid}&room_code=${room_code}`);
@@ -690,7 +717,7 @@
           resultEl.innerHTML = `<div class="insta-pending">💌 매칭됐어요!<br>내 인스타를 입력하면 양쪽 모두 공개됩니다.</div>`;
           btn.textContent = '👉 지금 입력하기';
           btn.disabled = false;
-          btn.onclick = () => { location.href = `/room/${room_code}/join?edit=1`; };
+          btn.onclick = () => { location.href = `/room/${room_code}/join?edit=1&step=instagram`; };
         } else if (data.reason === 'partner_empty') {
           resultEl.innerHTML = `<div class="insta-pending">💌 매칭됐어요!<br>상대가 인스타를 입력하면 자동으로 공개됩니다.<br><span style="font-size:11px;opacity:0.7;">상대가 입력하면 알림이 와요</span></div>`;
           btn.style.display = 'none';
@@ -698,7 +725,7 @@
           resultEl.innerHTML = `<div class="insta-pending">💌 매칭됐어요!<br>둘 다 인스타를 입력해야 공개됩니다.</div>`;
           btn.textContent = '👉 지금 입력하기';
           btn.disabled = false;
-          btn.onclick = () => { location.href = `/room/${room_code}/join?edit=1`; };
+          btn.onclick = () => { location.href = `/room/${room_code}/join?edit=1&step=instagram`; };
         }
       } else {
         resultEl.innerHTML = `<div class="insta-pending">매칭된 상대가 없어요.</div>`;

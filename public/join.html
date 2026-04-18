@@ -307,6 +307,14 @@ async function init() {
       ['hide_birth_year','hide_region','hide_industry','hide_interest','hide_instagram'].forEach(k => {
         if (typeof me[k] === 'boolean') data[k] = me[k];
       });
+      // ?step=instagram 등 특정 step으로 자동 점프 (편집 deep link)
+      const targetStep = new URLSearchParams(location.search).get('step');
+      if (targetStep) {
+        // STEPS는 rebuildSteps()에서 결정됨 — 호출 후 위치 찾기
+        rebuildSteps();
+        const idx = STEPS.indexOf(targetStep);
+        if (idx >= 0) CURRENT = idx;
+      }
     }
 
     // 호스트 = 'display' step 추가 (display_fields/birth_year_format 결정 → server PATCH)
