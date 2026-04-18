@@ -419,20 +419,6 @@
       </div>
 
       <div class="field-group">
-        <label>호스트 역할<span class="required-mark">*</span></label>
-        <div class="role-options">
-          <button type="button" class="role-btn" data-role="host_only" onclick="selectRole('host_only')">
-            <span class="role-icon">🎤</span>
-            진행만 할게요
-          </button>
-          <button type="button" class="role-btn" data-role="participant" onclick="selectRole('participant')">
-            <span class="role-icon">🙋</span>
-            저도 참여할게요
-          </button>
-        </div>
-      </div>
-
-      <div class="field-group">
         <label>탐구 문항 수<span class="required-mark">*</span></label>
         <div class="qcount-row">
           <input type="range" id="qcountSlider" class="qcount-slider" min="1" max="15" value="10" step="1" aria-label="탐구 문항 수 (1~15)" />
@@ -452,7 +438,8 @@
 
   <script>
     let uuid = null;
-    let selectedRole = null;
+    // host_role 기본값 'participant' — 방 생성 후 호스트 화면 설정 모달에서 토글 가능
+    const DEFAULT_HOST_ROLE = 'participant';
     let selectedPack = null;
     let packs = [];
 
@@ -532,14 +519,6 @@
       window.location.href = '/';
     }
 
-    function selectRole(role) {
-      selectedRole = role;
-      document.querySelectorAll('.role-btn').forEach(btn => {
-        btn.classList.toggle('selected', btn.dataset.role === role);
-      });
-      checkReady();
-    }
-
     const titleInput = document.getElementById('titleInput');
     const charCount = document.getElementById('charCount');
     titleInput.addEventListener('input', () => {
@@ -554,13 +533,13 @@
     });
 
     function checkReady() {
-      const ready = titleInput.value.trim().length > 0 && selectedRole !== null && selectedPack !== null;
+      const ready = titleInput.value.trim().length > 0 && selectedPack !== null;
       document.getElementById('createBtn').disabled = !ready;
     }
 
     async function createRoom() {
       const rawTitle = titleInput.value.trim();
-      if (!rawTitle || !selectedRole || !selectedPack) return;
+      if (!rawTitle || !selectedPack) return;
 
       const title = rawTitle.length > 100 ? rawTitle.slice(0, 100) : rawTitle;
 
@@ -575,7 +554,7 @@
         const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid, title, host_role: selectedRole, question_count, pack_id: selectedPack })
+          body: JSON.stringify({ uuid, title, host_role: DEFAULT_HOST_ROLE, question_count, pack_id: selectedPack })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');

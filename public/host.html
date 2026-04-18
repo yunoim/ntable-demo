@@ -183,6 +183,20 @@
   }
   .settings-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
   .settings-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .yn-btn {
+    flex: 1;
+    padding: 12px;
+    background: var(--navy-mid);
+    border: 1.5px solid var(--border);
+    color: var(--white-dim);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .yn-btn:hover { border-color: var(--gold-border); }
+  .yn-btn.active { border-color: var(--gold); background: var(--gold-dim); color: var(--gold-light); font-weight: 600; }
   .settings-tab {
     background: transparent; border: none;
     color: var(--text-muted);
@@ -1237,6 +1251,15 @@
     <h3 id="settings-title">모임 설정</h3>
     <div class="settings-sub">모임 시작 전에만 편집할 수 있어요.</div>
 
+    <div class="settings-field" style="margin-bottom:18px;">
+      <label>내 참여 여부</label>
+      <div class="yn-row" style="display:flex; gap:10px; margin-top:6px;">
+        <button type="button" class="yn-btn" id="hr-participant" data-role="participant">🙋 저도 참여할게요</button>
+        <button type="button" class="yn-btn" id="hr-host-only" data-role="host_only">🎤 진행만 할게요</button>
+      </div>
+      <div class="settings-hint" style="margin-top:8px;">참여 선택 시 투표·매칭에도 들어가요. 진행만 선택 시 집계에서 제외됩니다.</div>
+    </div>
+
     <div class="settings-tabs">
       <button type="button" class="settings-tab active" data-stab="questions">탐구 질문</button>
       <button type="button" class="settings-tab" data-stab="topics">자유대화 주제</button>
@@ -2022,10 +2045,41 @@ async function openSettings() {
   renderSettingsQuestions();
   renderSettingsTopics();
   switchSettingsTab('questions');
+  renderHostRoleToggle();
 
   document.getElementById('settings-status').textContent = '';
   document.getElementById('settings-modal').hidden = false;
   document.body.style.overflow = 'hidden';
+}
+
+function renderHostRoleToggle() {
+  const role = state.hostRole || 'participant';
+  document.querySelectorAll('#settings-modal .yn-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.role === role);
+  });
+}
+
+async function setHostRole(role) {
+  if (!['host_only', 'participant'].includes(role)) return;
+  if (state.hostRole === role) return;
+  try {
+    const res = await api(`/api/rooms/${state.roomCode}/host-role`, 'PUT', {
+      host_uuid: state.uuid, host_role: role,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast(err.message || '변경 실패');
+      return;
+    }
+    state.hostRole = role;
+    renderHostRoleToggle();
+    // 호스트 투표 UI 표시/숨김 즉시 반영
+    const voteBtns = document.getElementById('host-vote-btns');
+    if (voteBtns) voteBtns.classList.toggle('show', role === 'participant');
+    toast(role === 'participant' ? '참여 모드로 전환' : '진행 전담 모드로 전환');
+  } catch {
+    toast('네트워크 오류');
+  }
 }
 
 function closeSettings() {
@@ -2190,6 +2244,9 @@ document.querySelectorAll('.settings-tab').forEach(btn => {
 document.getElementById('settings-qcount')?.addEventListener('input', (e) => {
   document.getElementById('settings-qcount-value').textContent = e.target.value;
   document.getElementById('settings-qcount-label').textContent = e.target.value;
+});
+document.querySelectorAll('#settings-modal .yn-btn').forEach(btn => {
+  btn.addEventListener('click', () => setHostRole(btn.dataset.role));
 });
 
 document.getElementById('qr-modal-copy')?.addEventListener('click', () => {

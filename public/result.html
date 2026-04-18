@@ -388,7 +388,7 @@
       </div>
       <div class="share-actions">
         <button type="button" id="save-image-btn" class="share-btn" aria-label="이미지 저장">📷 이미지 저장</button>
-        <button type="button" id="copy-link-btn" class="share-btn outline" aria-label="결과 링크 복사">🔗 링크 복사</button>
+        <button type="button" id="insta-share-btn" class="share-btn outline" aria-label="인스타 스토리로 공유">📸 인스타 스토리 공유</button>
       </div>
     </div>
   </div>
@@ -466,29 +466,60 @@
     }
   }
 
-  async function copyResultLink() {
-    const btn = document.getElementById('copy-link-btn');
-    const url = location.href;
+  // 인스타 스토리 공유 — share-card DOM 을 html2canvas 로 PNG 뽑아서 Web Share API 로 전달
+  async function shareToInstagram() {
+    const btn = document.getElementById('insta-share-btn');
+    const card = document.getElementById('share-card');
+    if (!card || typeof html2canvas === 'undefined') {
+      alert('공유 카드 준비 중이에요. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = '준비 중...';
     try {
-      if (navigator.share) {
-        await navigator.share({ title: 'ntable 모임 결과', url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      btn.textContent = '✓ 복사됨';
-      setTimeout(() => { btn.textContent = '🔗 링크 복사'; }, 1600);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = url; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      btn.textContent = '✓ 복사됨';
-      setTimeout(() => { btn.textContent = '🔗 링크 복사'; }, 1600);
+      const canvas = await html2canvas(card, {
+        backgroundColor: '#141d35',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) { btn.textContent = '❌ 실패'; setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1800); return; }
+        const file = new File([blob], `ntable-${room_code}.png`, { type: 'image/png' });
+        const canShareFile = navigator.canShare && navigator.canShare({ files: [file] });
+        try {
+          if (canShareFile) {
+            await navigator.share({
+              files: [file],
+              title: 'ntable 모임 결과',
+              text: '오늘 ntable 모임 다녀왔어요 🍽️',
+            });
+            btn.textContent = '✓ 공유됨';
+          } else {
+            // 모바일에서 파일 공유 미지원 → 이미지 다운로드 + 인스타 앱 열기 안내
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `ntable-${room_code}.png`; a.click();
+            URL.revokeObjectURL(url);
+            btn.textContent = '✓ 저장됨 · 인스타에 올리세요';
+          }
+        } catch (_) {
+          // 사용자가 공유 시트 닫음
+          btn.textContent = original;
+        } finally {
+          setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2200);
+        }
+      }, 'image/png');
+    } catch (_) {
+      btn.textContent = '❌ 실패';
+      setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1800);
     }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('save-image-btn')?.addEventListener('click', saveShareImage);
-    document.getElementById('copy-link-btn')?.addEventListener('click', copyResultLink);
+    document.getElementById('insta-share-btn')?.addEventListener('click', shareToInstagram);
   });
 
   async function loadResult() {
@@ -506,7 +537,17 @@
         `;
         document.getElementById('insta-card').style.display = 'block';
       } else {
-        matchEl.innerHTML = '<div class="no-match">매칭 결과가 아직 없어요.</div>';
+        // 참여 상황별 fallback — fi_count 유무로 온도감 구분
+        const hasInterest = (data.fi_count || 0) > 0;
+        matchEl.innerHTML = hasInterest
+          ? `
+            <div class="match-name" style="font-size:20px;color:var(--gold-light);">✨ 다음 만남을 기약</div>
+            <div class="match-sub">서로의 선택이 맞닿진 않았지만, <strong>${data.fi_count}명이 당신을 마음에 담았어요</strong>.<br>다음 모임에서 다시 연결될 수 있어요.</div>
+          `
+          : `
+            <div class="match-name" style="font-size:20px;color:var(--gold-light);">🌙 오늘은 조용히</div>
+            <div class="match-sub">매칭은 타이밍이에요. 오늘 나눈 대화가 다음 누군가와의 연결로 이어질 거예요.<br>다음 모임에서 또 만나요.</div>
+          `;
       }
 
       const summEl = document.getElementById('summary-content');

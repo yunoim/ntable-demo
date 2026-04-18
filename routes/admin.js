@@ -138,6 +138,30 @@ router.put('/rooms/:code/questions', async (req, res) => {
   }
 });
 
+// ─── PUT /api/rooms/:code/host-role ──────────────────────────────────────────
+// 호스트가 자기 참여 여부를 토글 (waiting phase 에서만)
+router.put('/rooms/:code/host-role', async (req, res) => {
+  const { code } = req.params;
+  const { host_uuid, host_role } = req.body;
+  if (!host_uuid) return res.status(400).json({ error: 'host_uuid 필수' });
+  if (!['host_only', 'participant'].includes(host_role)) {
+    return res.status(400).json({ error: "host_role must be 'host_only' or 'participant'" });
+  }
+
+  try {
+    const room = await verifyHost(code, host_uuid);
+    if (!room) return res.status(403).json({ error: '권한 없음' });
+    if (room.status !== 'waiting' || !(await isWaitingPhase(room.id))) {
+      return res.status(400).json({ error: 'WAITING_ONLY', message: '모임 시작 전에만 변경할 수 있어요' });
+    }
+    await pool.query('UPDATE rooms SET host_role = $1 WHERE id = $2', [host_role, room.id]);
+    res.json({ ok: true, host_role });
+  } catch (err) {
+    console.error('PUT host-role error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── PUT /api/rooms/:code/free-topics ───────────────────────────────────────
 router.put('/rooms/:code/free-topics', async (req, res) => {
   const { code } = req.params;

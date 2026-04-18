@@ -381,27 +381,27 @@
     <div class="section">
       <div class="label">모임 만족도</div>
       <div class="stars" id="stars">
-        <span class="star" data-v="1">★</span>
-        <span class="star" data-v="2">★</span>
-        <span class="star" data-v="3">★</span>
-        <span class="star" data-v="4">★</span>
-        <span class="star" data-v="5">★</span>
+        <span class="star active" data-v="1">★</span>
+        <span class="star active" data-v="2">★</span>
+        <span class="star active" data-v="3">★</span>
+        <span class="star active" data-v="4">★</span>
+        <span class="star active" data-v="5">★</span>
       </div>
     </div>
 
     <div class="section">
       <div class="label">다음 모임에도 참여하시겠어요?</div>
       <div class="yn-group">
-        <button type="button" class="yn-btn" id="yn-y" onclick="setYN(true)">✅ 네, 또 올게요</button>
+        <button type="button" class="yn-btn active" id="yn-y" onclick="setYN(true)">✅ 네, 또 올게요</button>
         <button type="button" class="yn-btn" id="yn-n" onclick="setYN(false)">🤔 아직 모르겠어요</button>
       </div>
     </div>
 
     <div class="section">
       <div class="label">이 모임을 주변에 추천 (0~10)</div>
-      <input type="range" id="nps" min="0" max="10" value="7" aria-label="NPS 점수" oninput="document.getElementById('nps-val').textContent=this.value">
+      <input type="range" id="nps" min="0" max="10" value="9" aria-label="NPS 점수" oninput="document.getElementById('nps-val').textContent=this.value">
       <div class="nps-labels"><span>전혀 아니오</span><span>매우 그렇다</span></div>
-      <div class="nps-val" id="nps-val">7</div>
+      <div class="nps-val" id="nps-val">9</div>
     </div>
 
     <div class="section">
@@ -478,8 +478,9 @@
 
   if (!uuid || !room_code) location.href = '/';
 
-  let satisfaction = 0;
-  let revisit = null;
+  // 응답 완료율 우선 — 기본값을 긍정 쪽으로 pre-fill (호스트 평가는 제외)
+  let satisfaction = 5;
+  let revisit = true;
   let hostRating = 0;
   let isHost = false;
   let roomTitle = '';
