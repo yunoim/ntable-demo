@@ -1664,11 +1664,18 @@ const STATE = {
     if (room.status === 'closed') { switchScreen('closed'); return; }
 
     document.querySelectorAll('.room-tag').forEach(el => el.textContent = room.title || STATE.roomCode);
-    const titleEl = document.getElementById('nickRoomTitle');
-    if (titleEl) titleEl.textContent = room.title || STATE.roomCode;
 
-    // 닉네임 입력 모달 (방별 익명) — 사용자가 입장 후 ws 연결
-    showNicknameOverlay();
+    // 본인이 이 방에 join 했는지 확인 — 안 했으면 /join 페이지로
+    const meRes = await fetch(`/api/rooms/${STATE.roomCode}/me?uuid=${encodeURIComponent(STATE.uuid)}`);
+    if (!meRes.ok) {
+      location.replace(`/room/${STATE.roomCode}/join`);
+      return;
+    }
+    const me = await meRes.json();
+    STATE.myProfile = { uuid: STATE.uuid, nickname: me.nickname, ...me };
+    renderMyProfile();
+    switchScreen('waiting');
+    connectWS();
   } catch (e) {
     showError('서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.');
   }

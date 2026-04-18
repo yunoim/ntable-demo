@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>ntable — 방 입장</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; min-height: 100vh; }
+  body {
+    background: #0e1628;
+    color: #ffffff;
+    font-family: 'DM Sans', 'Noto Sans KR', sans-serif;
+    line-height: 1.6;
+    padding: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .root { max-width: 480px; margin: 0 auto; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    color: #d4a843;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .room-tag {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: #c0c0c0;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .room-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .room-sub {
+    font-size: 13px;
+    color: #c0c0c0;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .anon-note {
+    margin: 24px 0;
+    padding: 12px 16px;
+    background: rgba(126,232,162,0.06);
+    border: 1px dashed rgba(126,232,162,0.3);
+    border-radius: 10px;
+    font-size: 12px;
+    color: #c0c0c0;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .anon-note strong { color: #7ee8a2; }
+  .field {
+    margin-bottom: 18px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: #e8b84b;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .field label .req { color: #ff8a8a; margin-left: 3px; }
+  .field input[type=text], .field input[type=number] {
+    width: 100%;
+    padding: 13px 14px;
+    background: rgba(212,168,67,0.06);
+    border: 1px solid rgba(212,168,67,0.4);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: #e8b84b; }
+  .field input::placeholder { color: #6f7889; }
+  .hint { font-size: 11px; color: #c0c0c0; margin-top: 6px; line-height: 1.5; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip-row.mbti { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .chip {
+    padding: 8px 13px;
+    background: rgba(212,168,67,0.06);
+    border: 1px solid rgba(212,168,67,0.4);
+    color: #e8e8e8;
+    border-radius: 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+  .chip-row.mbti .chip { padding: 9px 5px; text-align: center; font-weight: 600; font-size: 12.5px; letter-spacing: 0.04em; }
+  .chip:hover { background: rgba(212,168,67,0.15); }
+  .chip.selected {
+    background: #d4a843;
+    color: #0e1628;
+    border-color: #d4a843;
+    font-weight: 700;
+  }
+  .submit-btn {
+    width: 100%;
+    margin-top: 28px;
+    padding: 16px;
+    background: #e8b84b;
+    color: #0a0f1e;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 0 16px rgba(232,184,75,0.35);
+  }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+  .submit-btn:not(:disabled):hover { transform: translateY(-1px); }
+  .err-msg { color: #ff8a8a; font-size: 13px; margin-top: 14px; min-height: 18px; text-align: center; }
+  .err-msg.ok { color: #7ee8a2; }
+</style>
+<script src="/sentry-init.js" data-page="join" defer></script>
+</head>
+<body>
+<div class="root">
+  <div class="brand">ntable</div>
+  <div class="room-tag" id="roomTag">방 코드 —</div>
+  <div class="room-title" id="roomTitle">—</div>
+  <div class="room-sub" id="roomSub">호스트의 모임에 입장합니다</div>
+
+  <div class="anon-note">
+    🔒 <strong>방별 익명</strong> — 입력한 정보는 모임이 끝나면 자동으로 사라져요
+  </div>
+
+  <div class="field">
+    <label>닉네임 <span class="req">*</span></label>
+    <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" autocomplete="off" autocapitalize="off" autocorrect="off">
+    <div class="hint">이 방 안에서만 사용. 같은 닉이 다른 방에 동시 존재 가능.</div>
+  </div>
+
+  <div class="field" id="genderField">
+    <label>성별</label>
+    <div class="chip-row">
+      <button type="button" class="chip" data-group="gender" data-value="male">남성</button>
+      <button type="button" class="chip" data-group="gender" data-value="female">여성</button>
+    </div>
+  </div>
+
+  <div class="field" id="birthYearField">
+    <label>출생연도</label>
+    <input type="number" id="birthYearInput" min="1940" max="2015" placeholder="예: 1990">
+    <div class="hint" id="birthYearHint"></div>
+  </div>
+
+  <div class="field" id="regionField" hidden>
+    <label>지역</label>
+    <div class="chip-row" id="regionRow"></div>
+  </div>
+
+  <div class="field" id="industryField" hidden>
+    <label>업종</label>
+    <div class="chip-row" id="industryRow"></div>
+  </div>
+
+  <div class="field" id="mbtiField">
+    <label>MBTI <span style="color:#c0c0c0;font-weight:300;font-size:12px;">(선택)</span></label>
+    <div class="chip-row mbti" id="mbtiRow"></div>
+  </div>
+
+  <div class="field" id="interestField" hidden>
+    <label>관심사 <span style="color:#c0c0c0;font-weight:300;font-size:12px;">(선택)</span></label>
+    <div class="chip-row" id="interestRow"></div>
+    <input type="text" id="interestInput" maxlength="30" placeholder="또는 직접 입력" style="margin-top:8px;">
+  </div>
+
+  <button type="button" class="submit-btn" id="submitBtn" disabled>입장하기</button>
+  <div class="err-msg" id="errMsg"></div>
+</div>
+
+<script>
+const REGIONS = ['서울','경기','인천','부산','대구','대전','광주','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주'];
+const INDUSTRIES = ['IT/개발','디자인','마케팅/광고','금융/회계','교육','의료/보건','법률','공무원','서비스업','제조업','미디어/콘텐츠','스타트업','기타'];
+const MBTIS = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'];
+const INTERESTS = ['운동','독서','음식','영화','여행','음악','게임','술','카페','등산','사진','공연'];
+
+const path = location.pathname.match(/\/room\/([^/]+)/);
+const ROOM_CODE = path ? path[1] : '';
+let UUID = '';
+let ROOM = null;
+
+function ensureUuid() {
+  try { UUID = localStorage.getItem('demo_uuid') || ''; } catch (_) {}
+  if (!UUID) {
+    UUID = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : ('u-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36));
+    try { localStorage.setItem('demo_uuid', UUID); } catch (_) {}
+  }
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderChips(rowId, list, group) {
+  const row = document.getElementById(rowId);
+  row.innerHTML = list.map(v => `<button type="button" class="chip" data-group="${group}" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('');
+}
+
+async function init() {
+  if (!ROOM_CODE) { showErr('잘못된 경로'); return; }
+  ensureUuid();
+  document.getElementById('roomTag').textContent = `방 코드 ${ROOM_CODE}`;
+
+  // room 정보
+  try {
+    const r = await fetch(`/api/rooms/${ROOM_CODE}`);
+    if (!r.ok) { showErr('방 정보를 불러올 수 없어요'); return; }
+    ROOM = await r.json();
+    if (ROOM.status === 'closed') { showErr('이 모임은 이미 종료됐어요'); return; }
+    document.getElementById('roomTitle').textContent = ROOM.title || ROOM_CODE;
+    document.getElementById('roomSub').textContent = `호스트가 정한 정보를 입력하고 입장하세요`;
+
+    // 이미 join 했으면 바로 게스트 화면으로
+    const meRes = await fetch(`/api/rooms/${ROOM_CODE}/me?uuid=${encodeURIComponent(UUID)}`);
+    if (meRes.ok) {
+      location.replace(`/room/${ROOM_CODE}`);
+      return;
+    }
+
+    setupFields(ROOM);
+    prefill();
+  } catch (e) {
+    showErr('서버 연결 실패');
+  }
+}
+
+function setupFields(room) {
+  const df = Array.isArray(room.display_fields)
+    ? room.display_fields
+    : ['birth_year','region','industry','interest'];
+  const fmt = room.birth_year_format || 'exact';
+
+  document.getElementById('birthYearField').hidden = !df.includes('birth_year');
+  document.getElementById('birthYearHint').textContent = fmt === 'decade_half'
+    ? '카드에 "30초/30중/30후" 처럼 표시됩니다'
+    : '카드에 정확한 연도가 표시됩니다';
+
+  if (df.includes('region')) {
+    document.getElementById('regionField').hidden = false;
+    renderChips('regionRow', REGIONS, 'region');
+  }
+  if (df.includes('industry')) {
+    document.getElementById('industryField').hidden = false;
+    renderChips('industryRow', INDUSTRIES, 'industry');
+  }
+  if (df.includes('interest')) {
+    document.getElementById('interestField').hidden = false;
+    renderChips('interestRow', INTERESTS, 'interest');
+  }
+  // MBTI는 항상 노출 (display_fields와 무관 — 매칭 로직용)
+  renderChips('mbtiRow', MBTIS, 'mbti');
+}
+
+function prefill() {
+  try {
+    const pref = localStorage.getItem('preferred_nickname');
+    if (pref) document.getElementById('nicknameInput').value = pref;
+    const profStr = localStorage.getItem('profile_snapshot');
+    if (profStr) {
+      const prof = JSON.parse(profStr);
+      if (prof.gender) selectChip('gender', prof.gender);
+      if (prof.birth_year) document.getElementById('birthYearInput').value = prof.birth_year;
+      if (prof.region) selectChip('region', prof.region);
+      if (prof.industry) selectChip('industry', prof.industry);
+      if (prof.mbti) selectChip('mbti', prof.mbti);
+      if (prof.interest) {
+        const inp = document.getElementById('interestInput');
+        if (inp) inp.value = prof.interest;
+        selectChip('interest', prof.interest);
+      }
+    }
+  } catch (_) {}
+  validate();
+}
+
+function selectChip(group, value) {
+  document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(c => {
+    c.classList.toggle('selected', c.dataset.value === value);
+  });
+}
+
+function getSelectedChip(group) {
+  return document.querySelector(`.chip[data-group="${group}"].selected`)?.dataset.value || null;
+}
+
+function validate() {
+  const nick = document.getElementById('nicknameInput').value.trim();
+  document.getElementById('submitBtn').disabled = nick.length === 0;
+}
+
+function showErr(msg) {
+  const el = document.getElementById('errMsg');
+  el.textContent = msg;
+  el.className = 'err-msg';
+}
+
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  const group = chip.dataset.group;
+  if (!group) return;
+  const wasSelected = chip.classList.contains('selected');
+  document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+  if (!wasSelected) chip.classList.add('selected');
+  // interest chip 클릭 시 input도 갱신
+  if (group === 'interest') {
+    const inp = document.getElementById('interestInput');
+    if (inp) inp.value = wasSelected ? '' : chip.dataset.value;
+  }
+});
+
+document.getElementById('nicknameInput').addEventListener('input', validate);
+document.getElementById('interestInput')?.addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  document.querySelectorAll('.chip[data-group="interest"]').forEach(c => {
+    c.classList.toggle('selected', c.dataset.value === v);
+  });
+});
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('submitBtn');
+  const errEl = document.getElementById('errMsg');
+  const nickname = document.getElementById('nicknameInput').value.trim();
+  if (!nickname) return;
+
+  const gender = getSelectedChip('gender');
+  const birth_year = parseInt(document.getElementById('birthYearInput').value, 10) || null;
+  const region = getSelectedChip('region');
+  const industry = getSelectedChip('industry');
+  const mbti = getSelectedChip('mbti');
+  const interestRaw = (document.getElementById('interestInput')?.value || '').trim();
+  const interest = interestRaw || getSelectedChip('interest');
+
+  const profile = { gender, birth_year, region, industry, mbti, interest };
+
+  btn.disabled = true;
+  btn.textContent = '입장 중…';
+  errEl.textContent = '';
+  errEl.className = 'err-msg';
+
+  try {
+    const r = await fetch(`/api/rooms/${ROOM_CODE}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid: UUID, nickname, profile }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      errEl.textContent = data.message || (data.error === 'NICKNAME_TAKEN' ? '이 방에서 이미 사용 중인 닉네임이에요' : (data.error || '입장 실패'));
+      btn.disabled = false;
+      btn.textContent = '입장하기';
+      return;
+    }
+    try {
+      localStorage.setItem('preferred_nickname', nickname);
+      localStorage.setItem('profile_snapshot', JSON.stringify(profile));
+    } catch (_) {}
+    location.replace(`/room/${ROOM_CODE}`);
+  } catch (e) {
+    errEl.textContent = '서버 연결 실패';
+    btn.disabled = false;
+    btn.textContent = '입장하기';
+  }
+});
+
+init();
+</script>
+</body>
+</html>

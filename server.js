@@ -95,6 +95,9 @@ app.get('/room/:code/host', (req, res) => {
 app.get('/room/:code/presenter', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'presenter.html'));
 });
+app.get('/room/:code/join', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'join.html'));
+});
 app.get('/tv', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'tv.html'));
 });

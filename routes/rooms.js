@@ -218,6 +218,22 @@ router.post('/rooms/:code/approve', async (req, res) => {
   res.json({ approved: [target_uuid] });
 });
 
+// GET /api/rooms/:code/me?uuid=X — 본인이 이 방에 join 했는지 확인
+router.get('/rooms/:code/me', async (req, res) => {
+  const { code } = req.params;
+  const uuid = req.query.uuid;
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const me = await pool.query(
+    `SELECT nickname, gender, birth_year, region, industry, mbti, interest, instagram
+       FROM room_members WHERE room_id = $1 AND uuid = $2`,
+    [room.rows[0].id, uuid]
+  );
+  if (me.rows.length === 0) return res.status(404).json({ error: 'NOT_JOINED' });
+  res.json(me.rows[0]);
+});
+
 // POST /api/rooms/:code/join — 방 입장 시 nickname + profile 스냅샷 등록 (방별 익명)
 // body: { uuid, nickname, profile?: { gender, birth_year, region, industry, mbti, interest, instagram } }
 router.post('/rooms/:code/join', async (req, res) => {
