@@ -676,26 +676,32 @@ document.addEventListener('click', (e) => {
     data.hide_birth_year = chip.dataset.value === 'true';
     return;
   }
-  // 호스트 지역 표시 방식 (false/true/hide)
+  // 호스트 지역 표시 방식 (false/true/hide) — 항상 renderStep으로 구 UI 재평가 + 강남 잔재 정리
   if (group === 'rdfmt') {
-    document.querySelectorAll('.chip[data-group="rdfmt"]').forEach(c => c.classList.remove('selected'));
-    chip.classList.add('selected');
     const v = chip.dataset.value;
     if (v === 'hide') {
       data.hide_region = true;
+      // 시·도만 / 표시 안 함 → 구 선택값 초기화 (서울 강남 → 서울)
+      if (data.region && data.region.startsWith('서울 ')) data.region = '서울';
+      ROOM.region_detail = false;
+      patchRoomDisplay({ region_detail: false });
     } else {
       data.hide_region = false;
       const newRd = v === 'true';
       ROOM.region_detail = newRd;
+      // 시·도만으로 변경 시 강남 잔재 제거
+      if (!newRd && data.region && data.region.startsWith('서울 ')) data.region = '서울';
       patchRoomDisplay({ region_detail: newRd });
     }
+    renderStep(); // 구 row 노출 조건 즉시 재평가
     return;
   }
   // 게스트 hide_region 토글
   if (group === 'hide_region') {
-    document.querySelectorAll('.chip[data-group="hide_region"]').forEach(c => c.classList.remove('selected'));
-    chip.classList.add('selected');
-    data.hide_region = chip.dataset.value === 'true';
+    const isHide = chip.dataset.value === 'true';
+    data.hide_region = isHide;
+    if (isHide && data.region && data.region.startsWith('서울 ')) data.region = '서울';
+    renderStep();
     return;
   }
 
@@ -710,19 +716,14 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  // region: 서울 선택 + region_detail 옵션 ON 이면 구 row 펼침
+  // region: 항상 renderStep으로 구 row 재평가 (서울 ↔ 다른 시·도 전환 시 강남 잔재 제거)
   if (group === 'region') {
-    document.querySelectorAll('.chip[data-group="region"]').forEach(c => c.classList.remove('selected'));
     if (wasSelected) {
       data.region = null;
     } else {
-      chip.classList.add('selected');
       data.region = chip.dataset.value;
-      if (chip.dataset.value === '서울' && ROOM.region_detail) {
-        renderStep(); // 구 row 펼치기 위해 step 재렌더
-        return;
-      }
     }
+    renderStep(); // 구 UI 노출 조건(region==='서울' && rd) 즉시 재평가
     return;
   }
 
