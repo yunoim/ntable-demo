@@ -2300,7 +2300,7 @@ function switchTab(tab) {
   updatePrimaryButton();
 }
 
-// 1:1 (총 2명 이하)이면 MVP/작대기 단계 모두 생략하고 자동으로 매칭 결과 발표
+// 1:1 (총 2명 이하)이면 MVP/작대기 단계 모두 생략하고 탐구 결과만 발표
 function applyOneOnOneEnding() {
   const total = state.approvedUsers.length + (state.hostRole === 'participant' ? 1 : 0);
   const mvpCard = document.querySelector('#panel-ending .free-card');
@@ -2308,26 +2308,48 @@ function applyOneOnOneEnding() {
   if (!mvpCard) return;
   if (total <= 2) {
     if (substeps) substeps.style.display = 'none';
-    mvpCard.innerHTML = `
-      <div class="card-head">💑 1:1 모임 — 매칭 발표 중</div>
-      <div class="card-help" style="font-size:13px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
-        2명 이하라 MVP/작대기 투표가 생략됩니다. 잠시 후 매칭 결과가 자동 발표됩니다.
-      </div>`;
     state.oneOnOne = true;
-    // 자동 매칭 발표 — closing-match-result 로 즉시 점프
-    if (!state.matchAutoFired) {
-      state.matchAutoFired = true;
-      setTimeout(async () => {
-        try {
-          await doMatch();
-          state.closingPhase = 'closing-match-result';
-          if (typeof renderClosingSubsteps === 'function') renderClosingSubsteps('closing-match-result');
-          updateState({ phase: 'closing-match-result', current_tab: 'closing' });
-        } catch (e) {
-          console.error('[1:1 auto match]', e);
-        }
-      }, 800);
+    mvpCard.innerHTML = `
+      <div class="card-head">💑 1:1 모임 — 탐구 결과</div>
+      <div id="explore-result-list" style="margin-top:12px;font-size:13px;color:var(--text);line-height:1.7;">불러오는 중…</div>
+      <button type="button" class="csub-next-btn" style="margin-top:14px;" onclick="closeRoom()">모임 종료</button>`;
+    // 탐구 결과 fetch + 게스트에게도 phase broadcast
+    if (!state.exploreResultFired) {
+      state.exploreResultFired = true;
+      loadAndRenderExploreResult();
+      updateState({ phase: 'closing-explore-result', current_tab: 'closing' });
     }
+  }
+}
+
+async function loadAndRenderExploreResult() {
+  const list = document.getElementById('explore-result-list');
+  if (!list) return;
+  try {
+    const r = await fetch(`/api/rooms/${state.roomCode}/explore-result`);
+    if (!r.ok) { list.textContent = '결과를 불러올 수 없어요'; return; }
+    const data = await r.json();
+    const myVotes = (data.members.find(m => m.uuid === state.uuid)?.votes_json) || {};
+    const others = data.members.filter(m => m.uuid !== state.uuid);
+    list.innerHTML = (data.questions || []).map((q, i) => {
+      const qid = q.id;
+      const myAns = myVotes[String(qid)] || '-';
+      const otherAns = others.length ? (others[0].votes_json?.[String(qid)] || '-') : '-';
+      const same = myAns !== '-' && myAns === otherAns;
+      const otherNick = others[0]?.nickname || '상대';
+      return `
+        <div style="padding:10px 12px;background:var(--surface-2);border-left:3px solid ${same?'#7ee8a2':'rgba(212,168,67,0.4)'};border-radius:8px;margin-bottom:10px;">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Q${i+1}${same?' · 일치 ✓':''}</div>
+          <div style="color:#fff;font-weight:500;margin-bottom:6px;">${escHtml(q.question || '')}</div>
+          <div style="display:flex;gap:14px;font-size:12.5px;">
+            <div><span style="color:var(--gold)">나</span> · ${escHtml(myAns)}</div>
+            <div><span style="color:var(--gold)">${escHtml(otherNick)}</span> · ${escHtml(otherAns)}</div>
+          </div>
+        </div>
+      `;
+    }).join('') || '<div style="color:var(--text-muted);">아직 탐구 데이터가 없어요</div>';
+  } catch (e) {
+    list.textContent = '결과 로드 실패';
   }
 }
 

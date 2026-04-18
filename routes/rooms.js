@@ -243,6 +243,26 @@ router.get('/rooms/:code/members/:uuid', async (req, res) => {
   res.json(m.rows[0]);
 });
 
+// GET /api/rooms/:code/explore-result — 탐구 단계 결과 (각 질문별 멤버들의 답변)
+router.get('/rooms/:code/explore-result', async (req, res) => {
+  const { code } = req.params;
+  const room = await pool.query(
+    'SELECT id, questions_json FROM rooms WHERE room_code = $1', [code]
+  );
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const room_id = room.rows[0].id;
+  const questions = room.rows[0].questions_json || [];
+  const members = await pool.query(
+    `SELECT mr.uuid, mr.votes_json,
+            COALESCE(rm.nickname, '익명') AS nickname
+       FROM member_results mr
+       LEFT JOIN room_members rm ON rm.room_id = mr.room_id AND rm.uuid = mr.uuid
+      WHERE mr.room_id = $1`,
+    [room_id]
+  );
+  res.json({ questions, members: members.rows });
+});
+
 // GET /api/rooms/:code/me?uuid=X — 본인이 이 방에 join 했는지 확인
 router.get('/rooms/:code/me', async (req, res) => {
   const { code } = req.params;

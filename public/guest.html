@@ -1993,6 +1993,11 @@ async function handleWSMessage(msg) {
 
 // closing phase 별로 section 토글
 function applyClosingPhase(phase) {
+  // 1:1 모임의 탐구 결과 발표 phase
+  if (phase === 'closing-explore-result') {
+    renderGuestExploreResult();
+    return;
+  }
   const mvpSec = document.getElementById('mvpSection');
   const matchSec = document.getElementById('matchSection');
   const wait = document.getElementById('closingWaitMsg');
@@ -2591,20 +2596,57 @@ async function loadClosingData() {
   }
   document.getElementById('closingRoomTag').textContent = STATE.roomCode;
 
-  // 1:1 (총 2명 이하)이면 MVP/작대기 투표 자동 스킵 — 매칭만 자동 표시
+  // 1:1 (총 2명 이하)이면 작대기/MVP 모두 생략 — 호스트가 탐구 결과 발표 (state_update phase로 받음)
   const isOneOnOne = STATE.members.length <= 2;
   const content = document.querySelector('.closing-content');
   if (isOneOnOne && content) {
     content.innerHTML = `
-      <div class="oneonone-msg">
+      <div class="oneonone-msg" id="oneOnOneArea">
         <div class="oneonone-icon">💑</div>
-        <h2>1:1 모임이라 자동 매칭돼요</h2>
-        <p>호스트가 모임을 마무리하면 결과 카드가 나타납니다.</p>
+        <h2>1:1 모임</h2>
+        <p>호스트가 곧 탐구 결과를 발표합니다…</p>
       </div>`;
     return;
   }
   renderVoteList('mvpList', 'mvp');
   renderVoteList('matchList', 'match');
+}
+
+async function renderGuestExploreResult() {
+  const area = document.getElementById('oneOnOneArea') || document.querySelector('.closing-content');
+  if (!area) return;
+  area.innerHTML = `
+    <div style="padding:0 4px;">
+      <div class="oneonone-icon" style="text-align:center;">📖</div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#fff;text-align:center;margin-bottom:18px;">오늘의 탐구 결과</h2>
+      <div id="guest-explore-list" style="font-size:13px;line-height:1.6;color:var(--text);">불러오는 중…</div>
+    </div>`;
+  try {
+    const r = await fetch(`/api/rooms/${STATE.roomCode}/explore-result`);
+    if (!r.ok) { document.getElementById('guest-explore-list').textContent = '결과를 불러올 수 없어요'; return; }
+    const data = await r.json();
+    const myVotes = (data.members.find(m => m.uuid === STATE.uuid)?.votes_json) || {};
+    const others = data.members.filter(m => m.uuid !== STATE.uuid);
+    const html = (data.questions || []).map((q, i) => {
+      const myAns = myVotes[String(q.id)] || '-';
+      const otherAns = others.length ? (others[0].votes_json?.[String(q.id)] || '-') : '-';
+      const same = myAns !== '-' && myAns === otherAns;
+      const otherNick = others[0]?.nickname || '상대';
+      return `
+        <div style="padding:10px 12px;background:var(--surface-2);border-left:3px solid ${same?'#7ee8a2':'rgba(212,168,67,0.4)'};border-radius:8px;margin-bottom:10px;">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Q${i+1}${same?' · 일치 ✓':''}</div>
+          <div style="color:#fff;font-weight:500;margin-bottom:6px;">${escHtml(q.question || '')}</div>
+          <div style="display:flex;gap:14px;font-size:12.5px;">
+            <div><span style="color:var(--gold)">나</span> · ${escHtml(myAns)}</div>
+            <div><span style="color:var(--gold)">${escHtml(otherNick)}</span> · ${escHtml(otherAns)}</div>
+          </div>
+        </div>
+      `;
+    }).join('') || '<div style="color:var(--text-muted);text-align:center;">탐구 데이터가 없어요</div>';
+    document.getElementById('guest-explore-list').innerHTML = html;
+  } catch (e) {
+    document.getElementById('guest-explore-list').textContent = '결과 로드 실패';
+  }
 }
 
 function renderVoteList(containerId, type) {
