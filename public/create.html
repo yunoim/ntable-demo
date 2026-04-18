@@ -146,7 +146,7 @@
     }
 
     .welcome {
-      padding-top: 24px;
+      padding-top: 14px;
       font-size: 13px;
       color: var(--subtext);
       text-align: center;
@@ -344,11 +344,10 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin: 22px 0 14px;
-      font-size: 11.5px;
-      color: var(--text-muted);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
+      margin: 24px 0 16px;
+      font-size: 13px;
+      color: var(--white-muted);
+      letter-spacing: 0.08em;
       font-weight: 600;
     }
     .group-section-header::before,
@@ -389,7 +388,7 @@
     .pack-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      gap: 14px;
     }
     @media (max-width: 380px) {
       .pack-grid { grid-template-columns: 1fr; }
@@ -397,12 +396,12 @@
 
     /* 확인 화면 (4개 방 클릭 시) */
     #confirmScreen[hidden] { display: none; }
-    .confirm-head { text-align: center; margin-bottom: 22px; }
-    .confirm-icon { font-size: 44px; line-height: 1; margin-bottom: 8px; }
+    .confirm-head { text-align: center; margin-bottom: 18px; }
+    .confirm-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
     .confirm-title {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 26px; font-weight: 600; color: var(--white);
-      margin-bottom: 6px;
+      font-size: 20px; font-weight: 600; color: var(--white);
+      margin-bottom: 4px;
     }
     .confirm-desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; }
     .confirm-section-head {
@@ -664,11 +663,10 @@
 
     <!-- 화면 1: 방 선택 -->
     <div class="card" id="selectScreen">
-      <!-- 둘이서 hero (즉시 방 생성, 확인 스킵) — 다른 카드와 구조 일관화 -->
+      <!-- 둘이서 hero (즉시 방 생성, 확인 스킵) -->
       <div class="couples-hero" id="couplesHero">
-        <span class="couples-hero-eyebrow">👫 둘이서</span>
-        <h3 style="font-size:18px;margin-bottom:6px;">친구 · 썸 · 커플 · 1:1 미팅</h3>
-        <p style="font-size:13px;color:var(--white-muted);margin-bottom:18px;line-height:1.55;">지금 마주앉은 한 명과 1:1로 — 확인 없이 바로 시작</p>
+        <span class="couples-hero-eyebrow">둘이서</span>
+        <h3 style="font-size:19px;margin-bottom:14px;">친구 · 썸 · 커플 · 1:1 미팅</h3>
         <button type="button" class="couples-hero-btn" id="quickCouplesBtn">둘이서 시작하기</button>
       </div>
 
@@ -687,20 +685,21 @@
       </div>
       <div class="confirm-section-head">이런 순서로 진행돼요</div>
       <ul class="confirm-features" id="confirmFeatures"></ul>
+
+      <!-- ⚙ 상세 설정 — 위계: 조정(선택) → 실행(주) → 이탈 -->
+      <div class="advanced-toggle" style="margin-top:20px;margin-bottom:14px;">
+        <button type="button" id="advancedBtn" aria-expanded="false" aria-controls="advancedPanel">
+          ⚙ 상세 설정 <span class="caret">▼</span>
+        </button>
+        <div class="advanced-dirty-hint" id="advancedDirtyHint" data-dirty="false">변경한 옵션이 [방 열기] 시 적용됩니다</div>
+      </div>
+
       <div class="confirm-actions">
         <button type="button" class="btn-primary" id="confirmCreateBtn">방 열기</button>
       </div>
       <div style="text-align:center;margin-top:10px;font-size:11.5px;color:var(--text-dim);letter-spacing:0.02em;">QR·참여코드를 바로 받아요</div>
       <div style="text-align:center;margin-top:18px;">
         <button type="button" id="confirmBackBtn" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;font-family:inherit;letter-spacing:0.02em;padding:6px 12px;">← 다른 방 보기</button>
-      </div>
-
-      <!-- ⚙ 상세 설정 (파워유저용) -->
-      <div class="advanced-toggle" style="margin-top:24px;">
-        <button type="button" id="advancedBtn" aria-expanded="false" aria-controls="advancedPanel">
-          ⚙ 상세 설정 <span class="caret">▼</span>
-        </button>
-        <div class="advanced-dirty-hint" id="advancedDirtyHint" data-dirty="false">변경한 옵션이 [방 열기] 시 적용됩니다</div>
       </div>
       <div class="advanced-panel" id="advancedPanel" hidden>
         <div class="field-group">
@@ -805,7 +804,7 @@
         },
       },
       {
-        id: 'icebreaker', icon: '👋', title: '처음 만나는 사이',
+        id: 'icebreaker', icon: '🤝', title: '처음 만나는 사이',
         desc: '낯선 사람들과 첫 인사',
         detailedDesc: '간단한 5문항으로 어색함을 풀고, MVP 투표로 분위기를 마무리합니다.',
         features: [
