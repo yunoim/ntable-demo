@@ -720,6 +720,13 @@
 
     // 히어로 "둘이서 시작하기" — 1-tap 방 생성
     async function quickStartCouples() {
+      // 호스트 nickname 받기 (저장된 prefill 우선, 없으면 prompt)
+      let nick = '';
+      try { nick = localStorage.getItem('preferred_nickname') || ''; } catch (_) {}
+      if (!nick) {
+        nick = (prompt('닉네임을 입력하세요 (이 모임에서만 사용)', '') || '').trim();
+        if (!nick) return;
+      }
       const btn = document.getElementById('quickCouplesBtn');
       btn.disabled = true;
       btn.textContent = '생성 중...';
@@ -742,6 +749,19 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');
+
+        // 호스트 닉네임 등록 (방별 익명)
+        const j = await fetch(`/api/rooms/${data.room_code}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uuid, nickname: nick }),
+        });
+        if (!j.ok) {
+          const je = await j.json().catch(() => ({}));
+          throw new Error(je.message || je.error || '호스트 등록 실패');
+        }
+        try { localStorage.setItem('preferred_nickname', nick); } catch (_) {}
+
         window.location.href = `/room/${data.room_code}/host`;
       } catch (err) {
         errMsg.textContent = err.message;
@@ -753,17 +773,19 @@
 
     async function init() {
       uuid = localStorage.getItem('demo_uuid');
-      if (!uuid) { window.location.href = '/'; return; }
-      try {
-        const res = await fetch(`/api/me?uuid=${uuid}`);
-        if (!res.ok) { localStorage.removeItem('demo_uuid'); window.location.href = '/'; return; }
-        const data = await res.json();
-        document.getElementById('welcomeMsg').innerHTML =
-          `안녕하세요, <span>${data.nickname}</span>님<br>지금 바로 모임을 열어보세요.`;
-        document.getElementById('topNavUser').textContent = `@${data.nickname}`;
-      } catch {
-        document.getElementById('welcomeMsg').textContent = '모임을 열어보세요.';
+      if (!uuid) {
+        // 첫 화면 안 거치고 직접 진입한 케이스 — 자동 uuid 생성
+        uuid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+          : ('u-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36));
+        try { localStorage.setItem('demo_uuid', uuid); } catch (_) {}
       }
+      // 닉네임은 방 만들 때 입력 — me 호출 안 함 (방별 익명 구조)
+      const pref = (() => { try { return localStorage.getItem('preferred_nickname') || ''; } catch (_) { return ''; } })();
+      document.getElementById('welcomeMsg').innerHTML = pref
+        ? `다시 만나요, <span>${pref}</span>님<br>지금 바로 모임을 열어보세요.`
+        : '지금 바로 모임을 열어보세요.';
+      const navUser = document.getElementById('topNavUser');
+      if (navUser) navUser.textContent = pref ? `@${pref}` : '';
       loadPacks();
     }
 
