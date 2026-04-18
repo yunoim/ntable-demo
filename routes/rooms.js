@@ -266,11 +266,10 @@ router.post('/rooms/:code/join', async (req, res) => {
         profile.instagram || null,
       ]
     );
-    // users 테이블에도 uuid 보장 (FK 제약 호환)
+    // users 테이블에 uuid 만 보장 (FK 제약 호환). nickname 은 room_members 에서 관리.
     await pool.query(
-      `INSERT INTO users (uuid, nickname) VALUES ($1, $2)
-       ON CONFLICT (uuid) DO NOTHING`,
-      [uuid, nick]
+      `INSERT INTO users (uuid) VALUES ($1) ON CONFLICT (uuid) DO NOTHING`,
+      [uuid]
     );
     res.json({ ok: true, room_code: code, nickname: nick });
   } catch (err) {

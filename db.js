@@ -92,6 +92,28 @@ async function initDB() {
       if (e.code !== '42701') throw e;
     }
 
+    // users.nickname — 방별 익명 구조로 전환되며 더 이상 unique·required 아님
+    // (호환성 위해 컬럼 자체는 유지)
+    try { await client.query(`ALTER TABLE users ALTER COLUMN nickname DROP NOT NULL`); } catch (_) {}
+    try { await client.query(`ALTER TABLE users DROP CONSTRAINT users_nickname_key`); } catch (_) {}
+
+    // 일회성 리셋 — Railway env RESET_DB=1 설정 시 모든 사용자/방 데이터 비움.
+    // 리셋 후 Railway env 에서 RESET_DB 제거 권장 (다음 재배포 시 또 비우지 않게).
+    if (process.env.RESET_DB === '1') {
+      console.warn('[db] ⚠️ RESET_DB=1 — TRUNCATE users/rooms/room_members/... (admin_users 유지)');
+      await client.query(`
+        TRUNCATE
+          room_members,
+          member_results,
+          survey_responses,
+          room_state,
+          rooms,
+          users
+        RESTART IDENTITY CASCADE
+      `);
+      console.warn('[db] ✓ truncate complete. Remove RESET_DB env to prevent next-restart wipe.');
+    }
+
     // room_members — 방별 닉네임/프로필 스냅샷 (방 종료 시 CASCADE 자동 삭제)
     // 같은 uuid 도 다른 방에서 다른 닉네임 가능. 같은 방 안에서 nickname unique.
     await client.query(`
