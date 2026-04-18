@@ -1474,8 +1474,7 @@
       </div>
       <button type="button" id="open-settings-btn" title="질문/주제/문항수 편집 (모임 시작 전)">설정 ⚙</button>
       <button type="button" id="open-room-settings-btn" title="모임 운영 옵션 (자유대화·역할·화면)">⚙ 운영</button>
-      <button type="button" onclick="location.href='/profile?next='+encodeURIComponent(location.pathname)">👤 내 정보</button>
-      <!-- 정보 초기화는 내 정보 모달 안으로 이동 예정 (다음 commit). 일단 hidden -->
+      <button type="button" id="open-my-info-btn">👤 내 정보</button>
       <button type="button" onclick="logout()" hidden>정보 초기화</button>
     </div>
   </nav>
@@ -1594,6 +1593,26 @@
 </div>
 
 <!-- 설정 모달 (waiting 전용) -->
+<!-- 내 정보 모달 (프로필 prefill + 정보 초기화) -->
+<div id="my-info-modal" role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;">
+  <div onclick="closeMyInfo()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
+  <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:24px;max-width:440px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;">
+    <button type="button" onclick="closeMyInfo()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#c0c0c0;font-size:24px;cursor:pointer;">×</button>
+    <h3 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);">👤 내 정보</h3>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px;">현재 모임에 저장된 내 카드 정보입니다.</div>
+
+    <div id="mi-content" style="font-size:13px;color:var(--text);line-height:1.7;"><div style="text-align:center;color:var(--text-muted);padding:20px 0;">불러오는 중…</div></div>
+
+    <button type="button" onclick="goToWizardEdit()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:18px;">wizard에서 수정하기</button>
+
+    <div style="margin-top:24px;padding-top:18px;border-top:1px dashed rgba(212,168,67,0.2);">
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.06em;margin-bottom:10px;text-transform:uppercase;">기기 관리</div>
+      <button type="button" onclick="clearDeviceCacheFromModal()" style="width:100%;padding:11px;background:transparent;border:1px solid rgba(255,138,138,0.3);color:#ff8a8a;border-radius:10px;font-size:12.5px;cursor:pointer;font-family:inherit;">이 기기에 저장된 정보 초기화</button>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5;">닉네임·프로필 캐시를 모두 지웁니다. 진행 중인 모임은 유지됩니다.</div>
+    </div>
+  </div>
+</div>
+
 <!-- 운영 옵션 모달 (탐구 문항 / 자유대화 / 호스트 역할 / 화면 형태) -->
 <div id="room-settings-modal" role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;">
   <div onclick="closeRoomSettings()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
@@ -3187,6 +3206,58 @@ async function saveSettings() {
 }
 
 document.getElementById('open-settings-btn')?.addEventListener('click', openSettings);
+
+// 내 정보 모달 — wizard 입력값(room_members) prefill + 정보 초기화 통합
+async function openMyInfo() {
+  const modal = document.getElementById('my-info-modal');
+  const content = document.getElementById('mi-content');
+  modal.style.display = 'flex';
+  content.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">불러오는 중…</div>';
+  try {
+    const res = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(state.uuid)}?viewer=${encodeURIComponent(state.uuid)}`);
+    if (!res.ok) throw new Error('fetch failed');
+    const me = await res.json();
+    const photo = state.photos[state.uuid] || (() => { try { return localStorage.getItem(`ntable_photo_${state.roomCode}`) || ''; } catch (_) { return ''; } })();
+    const row = (k, v, hidden) => {
+      if (!v) return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(212,168,67,0.06);"><span style="color:var(--text-muted);">${k}</span><span style="color:var(--text-dim);font-style:italic;">생략</span></div>`;
+      if (hidden) return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(212,168,67,0.06);"><span style="color:var(--text-muted);">${k}</span><span style="opacity:0.55;">${escHtml(v)} <span style="font-size:10px;color:#9aa0ac;">🔒</span></span></div>`;
+      return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(212,168,67,0.06);"><span style="color:var(--text-muted);">${k}</span><span style="color:var(--white);font-weight:500;">${escHtml(v)}</span></div>`;
+    };
+    const genderLabel = me.gender === 'male' ? '남성' : me.gender === 'female' ? '여성' : me.gender === 'unspecified' ? '선택 안 함' : '';
+    content.innerHTML = `
+      ${photo ? `<div style="text-align:center;margin-bottom:16px;"><img src="${escHtml(photo)}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-border);"></div>` : ''}
+      ${row('닉네임', me.nickname, false)}
+      ${row('성별', genderLabel, false)}
+      ${row('출생연도', me.birth_year ? me.birth_year + '년' : '', me.hide_birth_year)}
+      ${row('지역', me.region, me.hide_region)}
+      ${row('업종', me.industry, me.hide_industry)}
+      ${row('MBTI', me.mbti, false)}
+      ${row('관심사', me.interest, me.hide_interest)}
+      ${row('인스타그램', me.instagram ? '@' + me.instagram : '', me.hide_instagram)}
+    `;
+  } catch (e) {
+    content.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px 0;">정보를 불러오지 못했어요.</div>';
+  }
+}
+function closeMyInfo() { document.getElementById('my-info-modal').style.display = 'none'; }
+function goToWizardEdit() {
+  // wizard로 보내서 호스트가 본인 정보 다시 입력 (room_members ON CONFLICT UPDATE)
+  // wizard 진입 시 'already joined'면 호스트는 자동 host로 redirect라 별도 처리 필요 — 일단 단순 redirect
+  location.href = `/profile?next=${encodeURIComponent(location.pathname)}`;
+}
+async function clearDeviceCacheFromModal() {
+  if (!confirm('이 기기에 저장된 닉네임·프로필을 모두 지울까요? 진행 중인 모임은 유지됩니다.')) return;
+  try {
+    localStorage.removeItem('preferred_nickname');
+    localStorage.removeItem('profile_snapshot');
+    localStorage.removeItem(`ntable_photo_${state.roomCode}`);
+    localStorage.removeItem(`ntable_intro_${state.roomCode}`);
+    localStorage.removeItem('login_remember');
+  } catch (_) {}
+  alert('초기화 완료');
+  closeMyInfo();
+}
+document.getElementById('open-my-info-btn')?.addEventListener('click', openMyInfo);
 
 // 호스트 도구 드롭다운 toggle
 const hostToolsBtn = document.getElementById('open-host-tools-btn');
