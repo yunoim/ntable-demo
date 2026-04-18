@@ -107,6 +107,13 @@
     border-radius: 8px;
     letter-spacing: 0.02em;
   }
+  .acc-logout-hint {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #9aa0ac;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
 
   /* MAIN */
   .root { width: 100%; max-width: 420px; text-align: center; }
@@ -188,6 +195,7 @@
     <!-- 로그인 상태 — provider 라벨만 (실명·이메일 노출 X) -->
     <div class="acc-connected" id="accConnected" hidden>
       ✓ <span id="accProviderLabel">계정 연결됨</span>
+      <div class="acc-logout-hint">토글을 꺼서 로그아웃</div>
     </div>
   </div>
 </div>
