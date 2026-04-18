@@ -332,6 +332,67 @@
     to { opacity: 1; transform: translateY(0); }
   }
   main > * { animation: fadeUp 0.4s ease; }
+
+  /* presenter 디테일: 카드 stagger 등장 + MVP/매칭 호흡 글로우 + bar shimmer */
+  @keyframes barShimmer {
+    0%   { background-position: -180% 0; }
+    100% { background-position:  280% 0; }
+  }
+  .q-opt-bar-fill {
+    background-image: linear-gradient(90deg, #d4a843 0%, #f0ca60 50%, #d4a843 100%);
+    background-size: 220% 100%;
+    animation: barShimmer 2.6s linear infinite;
+  }
+  @keyframes mvpGlowPulse {
+    0%, 100% { box-shadow: 0 0 60px rgba(212,168,67,0.45); transform: scale(1); }
+    50%      { box-shadow: 0 0 110px rgba(232,184,75,0.75); transform: scale(1.025); }
+  }
+  .mvp-display .photo {
+    animation: fadeUp 0.5s ease, mvpGlowPulse 3.4s ease-in-out 0.5s infinite;
+  }
+  @keyframes pairGlowPulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(232,184,75,0.25); }
+    50%      { box-shadow: 0 0 44px rgba(232,184,75,0.55); }
+  }
+  .pair.mutual { animation: pairGlowPulse 3s ease-in-out infinite; }
+
+  @keyframes cardStagger {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .members-grid .m-card { animation: cardStagger 0.5s ease both; }
+  .members-grid .m-card:nth-child(1) { animation-delay: 0.02s; }
+  .members-grid .m-card:nth-child(2) { animation-delay: 0.06s; }
+  .members-grid .m-card:nth-child(3) { animation-delay: 0.10s; }
+  .members-grid .m-card:nth-child(4) { animation-delay: 0.14s; }
+  .members-grid .m-card:nth-child(5) { animation-delay: 0.18s; }
+  .members-grid .m-card:nth-child(6) { animation-delay: 0.22s; }
+  .members-grid .m-card:nth-child(7) { animation-delay: 0.26s; }
+  .members-grid .m-card:nth-child(8) { animation-delay: 0.30s; }
+  .members-grid .m-card:nth-child(n+9) { animation-delay: 0.34s; }
+
+  /* 다수 옵션 강조 — JS에서 .q-opt.major 추가 시 */
+  .q-opt.major {
+    border-color: #7ee8a2;
+    box-shadow: 0 0 32px rgba(126,232,162,0.25);
+  }
+  .q-opt.major .q-opt-label::after {
+    content: ' · 다수';
+    color: #7ee8a2;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    margin-left: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -610,19 +671,21 @@ function renderExplore() {
   const total = (counts.A || 0) + (counts.B || 0);
   const pctA = total ? Math.round((counts.A / total) * 100) : 50;
   const pctB = total ? Math.round((counts.B / total) * 100) : 50;
+  const aMajor = total > 0 && counts.A > counts.B;
+  const bMajor = total > 0 && counts.B > counts.A;
   const main = document.getElementById('main');
   main.innerHTML = `
     <div class="question-card">
       <div class="q-num">Q${STATE.currentQIdx + 1} / ${STATE.questions.length}</div>
       <div class="q-text">${escHtml(q.text || q.question || '')}</div>
       <div class="q-options">
-        <div class="q-opt">
+        <div class="q-opt${aMajor?' major':''}">
           <div class="q-opt-label">A</div>
           <div class="q-opt-text">${escHtml(q.option_a || q.A || '')}</div>
           <div class="q-opt-bar"><div class="q-opt-bar-fill" style="width:${pctA}%"></div></div>
           <div class="q-opt-count"><strong>${counts.A || 0}</strong>표 · ${pctA}%</div>
         </div>
-        <div class="q-opt">
+        <div class="q-opt${bMajor?' major':''}">
           <div class="q-opt-label">B</div>
           <div class="q-opt-text">${escHtml(q.option_b || q.B || '')}</div>
           <div class="q-opt-bar"><div class="q-opt-bar-fill" style="width:${pctB}%"></div></div>

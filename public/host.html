@@ -2428,17 +2428,28 @@ function renderExploreResultHtml(data, myUuid) {
     const sameAll = aPickers.length > 0 && bPickers.length === 0;
     const sameAllB = bPickers.length > 0 && aPickers.length === 0;
     const allMatch = sameAll || sameAllB;
+    const aCount = aPickers.length, bCount = bPickers.length;
+    const total = aCount + bCount;
+    const majoritySide = total > 0 && aCount !== bCount ? (aCount > bCount ? 'A' : 'B') : null;
+    const tied = total > 0 && aCount === bCount;
+    const headerExtra = allMatch
+      ? ' · 모두 일치 ✓'
+      : majoritySide
+        ? ` · 다수 ${majoritySide} (${majoritySide==='A'?aCount:bCount}/${total})`
+        : tied ? ' · 동률' : '';
+    const aMajor = majoritySide === 'A';
+    const bMajor = majoritySide === 'B';
     return `
       <div style="padding:14px 16px;background:rgba(212,168,67,0.06);border:1px solid ${allMatch?'#7ee8a2':'rgba(212,168,67,0.35)'};border-radius:12px;margin-bottom:12px;">
-        <div style="font-size:11px;letter-spacing:0.1em;color:#d4a843;margin-bottom:6px;">Q${i+1}${allMatch?' · 모두 일치 ✓':''}</div>
+        <div style="font-size:11px;letter-spacing:0.1em;color:#d4a843;margin-bottom:6px;">Q${i+1}${headerExtra}</div>
         <div style="color:#fff;font-weight:600;font-size:14px;line-height:1.45;margin-bottom:12px;">${escHtml(q.question || '')}</div>
-        <div style="background:${myAns==='A'?'rgba(212,168,67,0.18)':'transparent'};border-left:3px solid ${myAns==='A'?'#e8b84b':'rgba(212,168,67,0.3)'};padding:8px 12px;border-radius:6px;margin-bottom:6px;">
-          <div style="font-size:12px;font-weight:700;color:#e8b84b;">A. ${escHtml(optA)}</div>
-          ${aPickers.length ? `<div style="font-size:11.5px;color:#c0c0c0;margin-top:4px;">→ ${aPickers.map(escHtml).join(', ')}</div>` : '<div style="font-size:11px;color:#6f7889;margin-top:4px;font-style:italic;">선택자 없음</div>'}
+        <div style="background:${myAns==='A'?'rgba(212,168,67,0.18)':'transparent'};border-left:3px solid ${aMajor?'#7ee8a2':myAns==='A'?'#e8b84b':'rgba(212,168,67,0.3)'};padding:8px 12px;border-radius:6px;margin-bottom:6px;">
+          <div style="font-size:12px;font-weight:700;color:#e8b84b;">A. ${escHtml(optA)}${aMajor?' <span style="color:#7ee8a2;font-size:10.5px;letter-spacing:0.06em;">· 다수</span>':''}</div>
+          ${aCount ? `<div style="font-size:11.5px;color:#c0c0c0;margin-top:4px;">${aCount}명 → ${aPickers.map(escHtml).join(', ')}</div>` : '<div style="font-size:11px;color:#6f7889;margin-top:4px;font-style:italic;">선택자 없음</div>'}
         </div>
-        <div style="background:${myAns==='B'?'rgba(212,168,67,0.18)':'transparent'};border-left:3px solid ${myAns==='B'?'#e8b84b':'rgba(212,168,67,0.3)'};padding:8px 12px;border-radius:6px;">
-          <div style="font-size:12px;font-weight:700;color:#e8b84b;">B. ${escHtml(optB)}</div>
-          ${bPickers.length ? `<div style="font-size:11.5px;color:#c0c0c0;margin-top:4px;">→ ${bPickers.map(escHtml).join(', ')}</div>` : '<div style="font-size:11px;color:#6f7889;margin-top:4px;font-style:italic;">선택자 없음</div>'}
+        <div style="background:${myAns==='B'?'rgba(212,168,67,0.18)':'transparent'};border-left:3px solid ${bMajor?'#7ee8a2':myAns==='B'?'#e8b84b':'rgba(212,168,67,0.3)'};padding:8px 12px;border-radius:6px;">
+          <div style="font-size:12px;font-weight:700;color:#e8b84b;">B. ${escHtml(optB)}${bMajor?' <span style="color:#7ee8a2;font-size:10.5px;letter-spacing:0.06em;">· 다수</span>':''}</div>
+          ${bCount ? `<div style="font-size:11.5px;color:#c0c0c0;margin-top:4px;">${bCount}명 → ${bPickers.map(escHtml).join(', ')}</div>` : '<div style="font-size:11px;color:#6f7889;margin-top:4px;font-style:italic;">선택자 없음</div>'}
         </div>
       </div>
     `;
