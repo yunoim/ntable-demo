@@ -32,7 +32,7 @@
     font-family: 'Cormorant Garamond', serif;
     font-size: 52px;
     font-weight: 600;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.12em;
     color: #d4a843;
     margin-bottom: 8px;
   }
@@ -121,25 +121,8 @@
     <p>호스트 한 명, 스마트폰 하나면 시작됩니다.</p>
   </div>
 
-  <button type="button" class="cta-primary" id="openRoomBtn">모임 열기 →</button>
-
-  <div id="oauthArea" style="margin-top:14px;display:none;">
-    <div id="oauthIntro" style="font-size:11px;color:#9aa0ac;letter-spacing:0.04em;margin:14px 0;">로그인하면 다음 입장부터 자동 완성 (선택)</div>
-    <div style="display:flex;gap:8px;">
-      <button type="button" id="googleBtn" hidden style="flex:1;padding:11px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;opacity:0.92;">Google</button>
-      <button type="button" id="kakaoBtn" hidden style="flex:1;padding:11px;background:#FEE500;color:#3a1d1d;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.92;">카카오</button>
-    </div>
-    <div id="authedBadge" hidden style="margin-top:12px;padding:10px;background:rgba(126,232,162,0.08);border:1px dashed rgba(126,232,162,0.3);border-radius:8px;font-size:12px;color:#7ee8a2;display:flex;align-items:center;gap:10px;">
-      <span style="flex:1;">✓ <strong id="authedName">로그인됨</strong> — 다음 입장부터 자동 완성</span>
-      <button type="button" id="logoutBtn" style="padding:6px 12px;background:transparent;border:1px solid rgba(126,232,162,0.4);border-radius:6px;color:#7ee8a2;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">로그아웃</button>
-    </div>
-  </div>
-
-  <div class="anon-note">
-    🔒 <strong>방 안에서만 닉네임으로 표시</strong>됩니다.<br>방이 끝나면 표시는 사라져요.
-  </div>
-
-  <div class="guest-info">
+  <!-- 참가자 진입 (다수) — 위로 노출 -->
+  <div class="guest-info" id="guestSection">
     <div style="font-size:14px;color:#ffffff;margin-bottom:10px;font-weight:600;">참가자세요?</div>
     링크·QR이 있다면 바로 입장,<br>참여 코드를 받았다면 아래 입력하세요.
     <div style="display:flex;gap:8px;margin-top:14px;">
@@ -149,10 +132,27 @@
     <div style="font-size:11px;color:#9aa0ac;margin-top:8px;letter-spacing:0.02em;">참여 코드 6자리 (영문·숫자, 대소문자 무관)</div>
   </div>
 
+  <!-- 호스트 — '모임 열기' 메인 CTA -->
+  <div style="margin-top:32px;font-size:11px;color:#9aa0ac;letter-spacing:0.18em;text-transform:uppercase;">호스트</div>
+  <button type="button" class="cta-primary" id="openRoomBtn" style="margin-top:10px;">모임 열기 →</button>
+
+  <!-- OAuth — 톤다운, 명확히 분리된 보조 영역 -->
+  <div id="oauthArea" style="margin-top:18px;display:none;padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
+    <div id="oauthIntro" style="font-size:11px;color:#9aa0ac;letter-spacing:0.04em;margin-bottom:10px;">다음 입장부터 자동 완성 — 로그인 (선택)</div>
+    <div id="oauthButtons" style="display:flex;gap:8px;">
+      <button type="button" id="googleBtn" hidden style="flex:1;padding:10px;background:rgba(255,255,255,0.92);color:#3c4043;border:1px solid rgba(218,220,224,0.5);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;opacity:0.85;">Google</button>
+      <button type="button" id="kakaoBtn" hidden style="flex:1;padding:10px;background:#FEE500;color:#3a1d1d;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.85;">카카오</button>
+    </div>
+    <div id="authedBadge" hidden style="padding:10px;background:rgba(126,232,162,0.08);border:1px dashed rgba(126,232,162,0.3);border-radius:8px;font-size:12px;color:#7ee8a2;display:flex;align-items:center;gap:10px;">
+      <span style="flex:1;">✓ <strong id="authedName">로그인됨</strong> — 다음 입장부터 자동 완성</span>
+      <button type="button" id="logoutBtn" style="padding:6px 12px;background:transparent;border:1px solid rgba(126,232,162,0.4);border-radius:6px;color:#7ee8a2;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">로그아웃</button>
+    </div>
+  </div>
+
   <div class="footer-info">
     <a href="https://ntable.kr/privacy.html">개인정보처리방침</a> ·
     <a href="https://ntable.kr/terms.html">이용약관</a><br>
-    © 2026 ntable · More Life. People Connect.
+    More Life. People Connect. · © 2026 ntable
   </div>
 </div>
 
@@ -210,26 +210,36 @@ ensureUuid();
       if (cfg.kakao) document.getElementById('kakaoBtn').hidden = false;
     }
   } catch (_) {}
-  // 현재 로그인 정보 표시 — 로그인 시 OAuth 버튼·안내 숨김 + 로그아웃 버튼 노출
+  // 현재 로그인 정보 표시 — 로그인 시 OAuth 버튼·안내 모두 숨김 (배지만 노출)
   try {
     const tok = localStorage.getItem('user_token');
     if (tok) {
       const r = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
       const me = r.ok ? await r.json() : {};
       if (me.authed) {
+        // 로그인 성공 — 배지만 노출, OAuth 버튼·안내 그룹 모두 숨김
         document.getElementById('oauthArea').style.display = 'block';
         document.getElementById('authedBadge').hidden = false;
         const nameEl = document.getElementById('authedName');
         if (nameEl) nameEl.textContent = me.name || me.email || '로그인됨';
-        // 이미 로그인 — OAuth 버튼·안내 문구 모두 숨김
-        document.getElementById('googleBtn').hidden = true;
-        document.getElementById('kakaoBtn').hidden = true;
+        const buttons = document.getElementById('oauthButtons');
+        if (buttons) buttons.style.display = 'none';
         const intro = document.getElementById('oauthIntro');
         if (intro) intro.style.display = 'none';
       } else {
-        // 토큰은 있지만 서버 세션 만료 — 정리
+        // 토큰은 있지만 서버 세션 만료/무효 — 정리하고 비로그인 흐름으로
         try { localStorage.removeItem('user_token'); } catch (_) {}
       }
+    }
+  } catch (_) {}
+
+  // ?role=guest 로 들어오면 참가자 섹션으로 자동 스크롤·포커스
+  try {
+    if (new URLSearchParams(location.search).get('role') === 'guest') {
+      const guest = document.getElementById('guestSection');
+      const input = document.getElementById('joinCodeInput');
+      if (guest) guest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (input) setTimeout(() => input.focus(), 400);
     }
   } catch (_) {}
 })();
