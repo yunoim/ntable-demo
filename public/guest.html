@@ -1004,7 +1004,9 @@
   }
 
   /* ─── FREE SCREEN ─── */
-  #screenFree { display: flex; flex-direction: column; }
+  #screenFree { display: flex; flex-direction: column; height: 100%; }
+  #screenFree.active { display: flex; }
+  .chat-input-bar { position: sticky; bottom: 0; z-index: 5; }
   .chat-area {
     flex: 1;
     overflow-y: auto;
@@ -1067,6 +1069,7 @@
     flex-shrink: 0;
     animation: qcBannerIn 0.3s ease;
   }
+  .qc-banner[hidden] { display: none !important; }
   @keyframes qcBannerIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
   .qc-banner .qc-icon { font-size: 18px; flex-shrink: 0; }
   .qc-banner .qc-text { flex: 1; font-size: 13.5px; color: #ffffff; line-height: 1.45; font-weight: 500; }
