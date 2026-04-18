@@ -19,7 +19,7 @@ async function initDB() {
         region VARCHAR(50),
         industry VARCHAR(50),
         mbti VARCHAR(10),
-        interest VARCHAR(30),
+        interest VARCHAR(200),
         instagram VARCHAR(50),
         created_at TIMESTAMP DEFAULT NOW()
       )
@@ -114,6 +114,10 @@ async function initDB() {
     try { await client.query(`ALTER TABLE rooms ADD COLUMN free_chat_chat_enabled BOOLEAN DEFAULT TRUE`); } catch (e) { if (e.code !== '42701') throw e; }
     try { await client.query(`ALTER TABLE rooms ADD COLUMN free_chat_topic_card_enabled BOOLEAN DEFAULT TRUE`); } catch (e) { if (e.code !== '42701') throw e; }
 
+    // interest 길이 확장 — 기존 VARCHAR(30)는 6개+ 멀티 선택 시 초과 (운동, 독서, 음식, 등산, 사진, 공연 + 직접 입력)
+    try { await client.query(`ALTER TABLE users ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
+    try { await client.query(`ALTER TABLE room_members ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
+
     // users.nickname — 방별 익명 구조로 전환되며 더 이상 unique·required 아님
     // (호환성 위해 컬럼 자체는 유지)
     try { await client.query(`ALTER TABLE users ALTER COLUMN nickname DROP NOT NULL`); } catch (_) {}
@@ -169,7 +173,7 @@ async function initDB() {
         region VARCHAR(50),
         industry VARCHAR(50),
         mbti VARCHAR(10),
-        interest VARCHAR(30),
+        interest VARCHAR(200),
         instagram VARCHAR(50),
         joined_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(room_id, nickname),
