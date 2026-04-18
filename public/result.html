@@ -601,18 +601,40 @@
       }
 
       const summEl = document.getElementById('summary-content');
+      // 간단 escape
+      const escResHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      // 인기 TOP 5 → 오늘 모든 문항 + 나의 선택
       let hlHtml = '';
-      if (data.question_highlights?.length) {
-        const max = Math.max(...data.question_highlights.map(h => h.count));
-        hlHtml = `<div style="font-size:12px;color:var(--subtext);margin-bottom:10px;letter-spacing:0.04em;">인기 선택지 TOP 5</div>` +
-          data.question_highlights.slice(0, 5).map(h => `
-            <div class="highlight-item">
-              <div class="q-label">Q${h.question_id}</div>
-              <div class="q-top-answer">${h.top_answer}</div>
-              <div class="q-bar"><div class="q-fill" style="width:${Math.round(h.count/max*100)}%"></div></div>
-            </div>
-          `).join('');
-      }
+      try {
+        const er = await fetch(`/api/rooms/${room_code}/explore-result`);
+        if (er.ok) {
+          const ed = await er.json();
+          const myMember = (ed.members || []).find(m => m.uuid === uuid);
+          const myVotes = (myMember && myMember.votes_json) || {};
+          if ((ed.questions || []).length) {
+            hlHtml = `<div style="font-size:12px;color:var(--subtext);margin:18px 0 10px;letter-spacing:0.04em;">오늘의 탐구 — 나의 선택</div>` +
+              ed.questions.map((q, i) => {
+                const opts = q.options || [];
+                const optA = String(opts[0] || '').replace(/^A\.\s*/, '');
+                const optB = String(opts[1] || '').replace(/^B\.\s*/, '');
+                const myAns = myVotes[String(q.id)];
+                const aSel = myAns === 'A';
+                const bSel = myAns === 'B';
+                return `
+                  <div style="padding:12px 14px;background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.25);border-radius:10px;margin-bottom:8px;">
+                    <div style="font-size:11px;color:var(--gold);margin-bottom:4px;letter-spacing:0.08em;">Q${i+1}</div>
+                    <div style="color:#fff;font-size:13.5px;font-weight:500;line-height:1.45;margin-bottom:8px;">${escResHtml(q.question || '')}</div>
+                    <div style="font-size:12.5px;line-height:1.6;">
+                      <div style="color:${aSel?'#e8b84b':'#c0c0c0'};${aSel?'font-weight:700;':''}">A. ${escResHtml(optA)}${aSel?' ✓':''}</div>
+                      <div style="color:${bSel?'#e8b84b':'#c0c0c0'};${bSel?'font-weight:700;':''}">B. ${escResHtml(optB)}${bSel?' ✓':''}</div>
+                    </div>
+                    ${!myAns ? '<div style="font-size:11px;color:#6f7889;margin-top:4px;font-style:italic;">선택 안 함</div>' : ''}
+                  </div>
+                `;
+              }).join('');
+          }
+        }
+      } catch (_) {}
       const hs = data.host_summary || {};
       let hostAggHtml = '';
       if (hs.host_rating_count && hs.avg_host_rating != null) {
