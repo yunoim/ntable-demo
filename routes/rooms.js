@@ -354,7 +354,8 @@ router.get('/rooms/:code/me', async (req, res) => {
   const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
   const me = await pool.query(
-    `SELECT nickname, gender, birth_year, region, industry, mbti, interest, instagram
+    `SELECT nickname, gender, birth_year, region, industry, mbti, interest, instagram,
+            hide_birth_year, hide_region, hide_industry, hide_interest, hide_instagram
        FROM room_members WHERE room_id = $1 AND uuid = $2`,
     [room.rows[0].id, uuid]
   );

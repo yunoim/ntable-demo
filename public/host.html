@@ -3241,9 +3241,8 @@ async function openMyInfo() {
 }
 function closeMyInfo() { document.getElementById('my-info-modal').style.display = 'none'; }
 function goToWizardEdit() {
-  // wizard로 보내서 호스트가 본인 정보 다시 입력 (room_members ON CONFLICT UPDATE)
-  // wizard 진입 시 'already joined'면 호스트는 자동 host로 redirect라 별도 처리 필요 — 일단 단순 redirect
-  location.href = `/profile?next=${encodeURIComponent(location.pathname)}`;
+  // wizard에 edit=1 쿼리로 보내서 already joined여도 wizard 다시 진행 (room_members UPDATE)
+  location.href = `/room/${state.roomCode}/join?edit=1`;
 }
 async function clearDeviceCacheFromModal() {
   if (!confirm('이 기기에 저장된 닉네임·프로필을 모두 지울까요? 진행 중인 모임은 유지됩니다.')) return;

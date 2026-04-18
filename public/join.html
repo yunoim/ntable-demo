@@ -291,12 +291,22 @@ async function init() {
       if (sub) sub.textContent = `모임 코드 ${ROOM_CODE} · 호스트`;
     }
 
-    // 이미 join 했으면 바로 호스트/게스트 화면으로
+    // 이미 join 했으면 바로 호스트/게스트 화면으로 (단 ?edit=1이면 wizard 재진행 — 내 정보 수정용)
+    const isEdit = new URLSearchParams(location.search).get('edit') === '1';
     const meRes = await fetch(`/api/rooms/${ROOM_CODE}/me?uuid=${encodeURIComponent(UUID)}`);
     const me = meRes.ok ? await meRes.json() : { joined: false };
-    if (me.joined) {
+    if (me.joined && !isEdit) {
       location.replace(ROOM.isHost ? `/room/${ROOM_CODE}/host` : `/room/${ROOM_CODE}`);
       return;
+    }
+    // edit 모드 — 기존 데이터를 wizard data로 prefill
+    if (me.joined && isEdit) {
+      ['nickname','gender','birth_year','region','industry','mbti','interest','instagram'].forEach(k => {
+        if (me[k] != null) data[k] = me[k];
+      });
+      ['hide_birth_year','hide_region','hide_industry','hide_interest','hide_instagram'].forEach(k => {
+        if (typeof me[k] === 'boolean') data[k] = me[k];
+      });
     }
 
     // 호스트 = 'display' step 추가 (display_fields/birth_year_format 결정 → server PATCH)
