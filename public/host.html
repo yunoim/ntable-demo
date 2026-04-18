@@ -1469,21 +1469,28 @@
       <h1 class="stage-title">대화의 <em>시간</em></h1>
       <p class="stage-sub">타이머와 질문 카드로 대화의 리듬을 유지하세요.</p>
 
+      <!-- 타이머 카드 (free_chat_timer_minutes > 0 일 때만) -->
+      <div class="free-card" id="free-timer-card" hidden>
+        <div class="card-head">⏱ 자유대화 타이머</div>
+        <div id="free-timer-display" style="font-size:34px;text-align:center;color:var(--gold-light);font-weight:700;letter-spacing:0.04em;padding:12px 0;font-variant-numeric:tabular-nums;">--:--</div>
+        <p style="font-size:12px;color:var(--text-muted);text-align:center;line-height:1.5;">자동 종료는 안 됩니다. 시간 보고 마무리로 →</p>
+      </div>
+
       <div class="free-grid">
-        <div class="free-card">
+        <div class="free-card" id="free-shuffle-card">
           <div class="card-head">🔀 자리 셔플</div>
           <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">대화가 정체되면 한 번 눌러 자리를 섞을 시간을 알려주세요.</p>
           <button type="button" class="btn btn-outline" id="nudge-now-btn" style="width:100%;">지금 셔플 발동 🔀</button>
         </div>
 
-        <div class="free-card">
+        <div class="free-card" id="free-topic-card">
           <div class="card-head">🃏 질문 카드</div>
           <div class="question-selector" id="free-q-list"></div>
           <button type="button" class="btn btn-gold" id="throw-card-btn" style="width:100%;">선택한 카드 던지기</button>
         </div>
       </div>
 
-      <div class="free-card">
+      <div class="free-card" id="free-chat-card">
         <div class="card-head">💬 익명 채팅 모니터</div>
         <div id="chat-log"><div class="empty-msg">대화가 시작되면 여기 표시됩니다</div></div>
       </div>
@@ -2226,6 +2233,55 @@ function updatePrimaryButton() {
   }
 }
 
+// 자유대화 옵션 적용 (방 생성 시 결정된 free_chat_*)
+let _freeTimerInterval = null;
+let _freeTimerStartMs = 0;
+let _freeTimerTotalSec = 0;
+function applyFreeChatOptions() {
+  const r = state.room || {};
+  const chatEnabled = r.free_chat_chat_enabled !== false;
+  const topicEnabled = r.free_chat_topic_card_enabled !== false;
+  const timerMin = parseInt(r.free_chat_timer_minutes, 10) || 0;
+  const tCard = document.getElementById('free-topic-card');
+  const cCard = document.getElementById('free-chat-card');
+  const tmCard = document.getElementById('free-timer-card');
+  if (tCard) tCard.style.display = topicEnabled ? '' : 'none';
+  if (cCard) cCard.style.display = chatEnabled ? '' : 'none';
+  if (tmCard) {
+    if (timerMin > 0) {
+      tmCard.hidden = false;
+      startFreeTimer(timerMin);
+    } else {
+      tmCard.hidden = true;
+      if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
+    }
+  }
+}
+function startFreeTimer(minutes) {
+  if (_freeTimerInterval) clearInterval(_freeTimerInterval);
+  _freeTimerStartMs = Date.now();
+  _freeTimerTotalSec = minutes * 60;
+  const display = document.getElementById('free-timer-display');
+  if (!display) return;
+  display.style.color = 'var(--gold-light)';
+  function tick() {
+    const elapsed = Math.floor((Date.now() - _freeTimerStartMs) / 1000);
+    const remaining = _freeTimerTotalSec - elapsed;
+    if (remaining <= 0) {
+      display.textContent = '⏰ 시간 종료';
+      display.style.color = 'var(--danger)';
+      clearInterval(_freeTimerInterval);
+      _freeTimerInterval = null;
+      return;
+    }
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    display.textContent = `${m}:${String(s).padStart(2, '0')}`;
+  }
+  tick();
+  _freeTimerInterval = setInterval(tick, 1000);
+}
+
 // ── EVENTS ────────────────────────────────────────
 function bindEvents() {
   document.querySelectorAll('.phase-step').forEach(btn => {
@@ -2341,6 +2397,8 @@ function switchTab(tab) {
   document.querySelectorAll('.panel').forEach(panel => {
     panel.classList.toggle('active', panel.id === `panel-${tab}`);
   });
+  if (tab === 'free') applyFreeChatOptions();
+  else if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
   if (tab === 'ending') {
     updateMVPList();
     applyOneOnOneEnding();

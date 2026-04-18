@@ -1518,9 +1518,10 @@
   <div class="top-bar">
     <span class="logo">ntable</span>
     <span class="tab-indicator">💬 자유대화</span>
+    <span id="guestFreeTimer" class="conn-status" style="font-variant-numeric:tabular-nums;color:#e8b84b;font-weight:600;" hidden>--:--</span>
     <span class="conn-status" id="connDot"></span>
   </div>
-  <div class="free-status-bar">익명 채팅 — 상대방에게는 닉네임이 표시되지 않아요</div>
+  <div class="free-status-bar" id="freeStatusBar">익명 채팅 — 상대방에게는 닉네임이 표시되지 않아요</div>
   <div id="qcBanner" class="qc-banner" hidden>
     <div class="qc-icon">📌</div>
     <div class="qc-text" id="qcBannerText"></div>
@@ -1808,6 +1809,59 @@ function switchScreen(state) {
   } else {
     stopWaitingTimer();
   }
+
+  if (state === 'free') applyGuestFreeChatOptions();
+  else stopGuestFreeTimer();
+}
+
+// 자유대화 옵션 적용 (방 생성 시 결정된 free_chat_*)
+let _guestFreeTimerInterval = null;
+function applyGuestFreeChatOptions() {
+  const r = STATE.room || {};
+  const chatEnabled = r.free_chat_chat_enabled !== false;
+  const timerMin = parseInt(r.free_chat_timer_minutes, 10) || 0;
+  const chatBar = document.querySelector('#screenFree .chat-input-bar');
+  const statusBar = document.getElementById('freeStatusBar');
+  if (chatBar) chatBar.style.display = chatEnabled ? '' : 'none';
+  if (statusBar) statusBar.textContent = chatEnabled
+    ? '익명 채팅 — 상대방에게는 닉네임이 표시되지 않아요'
+    : '자유대화 시간 — 직접 대화를 나눠보세요';
+  const timerEl = document.getElementById('guestFreeTimer');
+  if (timerEl) {
+    if (timerMin > 0) {
+      timerEl.hidden = false;
+      startGuestFreeTimer(timerMin);
+    } else {
+      timerEl.hidden = true;
+      stopGuestFreeTimer();
+    }
+  }
+}
+function startGuestFreeTimer(minutes) {
+  stopGuestFreeTimer();
+  const startMs = Date.now();
+  const totalSec = minutes * 60;
+  const el = document.getElementById('guestFreeTimer');
+  if (!el) return;
+  el.style.color = '#e8b84b';
+  function tick() {
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    const remaining = totalSec - elapsed;
+    if (remaining <= 0) {
+      el.textContent = '⏰';
+      el.style.color = '#ff8a8a';
+      stopGuestFreeTimer();
+      return;
+    }
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+  }
+  tick();
+  _guestFreeTimerInterval = setInterval(tick, 1000);
+}
+function stopGuestFreeTimer() {
+  if (_guestFreeTimerInterval) { clearInterval(_guestFreeTimerInterval); _guestFreeTimerInterval = null; }
 }
 
 function showError(msg) {
