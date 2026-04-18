@@ -78,6 +78,13 @@ async function initDB() {
       if (e.code !== '42701') throw e;
     }
 
+    // 호스트 화면 형태 — 'mobile' | 'presenter' (큰 화면)
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN display_mode VARCHAR(20) DEFAULT 'mobile'`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_state (
         room_id INTEGER PRIMARY KEY REFERENCES rooms(id),

@@ -319,4 +319,14 @@ function init(server) {
   console.log('WebSocket server initialized');
 }
 
-module.exports = { init, broadcastToRoom, getRoomClients, getActiveRoomCodes, isUserActive };
+// 특정 사용자의 ws 연결을 닫음 (kick 등에서 사용)
+function closeUserWS(room_code, uuid, code = 4006, reason = 'Closed') {
+  const room = rooms[room_code];
+  if (!room) return false;
+  const ws = room.clients.get(uuid);
+  if (!ws) return false;
+  try { ws.close(code, reason); } catch (_) {}
+  return true;
+}
+
+module.exports = { init, broadcastToRoom, getRoomClients, getActiveRoomCodes, isUserActive, closeUserWS };

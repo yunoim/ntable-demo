@@ -547,6 +547,20 @@
     transition: background 0.15s;
   }
   .approved-unban:hover { background: rgba(126,232,162,0.28); }
+  .approved-kick-btn {
+    background: transparent;
+    border: 1px solid rgba(220,53,69,0.35);
+    color: #ff8a8a;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    margin-left: 4px;
+  }
+  .approved-kick-btn:hover { background: rgba(220,53,69,0.15); }
   .empty-msg { color: var(--text-muted); font-size: 13px; padding: 6px 2px; }
 
   .closing-substeps {
@@ -1763,14 +1777,34 @@ function renderApprovedList() {
     const photoHtml = photo
       ? `<img class="approved-photo" src="${escHtml(photo)}" alt="">`
       : (isBanned ? `<span class="approved-banned-dot" title="사진 차단됨">🚫</span>` : `<span class="approved-dot"></span>`);
-    let actionBtn = '';
+    let photoBtn = '';
     if (photo) {
-      actionBtn = `<button type="button" class="approved-kick" title="사진 강제 제거" onclick="photoKick('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">✕</button>`;
+      photoBtn = `<button type="button" class="approved-kick" title="사진 강제 제거" onclick="photoKick('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">✕</button>`;
     } else if (isBanned) {
-      actionBtn = `<button type="button" class="approved-unban" title="사진 차단 해제" onclick="photoUnban('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">↺</button>`;
+      photoBtn = `<button type="button" class="approved-unban" title="사진 차단 해제" onclick="photoUnban('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">↺</button>`;
     }
-    el.innerHTML = `${photoHtml}<span class="approved-name">${escHtml(u.nickname)}</span>${actionBtn}`;
+    const kickBtn = `<button type="button" class="approved-kick-btn" title="이 참가자 강퇴" onclick="kickUser('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">강퇴</button>`;
+    el.innerHTML = `${photoHtml}<span class="approved-name">${escHtml(u.nickname)}</span>${photoBtn}${kickBtn}`;
     list.appendChild(el);
+  }
+}
+
+// 호스트 — 참가자 강퇴
+async function kickUser(targetUuid, nickname) {
+  if (!confirm(`"${nickname || '이 참가자'}"를 강퇴할까요?\n방에서 즉시 나가게 됩니다.`)) return;
+  try {
+    await api(`/api/rooms/${state.roomCode}/kick`, 'POST', {
+      host_uuid: state.uuid, target_uuid: targetUuid,
+    });
+    // 즉시 로컬 list에서 제거 (서버 user_left broadcast 도 받음 — idempotent)
+    state.approvedUsers = state.approvedUsers.filter(u => u.uuid !== targetUuid);
+    delete state.photos[targetUuid];
+    delete state.intros[targetUuid];
+    renderApprovedList();
+    renderProfiles();
+    toast(`${nickname || '참가자'} 강퇴 완료`);
+  } catch (e) {
+    toast('강퇴 실패: ' + (e.message || ''));
   }
 }
 

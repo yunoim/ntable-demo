@@ -1650,6 +1650,12 @@ function connectWS() {
       location.replace(`/survey?room=${STATE.roomCode}`);
       return;
     }
+    // 호스트가 강퇴
+    if (e.code === 4006 || /kicked/i.test(e.reason || '')) {
+      if (typeof toast === 'function') toast('호스트가 방에서 내보냈어요');
+      setTimeout(() => location.replace('/'), 1200);
+      return;
+    }
     updateConnDot('reconnecting');
     stopPing();
     if (STATE.wsRetries < STATE.MAX_RETRIES) {
@@ -1813,6 +1819,14 @@ async function handleWSMessage(msg) {
     case 'mvp_announce':
       // 호스트가 MVP 결과 발표 → mvpOverlay 표시 (matching_result 와 분리)
       showMVPOverlay(msg.mvp);
+      break;
+
+    case 'kicked':
+      if (msg.target_uuid === STATE.uuid) {
+        try { if (STATE.ws) STATE.ws.close(); } catch (_) {}
+        if (typeof toast === 'function') toast('호스트가 방에서 내보냈어요');
+        setTimeout(() => location.replace('/'), 1200);
+      }
       break;
   }
 }

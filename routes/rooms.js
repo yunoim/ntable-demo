@@ -48,6 +48,8 @@ router.post('/rooms', async (req, res) => {
   if (display_fields.length === 0) display_fields = ALLOWED_FIELDS;
   const birth_year_format = ['exact', 'decade_half'].includes(req.body.birth_year_format)
     ? req.body.birth_year_format : 'exact';
+  const display_mode = ['mobile', 'presenter'].includes(req.body.display_mode)
+    ? req.body.display_mode : 'mobile';
 
   // uuid 검증
   const userCheck = await pool.query('SELECT uuid FROM users WHERE uuid = $1', [uuid]);
@@ -79,8 +81,8 @@ router.post('/rooms', async (req, res) => {
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format)
-       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10) RETURNING id`,
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format, display_mode)
+       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
       [
         room_code, title, uuid, host_role, question_count,
         JSON.stringify(questionsSeed),
@@ -88,6 +90,7 @@ router.post('/rooms', async (req, res) => {
         pack.id,
         JSON.stringify(display_fields),
         birth_year_format,
+        display_mode,
       ]
     );
     const room_id = roomResult.rows[0].id;
@@ -97,7 +100,7 @@ router.post('/rooms', async (req, res) => {
       [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
     );
     await client.query('COMMIT');
-    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format });
+    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format, display_mode });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('POST /api/rooms error:', err);
@@ -122,7 +125,7 @@ router.get('/packs', async (req, res) => {
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });
@@ -202,6 +205,33 @@ router.post('/rooms/:code/approve', async (req, res) => {
   if (!target_uuid) return res.status(400).json({ error: 'target_uuid required' });
   wsModule.broadcastToRoom(code, { type: 'approved', uuid: target_uuid });
   res.json({ approved: [target_uuid] });
+});
+
+// POST /api/rooms/:code/kick — 호스트가 특정 참가자를 방에서 추방
+router.post('/rooms/:code/kick', async (req, res) => {
+  const { code } = req.params;
+  const host_uuid = req.body.host_uuid || req.body.uuid;
+  const target_uuid = req.body.target_uuid;
+  if (!target_uuid) return res.status(400).json({ error: 'target_uuid required' });
+
+  const room = await pool.query(
+    'SELECT id, host_uuid FROM rooms WHERE room_code = $1', [code]
+  );
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  if (room.rows[0].host_uuid !== host_uuid) return res.status(403).json({ error: 'not authorized' });
+  if (target_uuid === host_uuid) return res.status(400).json({ error: 'cannot kick host' });
+
+  const wsModule = require('./ws');
+  // 1) 모든 참가자에게 사용자 강퇴 broadcast (호스트는 list 갱신, 게스트들은 user_left 로 인식)
+  wsModule.broadcastToRoom(code, {
+    type: 'kicked',
+    target_uuid,
+    by: 'host',
+  });
+  // 2) 강퇴된 사용자 ws close (4006) — guest 가 onclose 에서 redirect 처리
+  try { wsModule.closeUserWS(code, target_uuid, 4006, 'Kicked by host'); } catch (_) {}
+
+  res.json({ ok: true });
 });
 
 // POST /api/rooms/:code/close

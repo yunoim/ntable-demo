@@ -586,6 +586,23 @@
           </div>
         </div>
 
+        <div class="field-group">
+          <label>호스트 역할</label>
+          <div class="display-fields-row">
+            <label class="df-chip"><input type="radio" name="hostRole" value="participant" checked> 🙋 참여자로 참가 (투표·매칭 포함)</label>
+            <label class="df-chip"><input type="radio" name="hostRole" value="host_only"> 🎤 진행만 (집계·발표 담당)</label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>호스트 화면 형태</label>
+          <div class="display-fields-row">
+            <label class="df-chip"><input type="radio" name="displayMode" value="mobile" checked> 📱 모바일</label>
+            <label class="df-chip"><input type="radio" name="displayMode" value="presenter"> 🖥️ 큰 화면 (모니터/태블릿)</label>
+          </div>
+          <div class="qcount-hint">큰 화면은 노트북·태블릿·모니터에 띄우는 발표용 레이아웃입니다.</div>
+        </div>
+
         <button type="button" class="submit-btn" id="createBtn" onclick="createRoom()" disabled>
           모임 만들기
         </button>
@@ -786,10 +803,12 @@
         const display_fields = Array.from(document.querySelectorAll('#displayFieldsRow input[type=checkbox]:checked'))
           .map(el => el.dataset.field);
         const birth_year_format = (document.querySelector('input[name=birthFmt]:checked') || {}).value || 'exact';
+        const host_role = (document.querySelector('input[name=hostRole]:checked') || {}).value || DEFAULT_HOST_ROLE;
+        const display_mode = (document.querySelector('input[name=displayMode]:checked') || {}).value || 'mobile';
         const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid, title, host_role: DEFAULT_HOST_ROLE, question_count, pack_id: selectedPack, display_fields, birth_year_format })
+          body: JSON.stringify({ uuid, title, host_role, question_count, pack_id: selectedPack, display_fields, birth_year_format, display_mode })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');
