@@ -243,6 +243,25 @@
 <script>
 const REGIONS = ['서울','경기','인천','부산','대구','대전','광주','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주'];
 const SEOUL_GU = ['강남','강동','강북','강서','관악','광진','구로','금천','노원','도봉','동대문','동작','마포','서대문','서초','성동','성북','송파','양천','영등포','용산','은평','종로','중구','중랑'];
+const METROS = ['서울','부산','대구','인천','광주','대전','울산'];
+const METRO_GU = {
+  '서울': SEOUL_GU,
+  '부산': ['강서','금정','기장','남','동','동래','부산진','북','사상','사하','서','수영','연제','영도','중','해운대'],
+  '대구': ['남','달서','달성','동','북','서','수성','중'],
+  '인천': ['강화','계양','남동','동','미추홀','부평','서','연수','옹진','중'],
+  '광주': ['광산','남','동','북','서'],
+  '대전': ['대덕','동','서','유성','중'],
+  '울산': ['남','동','북','중','울주'],
+};
+function detectMetro(region) {
+  if (!region) return null;
+  return METROS.find(m => region === m || region.startsWith(m + ' ')) || null;
+}
+function stripMetroGu(region) {
+  const m = detectMetro(region);
+  if (!m) return region;
+  return m;
+}
 const INDUSTRIES = ['IT/개발','디자인','마케팅/광고','금융/회계','교육','의료/보건','법률','공무원','서비스업','제조업','미디어/콘텐츠','스타트업','기타'];
 const MBTIS = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'];
 const INTERESTS = ['운동','독서','음식','영화','여행','음악','게임','술','카페','등산','사진','공연'];
@@ -471,17 +490,18 @@ function renderStep() {
     case 'region': {
       const isHost = !!ROOM.isHost;
       const regionPicked = data.region || '';
-      const isSeoulPicked = regionPicked.startsWith('서울');
-      const seoulGu = isSeoulPicked ? regionPicked.replace(/^서울\s*/, '').trim() : '';
+      const pickedMetro = detectMetro(regionPicked);
+      const metroGu = pickedMetro && regionPicked.startsWith(pickedMetro + ' ')
+        ? regionPicked.replace(pickedMetro, '').trim() : '';
       const rd = ROOM.region_detail === true;
-      const showGu = rd && (regionPicked === '서울' || isSeoulPicked);
+      const showGu = rd && pickedMetro && Array.isArray(METRO_GU[pickedMetro]);
       const rdSection = isHost
         ? `
         <div class="field">
           <div class="field-label">지역 표시 방식 <span style="opacity:0.5;font-size:11px;">호스트가 모두에게 적용</span></div>
           <div class="chip-row">
             <button type="button" class="chip${!rd && !data.hide_region?' selected':''}" data-group="rdfmt" data-value="false">시·도만 (예: 서울)</button>
-            <button type="button" class="chip${rd && !data.hide_region?' selected':''}" data-group="rdfmt" data-value="true">서울은 구까지 (예: 강남)</button>
+            <button type="button" class="chip${rd && !data.hide_region?' selected':''}" data-group="rdfmt" data-value="true">광역시는 구까지 (예: 강남)</button>
             <button type="button" class="chip${data.hide_region?' selected':''}" data-group="rdfmt" data-value="hide">🔒 카드에 표시 안 함 (매칭에만 사용)</button>
           </div>
         </div>`
@@ -489,7 +509,7 @@ function renderStep() {
         <div class="field">
           <div class="field-label">내 지역 공개</div>
           <div class="chip-row">
-            <button type="button" class="chip${!data.hide_region?' selected':''}" data-group="hide_region" data-value="false">호스트 설정대로 표시 (${rd?'서울 구까지':'시·도만'})</button>
+            <button type="button" class="chip${!data.hide_region?' selected':''}" data-group="hide_region" data-value="false">호스트 설정대로 표시 (${rd?'광역시 구까지':'시·도만'})</button>
             <button type="button" class="chip${data.hide_region?' selected':''}" data-group="hide_region" data-value="true">🔒 카드에 표시 안 함</button>
           </div>
         </div>`;
@@ -499,14 +519,14 @@ function renderStep() {
         <p class="step-sub">근처에 사는 분과 인연이 생길 수도.</p>
         <div class="field">
           <div class="chip-row">${REGIONS.map(v => {
-            const sel = regionPicked === v || (v === '서울' && isSeoulPicked);
+            const sel = regionPicked === v || (pickedMetro === v);
             return `<button type="button" class="chip${sel?' selected':''}" data-group="region" data-value="${escHtml(v)}">${escHtml(v)}</button>`;
           }).join('')}</div>
         </div>
         ${showGu ? `
         <div class="field">
-          <div class="field-label" style="font-size:13px;color:#e8b84b;">서울 어디?</div>
-          <div class="chip-row">${SEOUL_GU.map(g => `<button type="button" class="chip${seoulGu===g?' selected':''}" data-group="seoul-gu" data-value="${escHtml(g)}">${escHtml(g)}</button>`).join('')}</div>
+          <div class="field-label" style="font-size:13px;color:#e8b84b;">${escHtml(pickedMetro)} 어디?</div>
+          <div class="chip-row">${METRO_GU[pickedMetro].map(g => `<button type="button" class="chip${metroGu===g?' selected':''}" data-group="metro-gu" data-value="${escHtml(g)}">${escHtml(g)}</button>`).join('')}</div>
         </div>` : ''}
         ${rdSection}
         <div class="actions">
@@ -715,21 +735,21 @@ document.addEventListener('click', (e) => {
     data.hide_birth_year = chip.dataset.value === 'true';
     return;
   }
-  // 호스트 지역 표시 방식 (false/true/hide) — 항상 renderStep으로 구 UI 재평가 + 강남 잔재 정리
+  // 호스트 지역 표시 방식 (false/true/hide) — 항상 renderStep으로 구 UI 재평가 + 광역시 구 잔재 정리
   if (group === 'rdfmt') {
     const v = chip.dataset.value;
     if (v === 'hide') {
       data.hide_region = true;
       // 시·도만 / 표시 안 함 → 구 선택값 초기화 (서울 강남 → 서울)
-      if (data.region && data.region.startsWith('서울 ')) data.region = '서울';
+      data.region = stripMetroGu(data.region);
       ROOM.region_detail = false;
       patchRoomDisplay({ region_detail: false });
     } else {
       data.hide_region = false;
       const newRd = v === 'true';
       ROOM.region_detail = newRd;
-      // 시·도만으로 변경 시 강남 잔재 제거
-      if (!newRd && data.region && data.region.startsWith('서울 ')) data.region = '서울';
+      // 시·도만으로 변경 시 광역시 구 잔재 제거
+      if (!newRd) data.region = stripMetroGu(data.region);
       patchRoomDisplay({ region_detail: newRd });
     }
     renderStep(); // 구 row 노출 조건 즉시 재평가
@@ -739,7 +759,7 @@ document.addEventListener('click', (e) => {
   if (group === 'hide_region') {
     const isHide = chip.dataset.value === 'true';
     data.hide_region = isHide;
-    if (isHide && data.region && data.region.startsWith('서울 ')) data.region = '서울';
+    if (isHide) data.region = stripMetroGu(data.region);
     renderStep();
     return;
   }
@@ -766,14 +786,16 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  // seoul-gu: 구 선택 → region = "서울 강남" 형태
-  if (group === 'seoul-gu') {
-    document.querySelectorAll('.chip[data-group="seoul-gu"]').forEach(c => c.classList.remove('selected'));
+  // metro-gu: 구 선택 → region = "{광역시} {구}" 형태 (서울/부산/대구/인천/광주/대전/울산)
+  if (group === 'metro-gu') {
+    document.querySelectorAll('.chip[data-group="metro-gu"]').forEach(c => c.classList.remove('selected'));
+    const currentMetro = detectMetro(data.region);
+    if (!currentMetro) return;
     if (wasSelected) {
-      data.region = '서울';
+      data.region = currentMetro;
     } else {
       chip.classList.add('selected');
-      data.region = '서울 ' + chip.dataset.value;
+      data.region = currentMetro + ' ' + chip.dataset.value;
     }
     return;
   }
