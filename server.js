@@ -1,5 +1,8 @@
 require('dotenv').config();
 
+// Sentry 는 다른 import 보다 먼저 초기화 — auto-instrumentation 위해.
+const Sentry = require('./sentry');
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -45,6 +48,16 @@ app.use(express.urlencoded({ extended: true }));
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Sentry 브라우저 config (DSN 을 런타임에 주입 — 코드에 하드코딩 금지)
+app.get('/api/sentry-config', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    dsn: process.env.SENTRY_DSN_CLIENT || '',
+    environment: process.env.SENTRY_ENVIRONMENT || 'development',
+    release: process.env.SENTRY_RELEASE || '0.1.0',
+  });
+});
+
 // Routes
 app.use('/api', authRouter);
 app.use('/api', roomsRouter);
@@ -79,6 +92,26 @@ app.get('/admin', (req, res) => {
 // Fallback: serve login.html for non-api routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Sentry 에러 핸들러 — 모든 라우트 뒤에 붙여야 함
+Sentry.setupExpressErrorHandler(app);
+
+// 마지막 fallback 에러 핸들러 (Sentry 가 먼저 에러 캡처)
+app.use((err, req, res, next) => {
+  console.error('[server] unhandled error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'internal server error' });
+});
+
+// 프로세스 레벨 방어막
+process.on('unhandledRejection', (reason) => {
+  console.error('[server] unhandledRejection:', reason);
+  Sentry.captureException(reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[server] uncaughtException:', err);
+  Sentry.captureException(err);
 });
 
 // HTTP server

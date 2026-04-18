@@ -1,5 +1,6 @@
 const { WebSocketServer } = require('ws');
 const { pool } = require('../db');
+const Sentry = require('../sentry');
 
 // rooms[room_code] = {
 //   clients: Map<uuid, ws>,
@@ -222,10 +223,18 @@ function init(server) {
 
       ws.on('error', (err) => {
         console.error(`WS error [${room_code}/${uuid}]:`, err.message);
+        Sentry.captureException(err, {
+          tags: { component: 'websocket' },
+          contexts: { ws: { room_code, uuid } },
+        });
       });
 
     } catch (err) {
       console.error('WS connection error:', err);
+      Sentry.captureException(err, {
+        tags: { component: 'websocket-connect' },
+        contexts: { ws: { room_code, uuid } },
+      });
       ws.close(5000, 'Server error');
     }
   });
