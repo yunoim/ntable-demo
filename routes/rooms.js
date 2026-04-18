@@ -158,19 +158,28 @@ router.get('/rooms/:code/preview', async (req, res) => {
 });
 
 // GET /api/rooms/:code/members
+// host_role === 'host_only' 인 호스트는 응답에서 제외 (게스트 화면 표시·투표 대상에서 빠짐)
 router.get('/rooms/:code/members', async (req, res) => {
   const { code } = req.params;
-  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  const room = await pool.query(
+    'SELECT id, host_uuid, host_role FROM rooms WHERE room_code = $1',
+    [code]
+  );
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
 
   const wsModule = require('./ws');
-  const clients = wsModule.getRoomClients(code); // [uuid, ...]
+  let clients = wsModule.getRoomClients(code); // [uuid, ...]
+
+  // 진행만(host_only) 호스트는 멤버 목록에서 제외
+  if (room.rows[0].host_role === 'host_only' && room.rows[0].host_uuid) {
+    clients = clients.filter(u => u !== room.rows[0].host_uuid);
+  }
 
   if (clients.length === 0) return res.json([]);
 
   const placeholders = clients.map((_, i) => `$${i + 1}`).join(',');
   const users = await pool.query(
-    `SELECT uuid, nickname, gender, birth_year, mbti, interest
+    `SELECT uuid, nickname, gender, birth_year, region, industry, mbti, interest
      FROM users WHERE uuid IN (${placeholders})`,
     clients
   );
