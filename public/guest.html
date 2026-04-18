@@ -2232,15 +2232,18 @@ function renderMyProfile() {
 async function loadIntroData() {
   try {
     const res = await fetch(`/api/rooms/${STATE.roomCode}/members`);
+    console.log('[guest] loadIntroData members API', res.status);
     if (!res.ok) return;
     STATE.members = await res.json();
+    console.log('[guest] members:', STATE.members);
     renderCarousel();
-  } catch(_) {}
+  } catch(e) { console.warn('[guest] loadIntroData error', e); }
 }
 
 function renderCarousel() {
   const track = document.getElementById('carouselTrack');
   const indicators = document.getElementById('carouselIndicators');
+  console.log('[guest] renderCarousel members:', STATE.members.length, 'track:', !!track);
   track.innerHTML = '';
   indicators.innerHTML = '';
 
