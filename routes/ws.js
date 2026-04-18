@@ -40,6 +40,15 @@ function getRoomClients(room_code) {
   return [...room.clients.keys()];
 }
 
+// 활성 WS 세션이 하나 이상 있는 방 코드 목록
+function getActiveRoomCodes() {
+  const codes = [];
+  for (const code in rooms) {
+    if (rooms[code].clients.size > 0) codes.push(code);
+  }
+  return codes;
+}
+
 // 지정 uuid가 현재 어떤 방에든 WS OPEN 상태로 접속 중인지
 function isUserActive(uuid) {
   for (const code in rooms) {
@@ -224,4 +233,4 @@ function init(server) {
   console.log('WebSocket server initialized');
 }
 
-module.exports = { init, broadcastToRoom, getRoomClients, isUserActive };
+module.exports = { init, broadcastToRoom, getRoomClients, getActiveRoomCodes, isUserActive };

@@ -46,6 +46,18 @@ async function initDB() {
       if (e.code !== '42701') throw e;
     }
 
+    // 방별 커스텀 질문/주제 jsonb — 생성 시점 md 스냅샷 + 호스트 편집분
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN questions_json JSONB`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN free_topics_json JSONB`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_state (
         room_id INTEGER PRIMARY KEY REFERENCES rooms(id),

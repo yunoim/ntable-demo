@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const QRCode = require('qrcode');
+const { parseQuestions, parseFreeTopics } = require('./question-sources');
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -54,13 +55,23 @@ router.post('/rooms', async (req, res) => {
     return res.status(500).json({ error: 'Failed to generate unique room code' });
   }
 
+  // md 템플릿 스냅샷 — 방 생성 시점에 복사해서 호스트가 자유롭게 편집
+  let questionsSeed = [];
+  let topicsSeed = [];
+  try { questionsSeed = parseQuestions(); } catch (_) {}
+  try { topicsSeed = parseFreeTopics(); } catch (_) {}
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count)
-       VALUES ($1, $2, $3, $4, 'waiting', $5) RETURNING id`,
-      [room_code, title, uuid, host_role, question_count]
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json)
+       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7) RETURNING id`,
+      [
+        room_code, title, uuid, host_role, question_count,
+        JSON.stringify(questionsSeed),
+        JSON.stringify(topicsSeed),
+      ]
     );
     const room_id = roomResult.rows[0].id;
     await client.query(
@@ -205,6 +216,30 @@ router.get('/rooms/:code/qr', async (req, res) => {
   } catch (err) {
     console.error('QR error:', err);
     res.status(500).json({ error: 'QR generation failed' });
+  }
+});
+
+// GET /api/stats — 랜딩 등 공개 페이지용 라이브 집계
+// 현재 열려있는 방 수 + 활성 참가자 총합 (waiting/열림 상태 기준)
+router.get('/stats', async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=10');
+  res.set('Access-Control-Allow-Origin', '*');
+  try {
+    const wsModule = require('./ws');
+    // 메모리 기준 활성 방 — WS 세션이 하나 이상 붙어있는 방
+    const activeRooms = wsModule.getActiveRoomCodes ? wsModule.getActiveRoomCodes() : [];
+    let participants = 0;
+    for (const code of activeRooms) {
+      participants += wsModule.getRoomClients(code).length;
+    }
+    res.json({
+      active_rooms: activeRooms.length,
+      participants,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('stats error:', err);
+    res.status(500).json({ error: 'stats failed' });
   }
 });
 

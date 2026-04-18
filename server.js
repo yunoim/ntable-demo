@@ -17,7 +17,7 @@ const app = express();
 
 // CORS
 app.use(cors({
-  origin: ['https://demo.ntable.kr', 'http://localhost:3000', 'http://localhost:3001'],
+  origin: ['https://demo.ntable.kr', 'https://ntable.kr', 'https://www.ntable.kr', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
 }));
 

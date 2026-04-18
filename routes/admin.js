@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
+const { parseQuestions, parseFreeTopics } = require('./question-sources');
 
 let pool, broadcastToRoom, getRoomClients;
 
@@ -25,45 +24,15 @@ async function verifyHost(room_code, host_uuid) {
   return room;
 }
 
-function parseFreeTopics() {
-  const filePath = path.join(__dirname, '../questions/free-topics.md');
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const topics = [];
-  let id = 1;
-  for (const raw of content.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line.startsWith('- ')) continue;
-    const text = line.slice(2).trim();
-    if (!text) continue;
-    topics.push({ id: id++, text });
-  }
-  return topics;
-}
-
-function parseQuestions() {
-  const filePath = path.join(__dirname, '../questions/season1.md');
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
-  const questions = [];
-  let current = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Q1. 텍스트 형식
-    const qMatch = trimmed.match(/^Q(\d+)\.\s+(.+)/);
-    if (qMatch) {
-      if (current) questions.push(current);
-      current = { id: parseInt(qMatch[1]), question: qMatch[2], options: [] };
-      continue;
-    }
-    // A. / B. 선택지
-    const optMatch = trimmed.match(/^([AB])\.\s+(.+)/);
-    if (optMatch && current) {
-      current.options.push(`${optMatch[1]}. ${optMatch[2]}`);
-    }
-  }
-  if (current) questions.push(current);
-  return questions;
+// 방이 phase='waiting' 상태인지 (아직 모임 시작 안함)
+async function isWaitingPhase(room_id) {
+  const { rows } = await pool.query(
+    'SELECT state_json FROM room_state WHERE room_id = $1',
+    [room_id]
+  );
+  if (!rows.length) return true; // 초기 상태는 waiting
+  const phase = rows[0].state_json?.phase;
+  return !phase || phase === 'waiting';
 }
 
 // ─── GET /api/rooms/:code/questions ─────────────────────────────────────────
@@ -71,15 +40,19 @@ function parseQuestions() {
 router.get('/rooms/:code/questions', async (req, res) => {
   const { code } = req.params;
   try {
+    const r = await pool.query(
+      'SELECT question_count, questions_json FROM rooms WHERE room_code = $1',
+      [code]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'room not found' });
+    const row = r.rows[0];
+    // 방별 DB 스냅샷 우선, 없으면 md 폴백
+    if (Array.isArray(row.questions_json) && row.questions_json.length) {
+      const limit = Number.isFinite(row.question_count) ? row.question_count : row.questions_json.length;
+      return res.json(row.questions_json.slice(0, limit));
+    }
     const questions = parseQuestions();
-    // 방의 question_count 조회 (없으면 기본 10)
-    let limit = 10;
-    try {
-      const r = await pool.query('SELECT question_count FROM rooms WHERE room_code = $1', [code]);
-      if (r.rows.length && Number.isFinite(r.rows[0].question_count)) {
-        limit = r.rows[0].question_count;
-      }
-    } catch (_) { /* 컬럼 미존재 등: 기본 10 사용 */ }
+    const limit = Number.isFinite(row.question_count) ? row.question_count : 10;
     res.json(questions.slice(0, limit));
   } catch (err) {
     console.error('questions parse error:', err);
@@ -92,14 +65,111 @@ router.get('/rooms/:code/questions', async (req, res) => {
 router.get('/rooms/:code/free-topics', async (req, res) => {
   const { code } = req.params;
   try {
-    // 방 존재 검증 (코드 게이팅)
-    const { rows } = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
-    if (!rows.length) return res.status(404).json({ error: 'room not found' });
-    const topics = parseFreeTopics();
-    res.json({ topics });
+    const r = await pool.query(
+      'SELECT free_topics_json FROM rooms WHERE room_code = $1',
+      [code]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'room not found' });
+    const stored = r.rows[0].free_topics_json;
+    if (Array.isArray(stored) && stored.length) {
+      return res.json({ topics: stored });
+    }
+    res.json({ topics: parseFreeTopics() });
   } catch (err) {
     console.error('free-topics parse error:', err);
     res.status(500).json({ error: 'free-topics 파싱 실패' });
+  }
+});
+
+// ─── PUT /api/rooms/:code/questions ─────────────────────────────────────────
+// 호스트가 waiting 단계에서 질문/문항수 편집
+router.put('/rooms/:code/questions', async (req, res) => {
+  const { code } = req.params;
+  const { host_uuid, questions, question_count } = req.body;
+  if (!host_uuid) return res.status(400).json({ error: 'host_uuid 필수' });
+
+  try {
+    const room = await verifyHost(code, host_uuid);
+    if (!room) return res.status(403).json({ error: '권한 없음' });
+    if (room.status !== 'waiting' || !(await isWaitingPhase(room.id))) {
+      return res.status(400).json({ error: 'WAITING_ONLY', message: '모임 시작 전에만 편집할 수 있어요' });
+    }
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: '질문 목록이 비어있어요' });
+    }
+
+    // 정규화: { id, question, options: ["A. ...", "B. ..."] }
+    const normalized = [];
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i] || {};
+      const text = String(q.question || '').trim();
+      if (!text) continue;
+      let options = Array.isArray(q.options) ? q.options.map(String) : [];
+      if (options.length < 2) {
+        const a = String(q.a || '').trim();
+        const b = String(q.b || '').trim();
+        if (!a || !b) continue;
+        options = [`A. ${a}`, `B. ${b}`];
+      }
+      normalized.push({
+        id: Number.isFinite(q.id) ? q.id : i + 1,
+        question: text,
+        options: options.slice(0, 2),
+      });
+    }
+    if (!normalized.length) return res.status(400).json({ error: '유효한 질문이 없어요' });
+
+    let qcount = parseInt(question_count, 10);
+    if (!Number.isFinite(qcount)) qcount = normalized.length;
+    if (qcount < 1 || qcount > 15) {
+      return res.status(400).json({ error: 'question_count must be between 1 and 15' });
+    }
+    if (qcount > normalized.length) qcount = normalized.length;
+
+    await pool.query(
+      'UPDATE rooms SET questions_json = $1, question_count = $2 WHERE id = $3',
+      [JSON.stringify(normalized), qcount, room.id]
+    );
+    res.json({ ok: true, questions: normalized, question_count: qcount });
+  } catch (err) {
+    console.error('PUT questions error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── PUT /api/rooms/:code/free-topics ───────────────────────────────────────
+router.put('/rooms/:code/free-topics', async (req, res) => {
+  const { code } = req.params;
+  const { host_uuid, topics } = req.body;
+  if (!host_uuid) return res.status(400).json({ error: 'host_uuid 필수' });
+
+  try {
+    const room = await verifyHost(code, host_uuid);
+    if (!room) return res.status(403).json({ error: '권한 없음' });
+    if (room.status !== 'waiting' || !(await isWaitingPhase(room.id))) {
+      return res.status(400).json({ error: 'WAITING_ONLY', message: '모임 시작 전에만 편집할 수 있어요' });
+    }
+
+    if (!Array.isArray(topics)) return res.status(400).json({ error: 'topics 배열 필수' });
+
+    const normalized = [];
+    let id = 1;
+    for (const t of topics) {
+      const text = String((t && t.text) || t || '').trim();
+      if (!text) continue;
+      normalized.push({ id: id++, text });
+    }
+    if (!normalized.length) return res.status(400).json({ error: '유효한 주제가 없어요' });
+
+    await pool.query(
+      'UPDATE rooms SET free_topics_json = $1 WHERE id = $2',
+      [JSON.stringify(normalized), room.id]
+    );
+    res.json({ ok: true, topics: normalized });
+  } catch (err) {
+    console.error('PUT free-topics error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

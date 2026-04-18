@@ -139,6 +139,130 @@
   #qr-expand-btn:hover { background: var(--gold-dim-2); border-color: var(--gold); }
 
   /* ── QR 확대 모달 ── */
+  /* 설정 모달 */
+  #settings-modal {
+    position: fixed; inset: 0;
+    background: rgba(10,15,30,0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+    padding: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  #settings-modal[hidden] { display: none; }
+  .settings-backdrop { position: absolute; inset: 0; }
+  .settings-card {
+    position: relative;
+    background: var(--navy-light);
+    border: 1px solid var(--gold-border);
+    border-radius: 20px;
+    padding: 28px 24px 22px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 86vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    z-index: 1;
+  }
+  .settings-close {
+    position: absolute; top: 10px; right: 12px;
+    background: transparent; border: none;
+    color: var(--text-muted); font-size: 24px;
+    width: 36px; height: 36px; border-radius: 50%;
+    cursor: pointer; line-height: 1;
+    font-family: inherit;
+  }
+  .settings-close:hover { color: var(--gold); background: var(--gold-dim-2); }
+  .settings-card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 600;
+    color: var(--gold-light);
+    margin-bottom: 4px;
+  }
+  .settings-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+  .settings-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .settings-tab {
+    background: transparent; border: none;
+    color: var(--text-muted);
+    font-family: inherit; font-size: 13px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .settings-tab:hover { color: var(--white-dim); }
+  .settings-tab.active { color: var(--gold-light); border-bottom-color: var(--gold); font-weight: 600; }
+  .settings-pane { animation: paneIn 0.2s ease; }
+  @keyframes paneIn { from { opacity: 0; } to { opacity: 1; } }
+  .settings-field { margin-bottom: 16px; }
+  .settings-field label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13px; color: var(--text); margin-bottom: 8px;
+  }
+  .settings-field input[type="range"] { width: 100%; accent-color: var(--gold); }
+  .settings-hint { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+  .settings-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .settings-row {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .settings-row .row-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--text-muted); letter-spacing: 0.04em;
+  }
+  .settings-row .row-head .row-idx { color: var(--gold-light); font-weight: 600; }
+  .settings-row input[type="text"] {
+    width: 100%;
+    background: var(--navy-light);
+    border: 1px solid var(--input-border);
+    color: var(--white);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .settings-row input[type="text"]:focus { outline: none; border-color: var(--gold); }
+  .settings-row .row-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .settings-row .remove-btn {
+    background: transparent; border: none;
+    color: var(--danger); font-size: 12px;
+    cursor: pointer; font-family: inherit;
+    padding: 0;
+  }
+  .settings-add {
+    width: 100%;
+    background: var(--gold-dim-2);
+    border: 1px dashed var(--gold-border);
+    color: var(--gold-light);
+    border-radius: 10px;
+    padding: 10px;
+    font-family: inherit; font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .settings-add:hover { background: var(--gold-dim); }
+  .settings-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .settings-cancel, .settings-save {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-family: inherit; font-size: 14px;
+    cursor: pointer;
+    border: none;
+  }
+  .settings-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+  .settings-cancel:hover { color: var(--white); border-color: var(--gold-border); }
+  .settings-save { background: var(--gold); color: var(--navy); font-weight: 700; }
+  .settings-save:hover:not(:disabled) { background: var(--gold-light); }
+  .settings-save:disabled { opacity: 0.45; cursor: not-allowed; }
+  .settings-status { font-size: 12px; text-align: center; margin-top: 10px; min-height: 16px; color: var(--gold-light); }
+  .settings-status.err { color: var(--danger); }
+
   #qr-modal {
     position: fixed; inset: 0;
     background: rgba(10,15,30,0.94);
@@ -1009,6 +1133,7 @@
     </div>
     <div id="user-menu">
       <span id="user-nick"></span>
+      <button type="button" id="open-settings-btn" title="질문/주제/문항수 편집 (모임 시작 전)">설정 ⚙</button>
       <button type="button" onclick="location.href='/profile?next='+encodeURIComponent(location.pathname)">내 정보 ✎</button>
       <button type="button" onclick="logout()">로그아웃</button>
     </div>
@@ -1103,6 +1228,45 @@
 
 <div id="toast"></div>
 
+<!-- 설정 모달 (waiting 전용) -->
+<div id="settings-modal" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="settings-backdrop" onclick="closeSettings()"></div>
+  <div class="settings-card">
+    <button type="button" class="settings-close" onclick="closeSettings()" aria-label="설정 닫기">×</button>
+    <h3 id="settings-title">모임 설정</h3>
+    <div class="settings-sub">모임 시작 전에만 편집할 수 있어요.</div>
+
+    <div class="settings-tabs">
+      <button type="button" class="settings-tab active" data-stab="questions">탐구 질문</button>
+      <button type="button" class="settings-tab" data-stab="topics">자유대화 주제</button>
+    </div>
+
+    <!-- 탐구 질문 탭 -->
+    <div class="settings-pane" data-pane="questions">
+      <div class="settings-field">
+        <label for="settings-qcount">문항 수 <span id="settings-qcount-value">10</span></label>
+        <input type="range" id="settings-qcount" min="1" max="15" value="10" step="1" />
+        <div class="settings-hint">1~15문항 중 선택. 아래 목록에서 앞에서부터 <strong id="settings-qcount-label">10</strong>문항이 실제로 사용돼요.</div>
+      </div>
+      <div class="settings-list" id="questions-edit-list"></div>
+      <button type="button" class="settings-add" onclick="addQuestionRow()">+ 질문 추가</button>
+    </div>
+
+    <!-- 자유대화 주제 탭 -->
+    <div class="settings-pane" data-pane="topics" hidden>
+      <div class="settings-hint" style="margin-bottom:10px;">자유대화 시간에 호스트가 던질 질문 카드 풀이에요.</div>
+      <div class="settings-list" id="topics-edit-list"></div>
+      <button type="button" class="settings-add" onclick="addTopicRow()">+ 주제 추가</button>
+    </div>
+
+    <div class="settings-actions">
+      <button type="button" class="settings-cancel" onclick="closeSettings()">취소</button>
+      <button type="button" class="settings-save" id="settings-save-btn">저장</button>
+    </div>
+    <div id="settings-status" class="settings-status"></div>
+  </div>
+</div>
+
 <!-- QR 확대 모달 -->
 <div id="qr-modal" hidden role="dialog" aria-modal="true" aria-labelledby="qr-modal-code">
   <div class="qr-modal-backdrop" onclick="closeQRModal()"></div>
@@ -1174,6 +1338,9 @@ async function loadRoomInfo() {
     if (room.host_uuid && room.host_uuid !== state.uuid) { location.href = '/'; return; }
     if (room.status === 'closed') { location.href = '/create'; return; }
     state.hostRole = room.host_role || 'host_only';
+    state.questionCount = Number.isFinite(room.question_count) ? room.question_count : 10;
+    settingsState.roomStatus = room.status || 'waiting';
+    updateSettingsBtnVisibility();
     if (state.hostRole === 'participant') {
       document.getElementById('host-vote-btns').classList.add('show');
     }
@@ -1662,6 +1829,11 @@ async function updateState(stateData) {
       }
       return false;
     }
+    // 로컬 phase 추적 + 설정 버튼 가시성 갱신
+    if (stateData && stateData.phase) {
+      settingsState.phase = stateData.phase;
+      updateSettingsBtnVisibility();
+    }
     return true;
   } catch {
     console.error('state update fail');
@@ -1801,7 +1973,222 @@ function closeQRModal() {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeQRModal();
+  if (e.key === 'Escape') { closeQRModal(); closeSettings(); }
+});
+
+// ── 설정 모달 (waiting 전용) ──
+const settingsState = { questions: [], topics: [], roomStatus: 'waiting', phase: 'waiting' };
+
+function updateSettingsBtnVisibility() {
+  const btn = document.getElementById('open-settings-btn');
+  if (!btn) return;
+  const editable = (settingsState.roomStatus === 'waiting') && (!settingsState.phase || settingsState.phase === 'waiting');
+  btn.style.display = editable ? '' : 'none';
+}
+
+async function openSettings() {
+  if (!state.roomCode || !state.uuid) { toast('아직 준비 중'); return; }
+  if (settingsState.roomStatus && settingsState.roomStatus !== 'waiting') {
+    toast('모임 시작 후에는 편집할 수 없어요'); return;
+  }
+  try {
+    const [qRes, tRes] = await Promise.all([
+      api(`/api/rooms/${state.roomCode}/questions`),
+      api(`/api/rooms/${state.roomCode}/free-topics`),
+    ]);
+    const qData = await qRes.json();
+    const tData = await tRes.json();
+    settingsState.questions = Array.isArray(qData) ? qData.map((q, i) => ({
+      id: q.id ?? i + 1,
+      question: q.question || '',
+      a: (q.options && q.options[0] ? q.options[0].replace(/^A\.\s*/, '') : q.a || ''),
+      b: (q.options && q.options[1] ? q.options[1].replace(/^B\.\s*/, '') : q.b || ''),
+    })) : [];
+    settingsState.topics = Array.isArray(tData.topics) ? tData.topics.map((t, i) => ({
+      id: t.id ?? i + 1, text: t.text || '',
+    })) : [];
+  } catch {
+    toast('설정을 불러오지 못했어요'); return;
+  }
+
+  // qcount 슬라이더 초기값: room info 의 question_count 또는 질문 수
+  const currentQCount = state.questionCount || settingsState.questions.length || 10;
+  const slider = document.getElementById('settings-qcount');
+  slider.value = Math.min(Math.max(currentQCount, 1), 15);
+  document.getElementById('settings-qcount-value').textContent = slider.value;
+  document.getElementById('settings-qcount-label').textContent = slider.value;
+
+  renderSettingsQuestions();
+  renderSettingsTopics();
+  switchSettingsTab('questions');
+
+  document.getElementById('settings-status').textContent = '';
+  document.getElementById('settings-modal').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSettings() {
+  const m = document.getElementById('settings-modal');
+  if (m) m.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function switchSettingsTab(name) {
+  document.querySelectorAll('.settings-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.stab === name);
+  });
+  document.querySelectorAll('.settings-pane').forEach(p => {
+    p.hidden = p.dataset.pane !== name;
+  });
+}
+
+function renderSettingsQuestions() {
+  const list = document.getElementById('questions-edit-list');
+  list.innerHTML = '';
+  settingsState.questions.forEach((q, idx) => {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+    row.innerHTML = `
+      <div class="row-head">
+        <span class="row-idx">Q${idx + 1}</span>
+        <button type="button" class="remove-btn" onclick="removeQuestion(${idx})">삭제</button>
+      </div>
+      <input type="text" placeholder="질문 내용" value="${escHtml(q.question)}" data-field="question" data-idx="${idx}" maxlength="200" />
+      <div class="row-opts">
+        <input type="text" placeholder="A. 선택지" value="${escHtml(q.a)}" data-field="a" data-idx="${idx}" maxlength="120" />
+        <input type="text" placeholder="B. 선택지" value="${escHtml(q.b)}" data-field="b" data-idx="${idx}" maxlength="120" />
+      </div>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('input[type="text"]').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const i = +e.target.dataset.idx;
+      const f = e.target.dataset.field;
+      if (settingsState.questions[i]) settingsState.questions[i][f] = e.target.value;
+    });
+  });
+}
+
+function renderSettingsTopics() {
+  const list = document.getElementById('topics-edit-list');
+  list.innerHTML = '';
+  settingsState.topics.forEach((t, idx) => {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+    row.innerHTML = `
+      <div class="row-head">
+        <span class="row-idx">#${idx + 1}</span>
+        <button type="button" class="remove-btn" onclick="removeTopic(${idx})">삭제</button>
+      </div>
+      <input type="text" placeholder="주제 (질문 카드)" value="${escHtml(t.text)}" data-field="text" data-idx="${idx}" maxlength="140" />
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('input[type="text"]').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const i = +e.target.dataset.idx;
+      if (settingsState.topics[i]) settingsState.topics[i].text = e.target.value;
+    });
+  });
+}
+
+function addQuestionRow() {
+  const nextId = (settingsState.questions.at(-1)?.id || 0) + 1;
+  settingsState.questions.push({ id: nextId, question: '', a: '', b: '' });
+  renderSettingsQuestions();
+}
+function removeQuestion(idx) {
+  settingsState.questions.splice(idx, 1);
+  renderSettingsQuestions();
+}
+function addTopicRow() {
+  const nextId = (settingsState.topics.at(-1)?.id || 0) + 1;
+  settingsState.topics.push({ id: nextId, text: '' });
+  renderSettingsTopics();
+}
+function removeTopic(idx) {
+  settingsState.topics.splice(idx, 1);
+  renderSettingsTopics();
+}
+
+async function saveSettings() {
+  const statusEl = document.getElementById('settings-status');
+  const saveBtn = document.getElementById('settings-save-btn');
+  saveBtn.disabled = true;
+  statusEl.textContent = '저장 중...';
+  statusEl.classList.remove('err');
+
+  const qcount = parseInt(document.getElementById('settings-qcount').value, 10) || 10;
+
+  // 유효한 질문만 payload 에 넣기
+  const payloadQuestions = settingsState.questions
+    .map(q => ({
+      id: q.id,
+      question: (q.question || '').trim(),
+      options: [`A. ${(q.a || '').trim()}`, `B. ${(q.b || '').trim()}`],
+    }))
+    .filter(q => q.question && q.options[0] !== 'A. ' && q.options[1] !== 'B. ');
+
+  if (!payloadQuestions.length) {
+    saveBtn.disabled = false;
+    statusEl.textContent = '최소 1개 이상의 완성된 질문이 필요해요';
+    statusEl.classList.add('err');
+    return;
+  }
+
+  const payloadTopics = settingsState.topics
+    .map(t => ({ id: t.id, text: (t.text || '').trim() }))
+    .filter(t => t.text);
+
+  try {
+    const qRes = await api(`/api/rooms/${state.roomCode}/questions`, 'PUT', {
+      host_uuid: state.uuid,
+      questions: payloadQuestions,
+      question_count: Math.min(qcount, payloadQuestions.length),
+    });
+    if (!qRes.ok) {
+      const err = await qRes.json().catch(() => ({}));
+      throw new Error(err.message || err.error || '질문 저장 실패');
+    }
+    const qJson = await qRes.json();
+    state.questionCount = qJson.question_count;
+
+    if (payloadTopics.length) {
+      const tRes = await api(`/api/rooms/${state.roomCode}/free-topics`, 'PUT', {
+        host_uuid: state.uuid,
+        topics: payloadTopics,
+      });
+      if (!tRes.ok) {
+        const err = await tRes.json().catch(() => ({}));
+        throw new Error(err.message || err.error || '주제 저장 실패');
+      }
+    }
+
+    statusEl.textContent = '✓ 저장 완료';
+    statusEl.classList.remove('err');
+
+    // 로컬 캐시 갱신
+    await loadQuestions();
+    await loadFreeTopics();
+
+    setTimeout(closeSettings, 700);
+  } catch (e) {
+    statusEl.textContent = e.message || '저장에 실패했어요';
+    statusEl.classList.add('err');
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+document.getElementById('open-settings-btn')?.addEventListener('click', openSettings);
+document.getElementById('settings-save-btn')?.addEventListener('click', saveSettings);
+document.querySelectorAll('.settings-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchSettingsTab(btn.dataset.stab));
+});
+document.getElementById('settings-qcount')?.addEventListener('input', (e) => {
+  document.getElementById('settings-qcount-value').textContent = e.target.value;
+  document.getElementById('settings-qcount-label').textContent = e.target.value;
 });
 
 document.getElementById('qr-modal-copy')?.addEventListener('click', () => {
