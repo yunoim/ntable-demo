@@ -218,6 +218,132 @@
   .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.35); }
   .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+  /* 카테고리 태그 */
+  .tag-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-chip {
+    border: 1.5px solid var(--input-border);
+    background: var(--navy-light);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 9px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .tag-chip:hover { border-color: var(--gold-border); }
+  .tag-chip.selected {
+    border-color: var(--gold);
+    background: var(--gold-dim);
+    color: var(--gold-light);
+    font-weight: 600;
+  }
+
+  /* 참여자 연결 투표 */
+  .people-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .person-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--navy-light);
+    border: 1.5px solid var(--input-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    text-align: left;
+  }
+  .person-row:hover { border-color: var(--gold-border); }
+  .person-row.selected { border-color: var(--gold); background: var(--gold-dim); }
+  .person-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface-2); color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; flex-shrink: 0;
+  }
+  .person-name { font-size: 14px; color: var(--white); flex: 1; }
+  .person-meta { font-size: 11px; color: var(--text-muted); }
+  .person-check { color: var(--gold); font-size: 16px; opacity: 0; }
+  .person-row.selected .person-check { opacity: 1; }
+
+  /* 호스트 섹션은 호스트 본인일 때 숨김 */
+  #hostSection.hidden { display: none; }
+
+  /* 제출 완료 오버레이 + 공유 카드 */
+  #doneOverlay {
+    position: fixed; inset: 0;
+    background: rgba(10,15,30,0.96);
+    backdrop-filter: blur(14px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 999;
+    padding: 24px;
+  }
+  #doneOverlay.show { display: flex; }
+  .done-card {
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 22px;
+    padding: 36px 28px 30px;
+    text-align: center;
+    max-width: 420px;
+    width: 100%;
+  }
+  .done-card h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 600;
+    color: var(--gold-light);
+    margin-bottom: 10px;
+  }
+  .done-card p { font-size: 14px; color: var(--subtext); margin-bottom: 20px; line-height: 1.6; }
+  .mutual-badge {
+    display: inline-block;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .share-btn {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--gold);
+    background: var(--gold-dim);
+    color: var(--gold-light);
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .share-btn:hover { background: var(--gold-dim-2); }
+  .close-done {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+
+  /* 제출 불가 안내 */
+  .ineligible-banner {
+    background: var(--surface);
+    border: 1px solid var(--danger);
+    border-radius: 14px;
+    padding: 18px;
+    color: var(--danger);
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
   /* ── Focus visible (A11y) ── */
   button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
     outline: 2px solid var(--gold);
@@ -249,69 +375,211 @@
 <div class="container">
   <div class="brand">ntable</div>
   <h1>오늘 모임 어떠셨나요?</h1>
-  <p class="sub">솔직한 후기가 더 좋은 모임을 만들어요 🙏</p>
+  <p class="sub">솔직한 후기가 다음 모임을 더 좋게 만들어요 🙏</p>
 
-  <div class="section">
-    <div class="label">만족도</div>
-    <div class="stars" id="stars">
-      <span class="star" data-v="1">★</span>
-      <span class="star" data-v="2">★</span>
-      <span class="star" data-v="3">★</span>
-      <span class="star" data-v="4">★</span>
-      <span class="star" data-v="5">★</span>
+  <div id="mainForm" hidden>
+    <div class="section">
+      <div class="label">모임 만족도</div>
+      <div class="stars" id="stars">
+        <span class="star" data-v="1">★</span>
+        <span class="star" data-v="2">★</span>
+        <span class="star" data-v="3">★</span>
+        <span class="star" data-v="4">★</span>
+        <span class="star" data-v="5">★</span>
+      </div>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="label">다음 모임에도 참여하시겠어요?</div>
-    <div class="yn-group">
-      <button type="button" class="yn-btn" id="yn-y" onclick="setYN(true)">✅ 네, 또 올게요</button>
-      <button type="button" class="yn-btn" id="yn-n" onclick="setYN(false)">🤔 아직 모르겠어요</button>
+    <div class="section">
+      <div class="label">다음 모임에도 참여하시겠어요?</div>
+      <div class="yn-group">
+        <button type="button" class="yn-btn" id="yn-y" onclick="setYN(true)">✅ 네, 또 올게요</button>
+        <button type="button" class="yn-btn" id="yn-n" onclick="setYN(false)">🤔 아직 모르겠어요</button>
+      </div>
     </div>
+
+    <div class="section">
+      <div class="label">이 모임을 주변에 추천 (0~10)</div>
+      <input type="range" id="nps" min="0" max="10" value="7" aria-label="NPS 점수" oninput="document.getElementById('nps-val').textContent=this.value">
+      <div class="nps-labels"><span>전혀 아니오</span><span>매우 그렇다</span></div>
+      <div class="nps-val" id="nps-val">7</div>
+    </div>
+
+    <div class="section">
+      <div class="label">무엇이 좋았나요? (여러 개 선택)</div>
+      <div class="tag-group" id="tagGroup">
+        <button type="button" class="tag-chip" data-tag="conversation">💬 대화 분위기</button>
+        <button type="button" class="tag-chip" data-tag="host">🎤 호스트 진행</button>
+        <button type="button" class="tag-chip" data-tag="matching">💫 매칭·연결</button>
+        <button type="button" class="tag-chip" data-tag="questions">🎴 질문·팩</button>
+        <button type="button" class="tag-chip" data-tag="space">🏠 공간·분위기</button>
+        <button type="button" class="tag-chip" data-tag="people">👥 참여자 조합</button>
+        <button type="button" class="tag-chip" data-tag="pacing">⏱️ 시간 배분</button>
+      </div>
+    </div>
+
+    <div class="section" id="hostSection">
+      <div class="label">호스트는 어땠나요? (평균만 공개, 코멘트는 관리자만)</div>
+      <div class="stars" id="hostStars">
+        <span class="star" data-v="1">★</span>
+        <span class="star" data-v="2">★</span>
+        <span class="star" data-v="3">★</span>
+        <span class="star" data-v="4">★</span>
+        <span class="star" data-v="5">★</span>
+      </div>
+      <input type="text" id="hostComment" placeholder="호스트에게 전하는 한 마디 (선택)" style="margin-top:14px" aria-label="호스트 코멘트" />
+    </div>
+
+    <div class="section" id="connSection" hidden>
+      <div class="label">또 만나고 싶은 사람 (최대 5명)</div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">상대방도 나를 선택하면 서로에게 알림이 가요. 단방향 선택은 공개되지 않아요.</p>
+      <div class="people-list" id="peopleList"></div>
+    </div>
+
+    <div class="section">
+      <div class="label">오늘 가장 기억에 남는 순간</div>
+      <textarea id="best" placeholder="예: 밸런스 게임 할 때 다들 웃었던 순간 😄" aria-label="기억에 남는 순간"></textarea>
+    </div>
+
+    <div class="section">
+      <div class="label">아쉬웠던 점</div>
+      <textarea id="regret" placeholder="솔직하게 적어주세요. 더 나은 모임을 만드는 데 쓸게요." aria-label="아쉬웠던 점"></textarea>
+    </div>
+
+    <div class="section">
+      <div class="label">한 줄 후기</div>
+      <input type="text" id="review" placeholder="한 문장으로 오늘을 표현한다면?" aria-label="한 줄 후기" />
+    </div>
+
+    <button type="button" class="submit-btn" id="submit-btn" onclick="submitSurvey()">후기 제출하기</button>
   </div>
 
-  <div class="section">
-    <div class="label">이 모임을 주변에 추천하시겠어요? (0~10)</div>
-    <input type="range" id="nps" min="0" max="10" value="7" aria-label="NPS 점수 (0~10)" oninput="document.getElementById('nps-val').textContent=this.value">
-    <div class="nps-labels"><span>전혀 아니오</span><span>매우 그렇다</span></div>
-    <div class="nps-val" id="nps-val">7</div>
-  </div>
-
-  <div class="section">
-    <div class="label">오늘 가장 기억에 남는 순간</div>
-    <textarea id="best" placeholder="예: 밸런스 게임 할 때 다들 웃었던 순간 😄" aria-label="가장 기억에 남는 순간"></textarea>
-  </div>
-
-  <div class="section">
-    <div class="label">아쉬웠던 점</div>
-    <textarea id="regret" placeholder="솔직하게 적어주세요. 더 나은 모임을 만드는 데 쓸게요." aria-label="아쉬웠던 점"></textarea>
-  </div>
-
-  <div class="section">
-    <div class="label">한 줄 후기</div>
-    <input type="text" id="review" placeholder="한 문장으로 오늘을 표현한다면?" aria-label="한 줄 후기">
-  </div>
-
-  <button type="button" class="submit-btn" id="submit-btn" onclick="submit()">후기 제출하기</button>
+  <div class="ineligible-banner" id="ineligibleBanner" hidden></div>
 </div>
+
+<!-- 완료 오버레이 -->
+<div id="doneOverlay" role="dialog" aria-labelledby="doneTitle">
+  <div class="done-card">
+    <h2 id="doneTitle">후기 제출 완료</h2>
+    <p>오늘 모임의 온기를 잊지 말아요.</p>
+    <div id="mutualWrap"></div>
+    <button type="button" class="share-btn" onclick="shareCard()">📸 인스타 스토리로 공유</button>
+    <button type="button" class="close-done" onclick="goResult()">매칭 결과 보러가기 →</button>
+  </div>
+</div>
+
+<canvas id="shareCanvas" width="1080" height="1920" style="display:none"></canvas>
 
 <script>
   const params = new URLSearchParams(location.search);
   const room_code = params.get('room');
   const uuid = localStorage.getItem('demo_uuid');
+  const mainForm = document.getElementById('mainForm');
+  const ineligibleBanner = document.getElementById('ineligibleBanner');
+
   if (!uuid || !room_code) location.href = '/';
 
   let satisfaction = 0;
   let revisit = null;
+  let hostRating = 0;
+  let isHost = false;
+  let roomTitle = '';
+  let selectedTags = new Set();
+  let selectedPicks = new Set();
 
-  document.querySelectorAll('.star').forEach(s => {
-    s.addEventListener('click', () => {
-      satisfaction = parseInt(s.dataset.v);
-      document.querySelectorAll('.star').forEach(x => {
-        x.classList.toggle('active', parseInt(x.dataset.v) <= satisfaction);
+  // ── 자격 검증 (재진입 대응)
+  async function checkEligibility() {
+    try {
+      const r = await fetch(`/api/survey/eligibility?room=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}`);
+      const data = await r.json();
+      if (!data.eligible) {
+        let msg = '후기 제출 불가';
+        if (data.reason === 'NOT_PARTICIPANT') msg = '이 모임에 참여한 기록이 없어 후기를 남길 수 없어요.';
+        else if (data.reason === 'ALREADY_SUBMITTED') msg = '이미 후기를 제출했어요. 결과 페이지로 이동할까요?';
+        else if (data.reason === 'ROOM_NOT_FOUND') msg = '해당 모임을 찾을 수 없어요.';
+        ineligibleBanner.textContent = msg;
+        ineligibleBanner.hidden = false;
+        if (data.reason === 'ALREADY_SUBMITTED') {
+          setTimeout(goResult, 1500);
+        }
+        // pending_survey cleanup
+        localStorage.removeItem('pending_survey');
+        return false;
+      }
+      isHost = !!data.is_host;
+      roomTitle = data.room_title || '';
+      if (isHost) document.getElementById('hostSection').classList.add('hidden');
+      mainForm.hidden = false;
+      // 다음 로그인 때 자동 리다이렉트용 pending 저장
+      localStorage.setItem('pending_survey', room_code);
+      loadParticipants();
+      return true;
+    } catch {
+      ineligibleBanner.textContent = '일시적인 오류입니다. 잠시 후 다시 시도해주세요.';
+      ineligibleBanner.hidden = false;
+      return false;
+    }
+  }
+
+  async function loadParticipants() {
+    try {
+      const r = await fetch(`/api/survey/participants?room=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}`);
+      const list = await r.json();
+      if (!Array.isArray(list) || list.length === 0) return;
+      const wrap = document.getElementById('peopleList');
+      wrap.innerHTML = '';
+      list.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'person-row';
+        btn.dataset.uuid = p.uuid;
+        const initial = (p.nickname || '?').slice(0, 1).toUpperCase();
+        const meta = [p.mbti, p.birth_year ? `${new Date().getFullYear() - p.birth_year + 1}세` : null].filter(Boolean).join(' · ');
+        btn.innerHTML = `
+          <div class="person-avatar">${escHtml(initial)}</div>
+          <div style="flex:1">
+            <div class="person-name">${escHtml(p.nickname)}</div>
+            ${meta ? `<div class="person-meta">${escHtml(meta)}</div>` : ''}
+          </div>
+          <div class="person-check">✓</div>`;
+        btn.addEventListener('click', () => togglePick(p.uuid, btn));
+        wrap.appendChild(btn);
+      });
+      document.getElementById('connSection').hidden = false;
+    } catch {}
+  }
+
+  function togglePick(u, btn) {
+    if (selectedPicks.has(u)) {
+      selectedPicks.delete(u);
+      btn.classList.remove('selected');
+    } else {
+      if (selectedPicks.size >= 5) {
+        btn.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }], { duration: 200 });
+        return;
+      }
+      selectedPicks.add(u);
+      btn.classList.add('selected');
+    }
+  }
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ── 별점 핸들러
+  function bindStars(containerId, setter) {
+    document.querySelectorAll(`#${containerId} .star`).forEach(s => {
+      s.addEventListener('click', () => {
+        const v = parseInt(s.dataset.v, 10);
+        setter(v);
+        document.querySelectorAll(`#${containerId} .star`).forEach(x => {
+          x.classList.toggle('active', parseInt(x.dataset.v, 10) <= v);
+        });
       });
     });
-  });
+  }
+  bindStars('stars', v => { satisfaction = v; });
+  bindStars('hostStars', v => { hostRating = v; });
 
   function setYN(val) {
     revisit = val;
@@ -319,42 +587,154 @@
     document.getElementById('yn-n').classList.toggle('active', val === false);
   }
 
-  async function submit() {
-    if (!satisfaction) return alert('만족도를 선택해주세요');
+  // 태그 선택
+  document.querySelectorAll('.tag-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.tag;
+      if (selectedTags.has(tag)) {
+        selectedTags.delete(tag);
+        chip.classList.remove('selected');
+      } else {
+        selectedTags.add(tag);
+        chip.classList.add('selected');
+      }
+    });
+  });
+
+  async function submitSurvey() {
+    if (!satisfaction) return alert('모임 만족도를 선택해주세요');
     if (revisit === null) return alert('재방문 의향을 선택해주세요');
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
     btn.textContent = '제출 중...';
 
+    const payload = {
+      uuid, room_code,
+      satisfaction,
+      revisit,
+      nps: parseInt(document.getElementById('nps').value, 10),
+      best_moment: document.getElementById('best').value,
+      regret: document.getElementById('regret').value,
+      review: document.getElementById('review').value,
+      host_rating: isHost ? null : (hostRating || null),
+      host_comment: isHost ? null : (document.getElementById('hostComment').value || null),
+      liked_tags: [...selectedTags],
+    };
+
     try {
       const r = await fetch('/api/survey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uuid, room_code,
-          satisfaction,
-          revisit,
-          nps: parseInt(document.getElementById('nps').value),
-          best_moment: document.getElementById('best').value,
-          regret: document.getElementById('regret').value,
-          review: document.getElementById('review').value
-        })
+        body: JSON.stringify(payload),
       });
       const data = await r.json();
-      if (data.success) {
-        location.href = `/result?room=${room_code}&uuid=${uuid}`;
-      } else {
-        alert('제출 중 오류가 발생했어요');
-        btn.disabled = false;
-        btn.textContent = '후기 제출하기';
+      if (r.status === 409) {
+        alert('이미 후기를 제출했어요. 결과 페이지로 이동합니다.');
+        goResult();
+        return;
       }
-    } catch {
-      alert('네트워크 오류');
+      if (!r.ok || !data.success) throw new Error(data.message || data.error || '제출 실패');
+
+      // 연결 투표 (선택적)
+      let mutuals = [];
+      if (selectedPicks.size > 0) {
+        try {
+          const cr = await fetch('/api/connections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid, room_code, picks: [...selectedPicks] }),
+          });
+          const cdata = await cr.json();
+          mutuals = cdata.mutuals || [];
+        } catch {}
+      }
+
+      localStorage.removeItem('pending_survey');
+      showDone(mutuals);
+    } catch (err) {
+      alert(err.message || '네트워크 오류');
       btn.disabled = false;
       btn.textContent = '후기 제출하기';
     }
   }
+
+  function showDone(mutuals) {
+    const wrap = document.getElementById('mutualWrap');
+    if (mutuals && mutuals.length) {
+      const names = mutuals.map(m => escHtml(m.nickname)).join(', ');
+      wrap.innerHTML = `<div class="mutual-badge">💫 <strong>${names}</strong>님과 서로 선택했어요</div>`;
+    } else {
+      wrap.innerHTML = '';
+    }
+    document.getElementById('doneOverlay').classList.add('show');
+  }
+
+  function goResult() {
+    location.href = `/result?room=${room_code}&uuid=${uuid}`;
+  }
+
+  // ── 인스타 스토리용 카드 그리기 (html2canvas 대신 Canvas API 로 경량 구현)
+  async function shareCard() {
+    const c = document.getElementById('shareCanvas');
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#0a0f1e';
+    ctx.fillRect(0, 0, c.width, c.height);
+    // 골드 배지
+    const grad = ctx.createLinearGradient(0, 0, c.width, c.height);
+    grad.addColorStop(0, 'rgba(212,168,67,0.08)');
+    grad.addColorStop(1, 'rgba(212,168,67,0.02)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, c.width, c.height);
+    // 브랜드
+    ctx.font = '600 72px "Cormorant Garamond", serif';
+    ctx.fillStyle = '#d4a843';
+    ctx.textAlign = 'center';
+    ctx.fillText('ntable', c.width / 2, 320);
+    // 타이틀
+    ctx.font = '600 80px "Cormorant Garamond", serif';
+    ctx.fillStyle = '#f5f2ec';
+    ctx.fillText('오늘의 모임', c.width / 2, 650);
+    // 모임 제목
+    ctx.font = '400 44px sans-serif';
+    ctx.fillStyle = '#ddd5bc';
+    const title = (roomTitle || '').slice(0, 22);
+    ctx.fillText(title, c.width / 2, 760);
+    // 별점
+    const stars = '★'.repeat(satisfaction) + '☆'.repeat(5 - satisfaction);
+    ctx.font = '600 96px sans-serif';
+    ctx.fillStyle = '#f0ca60';
+    ctx.fillText(stars, c.width / 2, 1000);
+    // 한 줄 후기
+    const review = (document.getElementById('review').value || '').slice(0, 30);
+    if (review) {
+      ctx.font = 'italic 400 48px "Noto Serif KR", serif';
+      ctx.fillStyle = '#f5f2ec';
+      ctx.fillText(`"${review}"`, c.width / 2, 1180);
+    }
+    // URL
+    ctx.font = '400 36px sans-serif';
+    ctx.fillStyle = 'rgba(245,242,236,0.55)';
+    ctx.fillText('ntable.kr', c.width / 2, 1780);
+
+    c.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], 'ntable-moment.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'ntable 모임 후기', text: `오늘 ntable 모임 다녀왔어요 — ${stars}` });
+        } catch {}
+      } else {
+        // fallback: 다운로드
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'ntable-moment.png'; a.click();
+        URL.revokeObjectURL(url);
+      }
+    }, 'image/png');
+  }
+
+  checkEligibility();
 </script>
 </body>
 </html>

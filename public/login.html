@@ -691,6 +691,12 @@
           const nextUrl = getNextUrl();
           if (nextUrl) { window.location.href = nextUrl; }
           else {
+            // 미제출 설문 재진입 유도
+            const pendingSurvey = localStorage.getItem('pending_survey');
+            if (pendingSurvey) {
+              window.location.href = `/survey?room=${pendingSurvey}`;
+              return;
+            }
             const roomRes = await fetch(`${API}/api/my-room?uuid=${currentUuid}`);
             const roomData = await roomRes.json();
             if (roomData.room_code) { window.location.href = `/room/${roomData.room_code}/host`; }

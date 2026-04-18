@@ -522,6 +522,19 @@
             </div>
           `).join('');
       }
+      const hs = data.host_summary || {};
+      let hostAggHtml = '';
+      if (hs.host_rating_count && hs.avg_host_rating != null) {
+        const stars = '★'.repeat(Math.round(hs.avg_host_rating)) + '☆'.repeat(5 - Math.round(hs.avg_host_rating));
+        hostAggHtml = `
+          <div class="stats-row" style="margin-top:16px;">
+            <div class="stat-box">
+              <div class="stat-num" style="font-size:26px;color:var(--gold-light);letter-spacing:2px;">${stars}</div>
+              <div class="stat-label">오늘 호스트 평가 · ${hs.host_rating_count}명 응답</div>
+            </div>
+          </div>`;
+      }
+
       summEl.innerHTML = `
         <div class="stats-row">
           <div class="stat-box">
@@ -533,6 +546,7 @@
             <div class="stat-label">나에게 관심 표시</div>
           </div>
         </div>
+        ${hostAggHtml}
         ${hlHtml}
       `;
     } catch {

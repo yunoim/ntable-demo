@@ -2,25 +2,176 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 
-// POST /api/survey
+const VALID_TAGS = [
+  'conversation', 'host', 'matching', 'questions', 'space', 'people', 'pacing',
+];
+
+// POST /api/survey — 본설문 (호스트 평가·카테고리·본문 포함)
 router.post('/survey', async (req, res) => {
-  const { uuid, room_code, satisfaction, revisit, nps, best_moment, regret, review } = req.body;
+  const {
+    uuid, room_code,
+    satisfaction, revisit, nps,
+    best_moment, regret, review,
+    host_rating, host_comment, liked_tags,
+  } = req.body;
   if (!uuid || !room_code) return res.status(400).json({ error: 'uuid, room_code required' });
 
+  try {
+    const roomRes = await pool.query(
+      'SELECT id, host_uuid FROM rooms WHERE room_code = $1',
+      [room_code]
+    );
+    if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+    const { id: room_id, host_uuid } = roomRes.rows[0];
+
+    // 참여 이력 검증 — 방에 실제 참여한 사람만 설문 가능
+    const part = await pool.query(
+      'SELECT 1 FROM member_results WHERE uuid = $1 AND room_id = $2',
+      [uuid, room_id]
+    );
+    if (part.rows.length === 0) {
+      return res.status(403).json({ error: 'NOT_PARTICIPANT', message: '이 모임에 참여한 기록이 없어 후기를 남길 수 없어요' });
+    }
+
+    // 중복 제출 가드
+    const dup = await pool.query(
+      'SELECT 1 FROM survey_responses WHERE uuid = $1 AND room_id = $2',
+      [uuid, room_id]
+    );
+    if (dup.rows.length > 0) {
+      return res.status(409).json({ error: 'ALREADY_SUBMITTED', message: '이미 후기를 제출했어요' });
+    }
+
+    // 호스트 본인은 자기 자신 평가 제외 (저장하되 무시)
+    const isHost = uuid === host_uuid;
+    const finalHostRating = isHost ? null : (Number.isInteger(host_rating) ? host_rating : null);
+    const finalHostComment = isHost ? null : (host_comment || null);
+
+    // liked_tags 정규화 — 화이트리스트 필터
+    const tagsArr = Array.isArray(liked_tags)
+      ? liked_tags.filter(t => VALID_TAGS.includes(t)).slice(0, VALID_TAGS.length)
+      : [];
+
+    await pool.query(
+      `INSERT INTO survey_responses
+         (uuid, room_id, satisfaction, revisit, nps, best_moment, regret, review,
+          host_rating, host_comment, liked_tags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT (uuid, room_id) DO NOTHING`,
+      [
+        uuid, room_id, satisfaction, revisit ? true : false, nps,
+        best_moment || null, regret || null, review || null,
+        finalHostRating, finalHostComment, JSON.stringify(tagsArr),
+      ]
+    );
+    res.json({ success: true, is_host: isHost });
+  } catch (err) {
+    console.error('POST /api/survey error:', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// GET /api/survey/eligibility?room=&uuid= — 후기 제출 가능 상태 (재진입 플로우)
+router.get('/survey/eligibility', async (req, res) => {
+  const { room, uuid } = req.query;
+  if (!room || !uuid) return res.status(400).json({ error: 'room, uuid required' });
+  try {
+    const roomRes = await pool.query(
+      'SELECT id, host_uuid, title FROM rooms WHERE room_code = $1',
+      [room]
+    );
+    if (roomRes.rows.length === 0) return res.json({ eligible: false, reason: 'ROOM_NOT_FOUND' });
+    const { id: room_id, host_uuid, title } = roomRes.rows[0];
+
+    const part = await pool.query(
+      'SELECT 1 FROM member_results WHERE uuid = $1 AND room_id = $2',
+      [uuid, room_id]
+    );
+    if (part.rows.length === 0) return res.json({ eligible: false, reason: 'NOT_PARTICIPANT' });
+
+    const dup = await pool.query(
+      'SELECT 1 FROM survey_responses WHERE uuid = $1 AND room_id = $2',
+      [uuid, room_id]
+    );
+    if (dup.rows.length > 0) return res.json({ eligible: false, reason: 'ALREADY_SUBMITTED' });
+
+    res.json({ eligible: true, is_host: uuid === host_uuid, room_title: title });
+  } catch (err) {
+    console.error('eligibility error:', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// GET /api/survey/participants?room=&uuid= — 본인 제외 참여자 리스트 (연결 투표용)
+router.get('/survey/participants', async (req, res) => {
+  const { room, uuid } = req.query;
+  if (!room || !uuid) return res.status(400).json({ error: 'room, uuid required' });
+  try {
+    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [room]);
+    if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+    const room_id = roomRes.rows[0].id;
+
+    const rows = await pool.query(
+      `SELECT u.uuid, u.nickname, u.gender, u.birth_year, u.mbti
+         FROM member_results mr
+         JOIN users u ON u.uuid = mr.uuid
+        WHERE mr.room_id = $1 AND mr.uuid != $2
+        ORDER BY u.nickname`,
+      [room_id, uuid]
+    );
+    res.json(rows.rows);
+  } catch (err) {
+    console.error('participants error:', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// POST /api/connections — 후기 단계 "또 만나고 싶은 사람" 투표
+router.post('/connections', async (req, res) => {
+  const { uuid, room_code, picks } = req.body;
+  if (!uuid || !room_code || !Array.isArray(picks)) {
+    return res.status(400).json({ error: 'uuid, room_code, picks[] required' });
+  }
   try {
     const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [room_code]);
     if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
     const room_id = roomRes.rows[0].id;
 
-    await pool.query(
-      `INSERT INTO survey_responses (uuid, room_id, satisfaction, revisit, nps, best_moment, regret, review)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT DO NOTHING`,
-      [uuid, room_id, satisfaction, revisit ? true : false, nps, best_moment || null, regret || null, review || null]
+    // 참여자 검증
+    const part = await pool.query(
+      'SELECT 1 FROM member_results WHERE uuid = $1 AND room_id = $2',
+      [uuid, room_id]
     );
-    res.json({ success: true });
+    if (part.rows.length === 0) return res.status(403).json({ error: 'NOT_PARTICIPANT' });
+
+    // 기존 내 선택 삭제 후 재삽입 (덮어쓰기)
+    await pool.query(
+      'DELETE FROM room_connections WHERE room_id = $1 AND from_uuid = $2',
+      [room_id, uuid]
+    );
+
+    const cleanPicks = picks.filter(p => p && p !== uuid).slice(0, 5); // 최대 5명
+    for (const to_uuid of cleanPicks) {
+      await pool.query(
+        'INSERT INTO room_connections (room_id, from_uuid, to_uuid) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+        [room_id, uuid, to_uuid]
+      );
+    }
+
+    // 쌍방 매칭 탐색 (내가 고른 사람들 중 나를 고른 사람)
+    const mutuals = await pool.query(
+      `SELECT u.uuid, u.nickname
+         FROM room_connections c
+         JOIN users u ON u.uuid = c.from_uuid
+        WHERE c.room_id = $1
+          AND c.to_uuid = $2
+          AND c.from_uuid = ANY($3::varchar[])`,
+      [room_id, uuid, cleanPicks]
+    );
+
+    res.json({ saved: cleanPicks.length, mutuals: mutuals.rows });
   } catch (err) {
-    console.error(err);
+    console.error('connections error:', err);
     res.status(500).json({ error: 'db error' });
   }
 });
@@ -107,7 +258,24 @@ router.get('/result', async (req, res) => {
       return { question_id: qid, top_answer: top[0], count: top[1] };
     });
 
-    res.json({ match_nickname, match_uuid, fi_count, participants, question_highlights });
+    // 호스트 평가 집계 (평균만 공개, 개별 코멘트는 관리자만)
+    const hostAgg = await pool.query(
+      `SELECT AVG(host_rating)::float AS avg_host_rating,
+              COUNT(host_rating)::int AS host_rating_count,
+              AVG(nps)::float AS avg_nps,
+              AVG(satisfaction)::float AS avg_satisfaction
+         FROM survey_responses
+        WHERE room_id = $1 AND host_rating IS NOT NULL`,
+      [room_id]
+    );
+    const host_summary = {
+      avg_host_rating: hostAgg.rows[0].avg_host_rating ? Number(hostAgg.rows[0].avg_host_rating.toFixed(2)) : null,
+      host_rating_count: hostAgg.rows[0].host_rating_count || 0,
+      avg_nps: hostAgg.rows[0].avg_nps ? Number(hostAgg.rows[0].avg_nps.toFixed(2)) : null,
+      avg_satisfaction: hostAgg.rows[0].avg_satisfaction ? Number(hostAgg.rows[0].avg_satisfaction.toFixed(2)) : null,
+    };
+
+    res.json({ match_nickname, match_uuid, fi_count, participants, question_highlights, host_summary });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });

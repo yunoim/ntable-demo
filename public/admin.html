@@ -323,6 +323,9 @@
       <div class="section-h">매칭 성공률 (최근 30일)</div>
       <div class="stats-grid" id="matchSummaryGrid"></div>
       <div class="table-wrap" id="matchRoomsTable"></div>
+
+      <div class="section-h">호스트 리더보드 (NPS 순)</div>
+      <div class="table-wrap" id="hostsLeaderboard"></div>
     </div>
 
     <!-- Rooms -->
@@ -499,17 +502,40 @@ let npsChartInstance = null;
 
 async function loadInsights() {
   try {
-    const [live, packs, nps, match] = await Promise.all([
+    const [live, packs, nps, match, hosts] = await Promise.all([
       api('/api/panel/live-snapshot'),
       api('/api/panel/packs-usage'),
       api('/api/panel/nps-trend'),
       api('/api/panel/match-success'),
+      api('/api/panel/hosts-leaderboard'),
     ]);
     renderLiveSnap(live);
     renderPacksUsage(packs);
     renderNpsTrend(nps);
     renderMatchSuccess(match);
+    renderHostsLeaderboard(hosts);
   } catch (e) { errToast(e.message); }
+}
+
+function renderHostsLeaderboard(rows) {
+  const wrap = document.getElementById('hostsLeaderboard');
+  if (!rows || !rows.length) {
+    wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">응답 데이터가 쌓이면 여기에 표시됩니다</div>';
+    return;
+  }
+  const tbody = rows.map((r, i) => `<tr>
+    <td data-label="순위">${i + 1}</td>
+    <td data-label="호스트">${escHtml(r.nickname)}</td>
+    <td data-label="모임 수">${r.rooms_hosted}</td>
+    <td data-label="응답">${r.responses}</td>
+    <td data-label="NPS">${r.avg_nps ?? '-'}</td>
+    <td data-label="만족도">${r.avg_satisfaction ?? '-'}</td>
+    <td data-label="호스트 별점">${r.avg_host_rating ?? '-'}</td>
+  </tr>`).join('');
+  wrap.innerHTML = `<table>
+    <thead><tr><th>#</th><th>호스트</th><th>모임 수</th><th>응답</th><th>NPS</th><th>만족도</th><th>호스트 별점</th></tr></thead>
+    <tbody>${tbody}</tbody>
+  </table>`;
 }
 
 function renderLiveSnap(s) {

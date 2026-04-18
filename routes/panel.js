@@ -308,6 +308,39 @@ router.get('/panel/nps-trend', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/panel/hosts-leaderboard — 호스트별 평균 NPS·만족도·호스트 별점
+router.get('/panel/hosts-leaderboard', requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.uuid, u.nickname,
+              COUNT(DISTINCT r.id)::int AS rooms_hosted,
+              COUNT(sr.id)::int AS responses,
+              AVG(sr.nps)::float AS avg_nps,
+              AVG(sr.satisfaction)::float AS avg_satisfaction,
+              AVG(sr.host_rating)::float AS avg_host_rating
+         FROM users u
+         JOIN rooms r ON r.host_uuid = u.uuid
+         LEFT JOIN survey_responses sr ON sr.room_id = r.id AND sr.uuid != u.uuid
+        GROUP BY u.uuid, u.nickname
+       HAVING COUNT(sr.id) > 0
+        ORDER BY avg_nps DESC NULLS LAST
+        LIMIT 50`
+    );
+    res.json(rows.map(r => ({
+      uuid: r.uuid,
+      nickname: r.nickname,
+      rooms_hosted: r.rooms_hosted,
+      responses: r.responses,
+      avg_nps: r.avg_nps != null ? Number(r.avg_nps.toFixed(2)) : null,
+      avg_satisfaction: r.avg_satisfaction != null ? Number(r.avg_satisfaction.toFixed(2)) : null,
+      avg_host_rating: r.avg_host_rating != null ? Number(r.avg_host_rating.toFixed(2)) : null,
+    })));
+  } catch (err) {
+    console.error('[panel] hosts-leaderboard error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/panel/match-success — 매칭 성공률 (match_json.pairs 의 mutual 비율)
 router.get('/panel/match-success', requireAdmin, async (req, res) => {
   try {

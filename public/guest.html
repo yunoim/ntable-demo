@@ -1443,6 +1443,8 @@ async function handleWSMessage(msg) {
       }
       break;
     case 'room_closed':
+      // 게스트가 중간에 이탈해도 다음 로그인 때 자동 유도되도록 저장
+      try { localStorage.setItem('pending_survey', STATE.roomCode); } catch (_) {}
       location.href = `/survey?room=${STATE.roomCode}`;
       break;
   }

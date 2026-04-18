@@ -112,6 +112,35 @@ async function initDB() {
       if (e.code !== '42710' && e.code !== '42P07') throw e;
     }
 
+    // survey_responses 업그레이드 — 호스트 평가·카테고리 태그·UNIQUE
+    try {
+      await client.query(`ALTER TABLE survey_responses ADD COLUMN host_rating INTEGER`);
+    } catch (e) { if (e.code !== '42701') throw e; }
+    try {
+      await client.query(`ALTER TABLE survey_responses ADD COLUMN host_comment TEXT`);
+    } catch (e) { if (e.code !== '42701') throw e; }
+    try {
+      await client.query(`ALTER TABLE survey_responses ADD COLUMN liked_tags JSONB`);
+    } catch (e) { if (e.code !== '42701') throw e; }
+    try {
+      await client.query(`
+        ALTER TABLE survey_responses
+        ADD CONSTRAINT survey_responses_uuid_room_id_key
+        UNIQUE (uuid, room_id)
+      `);
+    } catch (e) { if (e.code !== '42710' && e.code !== '42P07') throw e; }
+
+    // room_connections — 후기 단계의 "또 만나고 싶은 사람" (동성·이성 무관)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS room_connections (
+        id SERIAL PRIMARY KEY,
+        room_id INTEGER REFERENCES rooms(id),
+        from_uuid VARCHAR REFERENCES users(uuid),
+        to_uuid VARCHAR REFERENCES users(uuid),
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (room_id, from_uuid, to_uuid)
+      )
+    `);
 
     console.log('[DB] All tables initialized');
   } catch (err) {
