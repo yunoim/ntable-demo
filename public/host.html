@@ -1493,6 +1493,9 @@ async function loadRoomInfo() {
     const room = await res.json();
     if (room.host_uuid && room.host_uuid !== state.uuid) { location.href = '/'; return; }
     if (room.status === 'closed') { location.href = '/create'; return; }
+    state.room = room;
+    state.displayFields = Array.isArray(room.display_fields) ? room.display_fields : ['birth_year','region','industry','interest'];
+    state.birthYearFormat = room.birth_year_format || 'exact';
     state.hostRole = room.host_role || 'host_only';
     state.questionCount = Number.isFinite(room.question_count) ? room.question_count : 10;
     settingsState.roomStatus = room.status || 'waiting';
@@ -1741,8 +1744,14 @@ function renderProfiles() {
   }
   noMsg.style.display = 'none';
   const now = new Date().getFullYear();
+  const df = state.displayFields || ['birth_year','region','industry','interest'];
+  const fmt = state.birthYearFormat || 'exact';
+  const showBirth = df.includes('birth_year');
+  const showRegion = df.includes('region');
+  const showIndustry = df.includes('industry');
+  const showInterest = df.includes('interest');
+
   for (const u of state.approvedUsers) {
-    const age = u.birth_year ? now - u.birth_year + 1 : '?';
     const genderLabel = (u.gender === 'M' || u.gender === 'male') ? '남'
                       : (u.gender === 'F' || u.gender === 'female') ? '여' : '';
     const emoji = (u.gender === 'M' || u.gender === 'male') ? '👨'
@@ -1753,16 +1762,18 @@ function renderProfiles() {
       : `<div class="profile-avatar">${emoji}</div>`;
     const intro = state.intros[u.uuid];
     const introHtml = intro ? `<div class="profile-intro">"${escHtml(intro)}"</div>` : '';
+    const birthDisplay = showBirth ? formatBirthYear(u.birth_year, fmt) : '';
+    const meta = [genderLabel, birthDisplay, (showRegion && u.region) ? escHtml(u.region) : ''].filter(Boolean).join(' · ');
     const card = document.createElement('div');
     card.className = 'profile-card';
     card.innerHTML = `
       ${avatarHtml}
       <div class="name">${escHtml(u.nickname)}</div>
-      <div class="meta">${genderLabel} · ${age}세${u.region ? ' · ' + escHtml(u.region) : ''}</div>
+      <div class="meta">${meta}</div>
       <div class="tags">
         ${u.mbti ? `<span class="tag-chip gold">${escHtml(u.mbti)}</span>` : ''}
-        ${u.interest ? `<span class="tag-chip">${escHtml(u.interest)}</span>` : ''}
-        ${u.industry ? `<span class="tag-chip">${escHtml(u.industry)}</span>` : ''}
+        ${showInterest && u.interest ? `<span class="tag-chip">${escHtml(u.interest)}</span>` : ''}
+        ${showIndustry && u.industry ? `<span class="tag-chip">${escHtml(u.industry)}</span>` : ''}
       </div>
       ${introHtml}`;
     carousel.appendChild(card);
@@ -1893,6 +1904,23 @@ function anonLabel(u) {
   if (!u) return '익명';
   const tail = String(u).replace(/-/g, '').slice(-4).toUpperCase();
   return `익명#${tail}`;
+}
+
+function formatBirthYear(year, format) {
+  if (!year) return '';
+  if (format === 'decade_half') {
+    const y = new Date().getFullYear();
+    const age = y - year + 1;
+    if (age < 20) return '10대';
+    const decade = Math.floor(age / 10) * 10;
+    const half = age % 10;
+    let label;
+    if (half <= 3) label = '초';
+    else if (half <= 6) label = '중';
+    else label = '후';
+    return `${decade}${label}`;
+  }
+  return `${year}년생`;
 }
 
 function appendChatMsg(msg) {

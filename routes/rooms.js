@@ -40,6 +40,15 @@ router.post('/rooms', async (req, res) => {
     return res.status(500).json({ error: 'no pack available' });
   }
 
+  // 표시 필드 옵션 (호스트가 정함)
+  const ALLOWED_FIELDS = ['birth_year', 'region', 'industry', 'interest'];
+  let display_fields = Array.isArray(req.body.display_fields)
+    ? req.body.display_fields.filter(f => ALLOWED_FIELDS.includes(f))
+    : ALLOWED_FIELDS;
+  if (display_fields.length === 0) display_fields = ALLOWED_FIELDS;
+  const birth_year_format = ['exact', 'decade_half'].includes(req.body.birth_year_format)
+    ? req.body.birth_year_format : 'exact';
+
   // uuid 검증
   const userCheck = await pool.query('SELECT uuid FROM users WHERE uuid = $1', [uuid]);
   if (userCheck.rows.length === 0) {
@@ -70,13 +79,15 @@ router.post('/rooms', async (req, res) => {
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id)
-       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8) RETURNING id`,
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format)
+       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10) RETURNING id`,
       [
         room_code, title, uuid, host_role, question_count,
         JSON.stringify(questionsSeed),
         JSON.stringify(topicsSeed),
         pack.id,
+        JSON.stringify(display_fields),
+        birth_year_format,
       ]
     );
     const room_id = roomResult.rows[0].id;
@@ -86,7 +97,7 @@ router.post('/rooms', async (req, res) => {
       [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
     );
     await client.query('COMMIT');
-    res.json({ room_code, title, host_role, question_count, pack_id: pack.id });
+    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('POST /api/rooms error:', err);
@@ -111,7 +122,7 @@ router.get('/packs', async (req, res) => {
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });

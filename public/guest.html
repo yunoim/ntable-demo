@@ -1518,6 +1518,7 @@ const STATE = {
     const res = await fetch(`/api/rooms/${STATE.roomCode}`);
     if (!res.ok) { showError('방 정보를 불러올 수 없어요.'); return; }
     const room = await res.json();
+    STATE.room = room;
 
     if (room.status === 'closed') { switchScreen('closed'); return; }
 
@@ -1781,6 +1782,23 @@ function genderLabel(g) {
 }
 function ageOf(year) { return year ? `${CURRENT_YEAR - year + 1}세` : ''; }
 
+// 출생연도 표시 — 호스트가 'decade_half' 선택 시 "30초/30중/30후" 형태
+function formatBirthYear(year, format) {
+  if (!year) return '';
+  if (format === 'decade_half') {
+    const age = CURRENT_YEAR - year + 1;
+    if (age < 20) return '10대';
+    const decade = Math.floor(age / 10) * 10;
+    const half = age % 10;
+    let label;
+    if (half <= 3) label = '초';
+    else if (half <= 6) label = '중';
+    else label = '후';
+    return `${decade}${label}`;
+  }
+  return `${year}년생`;
+}
+
 // ─── 대기 화면 리치업: Preview + Timer + Alert + Toast ──
 let waitingStart = null;
 let waitingTimer = null;
@@ -1920,8 +1938,14 @@ function renderCarousel() {
   track.innerHTML = '';
   indicators.innerHTML = '';
 
+  const df = (STATE.room && STATE.room.display_fields) || ['birth_year','region','industry','interest'];
+  const fmt = (STATE.room && STATE.room.birth_year_format) || 'exact';
+  const showBirth = df.includes('birth_year');
+  const showRegion = df.includes('region');
+  const showIndustry = df.includes('industry');
+  const showInterest = df.includes('interest');
+
   STATE.members.forEach((m, i) => {
-    const age = ageOf(m.birth_year);
     const genderText = genderLabel(m.gender);
     const avatarEmoji = genderAvatar(m.gender);
     const isMe = m.uuid === STATE.uuid;
@@ -1932,17 +1956,20 @@ function renderCarousel() {
 
     const intro = STATE.intros[m.uuid];
     const introHtml = intro ? `<div class="member-intro">"${escHtml(intro)}"</div>` : '';
+    const birthDisplay = showBirth ? formatBirthYear(m.birth_year, fmt) : '';
+    const meta = [genderText, birthDisplay].filter(Boolean).join(' · ');
     const card = document.createElement('div');
     card.className = 'member-card';
     card.innerHTML = `
       <div class="member-card-inner">
         ${avatarHtml}
         <div class="member-name">${escHtml(m.nickname)}${isMe ? ' <span style="font-size:13px;color:var(--gold)">· 나</span>' : ''}</div>
-        <div class="member-meta">${[genderText, age].filter(Boolean).join(' · ')}</div>
+        <div class="member-meta">${meta}</div>
         <div class="member-tags">
           ${m.mbti ? `<span class="tag gold">${escHtml(m.mbti)}</span>` : ''}
-          ${m.interest ? `<span class="tag">${escHtml(m.interest)}</span>` : ''}
-          ${m.region ? `<span class="tag">${escHtml(m.region)}</span>` : ''}
+          ${showInterest && m.interest ? `<span class="tag">${escHtml(m.interest)}</span>` : ''}
+          ${showRegion && m.region ? `<span class="tag">${escHtml(m.region)}</span>` : ''}
+          ${showIndustry && m.industry ? `<span class="tag">${escHtml(m.industry)}</span>` : ''}
         </div>
         ${introHtml}
       </div>`;

@@ -64,6 +64,20 @@ async function initDB() {
       if (e.code !== '42701') throw e;
     }
 
+    // 게스트 카드에 표시할 필드 (호스트가 방 생성 시 결정)
+    // display_fields: ["birth_year","region","industry","interest"] 중 호스트 선택
+    // birth_year_format: 'exact' (1990) | 'decade_half' (30초/30중/30후)
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN display_fields JSONB DEFAULT '["birth_year","region","industry","interest"]'::jsonb`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN birth_year_format VARCHAR(20) DEFAULT 'exact'`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_state (
         room_id INTEGER PRIMARY KEY REFERENCES rooms(id),
