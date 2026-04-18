@@ -1519,6 +1519,99 @@
   </div>
 </div>
 
+<!-- Nickname 입장 모달 (방 입장 시 닉네임 받기) -->
+<div id="nicknameOverlay" hidden>
+  <div class="nick-card">
+    <div class="nick-eyebrow">📍 <span id="nickRoomTitle">—</span></div>
+    <h2 class="nick-title">닉네임을 정해주세요</h2>
+    <p class="nick-sub">이 모임 안에서만 사용돼요. <strong>방이 끝나면 자동으로 사라져요.</strong></p>
+    <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" class="nick-input" autocomplete="off" autocapitalize="off" autocorrect="off" />
+    <button type="button" id="nicknameJoinBtn" class="nick-btn" onclick="submitNickname()" disabled>입장하기</button>
+    <div class="nick-msg" id="nickMsg"></div>
+  </div>
+</div>
+
+<script>
+// nickname 입력 모달 CSS는 인라인 (페이지 로드 즉시 보여야 하므로)
+(function injectNickStyle() {
+  const css = `
+    #nicknameOverlay {
+      position: fixed; inset: 0; z-index: 1500;
+      background: rgba(10,15,30,0.92);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+    }
+    #nicknameOverlay[hidden] { display: none; }
+    .nick-card {
+      background: var(--surface, #141d35);
+      border: 1px solid #d4a843;
+      border-radius: 18px;
+      padding: 32px 24px 24px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(212,168,67,0.3);
+    }
+    .nick-eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      color: #d4a843;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .nick-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+    .nick-sub {
+      font-size: 13.5px;
+      color: #c0c0c0;
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .nick-sub strong { color: #e8b84b; }
+    .nick-input {
+      width: 100%;
+      padding: 14px;
+      background: rgba(212,168,67,0.06);
+      border: 1px solid rgba(212,168,67,0.4);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 17px;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+    .nick-input:focus { outline: none; border-color: #e8b84b; background: rgba(212,168,67,0.12); }
+    .nick-btn {
+      margin-top: 14px;
+      width: 100%;
+      padding: 14px;
+      background: #e8b84b;
+      color: #0a0f1e;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 0 16px rgba(232,184,75,0.35);
+    }
+    .nick-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+    .nick-btn:not(:disabled):hover { transform: translateY(-1px); }
+    .nick-msg { margin-top: 12px; font-size: 13px; min-height: 16px; color: #ff8a8a; }
+    .nick-msg.ok { color: #7ee8a2; }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+</script>
+
 <script>
 // ─── STATE ────────────────────────────────────────
 const STATE = {
@@ -1554,8 +1647,13 @@ const STATE = {
   if (!pathMatch) { showError('잘못된 접속 경로입니다.'); return; }
   STATE.roomCode = pathMatch[1];
 
+  // uuid 보장 (없으면 자동 생성 — 첫 화면 안 거치고 바로 link 진입한 경우)
   STATE.uuid = localStorage.getItem('demo_uuid');
-  if (!STATE.uuid) { location.href = `/?next=/room/${STATE.roomCode}`; return; }
+  if (!STATE.uuid) {
+    STATE.uuid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : ('u-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36));
+    try { localStorage.setItem('demo_uuid', STATE.uuid); } catch (_) {}
+  }
 
   try {
     const res = await fetch(`/api/rooms/${STATE.roomCode}`);
@@ -1565,20 +1663,75 @@ const STATE = {
 
     if (room.status === 'closed') { switchScreen('closed'); return; }
 
-    const meRes = await fetch(`/api/me?uuid=${STATE.uuid}`);
-    if (meRes.ok) {
-      STATE.myProfile = await meRes.json();
-      renderMyProfile();
-    }
-
     document.querySelectorAll('.room-tag').forEach(el => el.textContent = room.title || STATE.roomCode);
+    const titleEl = document.getElementById('nickRoomTitle');
+    if (titleEl) titleEl.textContent = room.title || STATE.roomCode;
 
-    switchScreen('waiting');
-    connectWS();
+    // 닉네임 입력 모달 (방별 익명) — 사용자가 입장 후 ws 연결
+    showNicknameOverlay();
   } catch (e) {
     showError('서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.');
   }
 })();
+
+function showNicknameOverlay() {
+  const overlay = document.getElementById('nicknameOverlay');
+  if (!overlay) return;
+  overlay.hidden = false;
+  const inp = document.getElementById('nicknameInput');
+  const btn = document.getElementById('nicknameJoinBtn');
+  // prefill from localStorage
+  try {
+    const pref = localStorage.getItem('preferred_nickname');
+    if (pref && inp) inp.value = pref;
+  } catch (_) {}
+  if (inp) {
+    btn.disabled = inp.value.trim().length === 0;
+    inp.addEventListener('input', () => {
+      btn.disabled = inp.value.trim().length === 0;
+    });
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !btn.disabled) submitNickname();
+    });
+    setTimeout(() => inp.focus(), 100);
+  }
+}
+
+async function submitNickname() {
+  const inp = document.getElementById('nicknameInput');
+  const btn = document.getElementById('nicknameJoinBtn');
+  const msg = document.getElementById('nickMsg');
+  const nickname = (inp.value || '').trim();
+  if (!nickname) return;
+  btn.disabled = true;
+  btn.textContent = '입장 중…';
+  msg.className = 'nick-msg';
+  msg.textContent = '';
+  try {
+    const r = await fetch(`/api/rooms/${STATE.roomCode}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid: STATE.uuid, nickname }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      msg.textContent = data.message || (data.error === 'NICKNAME_TAKEN' ? '이 방에서 이미 사용 중인 닉네임이에요' : '입장 실패');
+      btn.disabled = false;
+      btn.textContent = '입장하기';
+      return;
+    }
+    try { localStorage.setItem('preferred_nickname', nickname); } catch (_) {}
+    document.getElementById('nicknameOverlay').hidden = true;
+    STATE.myProfile = { uuid: STATE.uuid, nickname };
+    renderMyProfile();
+    switchScreen('waiting');
+    connectWS();
+  } catch (e) {
+    msg.textContent = '서버 연결 실패';
+    btn.disabled = false;
+    btn.textContent = '입장하기';
+  }
+}
 
 // ─── SCREEN ───────────────────────────────────────
 function switchScreen(state) {

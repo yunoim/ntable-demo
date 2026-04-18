@@ -553,6 +553,11 @@
       <!-- 팩 선택 후 노출되는 설정 영역 -->
       <div id="packSetup" hidden>
         <div class="field-group">
+          <label>호스트 닉네임 <span style="color:#ff8a8a;">*</span></label>
+          <input type="text" id="hostNicknameInput" maxlength="20" placeholder="이 모임에서 사용할 닉네임" aria-label="호스트 닉네임" autocomplete="off" />
+          <div class="qcount-hint">방 안에서만 사용. 모임 종료 시 자동 폐기.</div>
+        </div>
+        <div class="field-group">
           <label>모임 제목</label>
           <input type="text" id="titleInput" maxlength="100" aria-label="모임 제목" />
           <div class="char-count"><span id="charCount">0</span> / 100</div>
@@ -788,7 +793,12 @@
 
     async function createRoom() {
       const rawTitle = titleInput.value.trim();
+      const hostNickname = (document.getElementById('hostNicknameInput')?.value || '').trim();
       if (!rawTitle || !selectedPack) return;
+      if (!hostNickname) {
+        document.getElementById('errorMsg').textContent = '호스트 닉네임을 입력해주세요';
+        return;
+      }
 
       const title = rawTitle.length > 100 ? rawTitle.slice(0, 100) : rawTitle;
 
@@ -812,6 +822,19 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');
+
+        // 호스트도 room_members 등록 (방별 익명 닉네임)
+        const joinRes = await fetch(`/api/rooms/${data.room_code}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uuid, nickname: hostNickname }),
+        });
+        if (!joinRes.ok) {
+          const je = await joinRes.json().catch(() => ({}));
+          throw new Error(je.message || je.error || '호스트 등록 실패');
+        }
+        try { localStorage.setItem('preferred_nickname', hostNickname); } catch (_) {}
+
         window.location.href = `/room/${data.room_code}/host`;
       } catch (err) {
         errMsg.textContent = err.message;
@@ -819,6 +842,15 @@
         btn.textContent = '모임 만들기';
       }
     }
+
+    // 호스트 닉네임 prefill
+    (() => {
+      try {
+        const pref = localStorage.getItem('preferred_nickname');
+        const inp = document.getElementById('hostNicknameInput');
+        if (pref && inp && !inp.value) inp.value = pref;
+      } catch (_) {}
+    })();
 
     init();
   </script>

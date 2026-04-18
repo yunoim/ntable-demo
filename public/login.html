@@ -1,1070 +1,171 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0f1e">
-  <meta name="color-scheme" content="dark">
-  <title>ntable — 시작하기</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      /* Navy */
-      --navy:        #0a0f1e;
-      --navy-light:  #0f1628;
-      --navy-mid:    #141d35;
-      /* Surfaces */
-      --surface:     #141d35;
-      --surface-2:   #1a2442;
-      --surface-3:   #223056;
-      /* Gold (landing 기준) */
-      --gold:        #d4a843;
-      --gold-light:  #f0ca60;
-      --gold-dim:    rgba(212,168,67,0.18);
-      --gold-dim-2:  rgba(212,168,67,0.08);
-      --gold-border: rgba(212,168,67,0.35);
-      /* Text */
-      --white:       #f5f2ec;
-      --white-dim:   rgba(245,242,236,0.88);
-      --white-muted: rgba(245,242,236,0.72);
-      --text:        #ddd5bc;
-      --text-muted:  rgba(216,208,187,0.78);
-      --text-dim:    rgba(216,208,187,0.65);
-      --subtext:     rgba(216,208,187,0.78);
-      /* UI */
-      --border:      rgba(255,255,255,0.14);
-      --input-border:#5a6178;
-      --placeholder: rgba(216,208,187,0.65);
-      --danger:      #e87e7e;
-      --success:     #7ee8a2;
-      /* Motion */
-      --radius:      10px;
-      --radius-lg:   18px;
-      --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
-    }
-
-    body {
-      background: var(--navy);
-      color: var(--text);
-      font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 18px;
-      -webkit-font-smoothing: antialiased;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 15%, rgba(212,168,67,0.1), transparent 55%),
-        radial-gradient(circle at 80% 85%, rgba(80,100,180,0.06), transparent 50%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 440px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .logo {
-      text-align: center;
-      margin-bottom: 38px;
-    }
-
-    .logo-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 40px;
-      font-weight: 600;
-      color: var(--gold);
-      letter-spacing: 0.14em;
-      line-height: 1;
-    }
-
-    .logo-sub {
-      font-size: 12px;
-      color: var(--subtext);
-      margin-top: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--gold-border);
-      border-radius: 20px;
-      padding: 36px 28px;
-      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
-    }
-
-    .section-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--white);
-      margin-bottom: 8px;
-    }
-    .section-sub {
-      font-size: 13px;
-      color: var(--subtext);
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-
-    .form-group { margin-bottom: 20px; }
-
-    label {
-      display: block;
-      font-size: 12px;
-      color: var(--subtext);
-      margin-bottom: 8px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-
-    input[type="text"],
-    select {
-      width: 100%;
-      background: var(--navy-light);
-      border: 1.5px solid var(--input-border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-size: 15px;
-      color: var(--white);
-      outline: none;
-      transition: border-color 0.2s;
-      appearance: none;
-      -webkit-appearance: none;
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus,
-    select:focus { border-color: var(--gold); }
-    input[type="text"]::placeholder { color: var(--placeholder); opacity: 1; }
-
-    select {
-      background-image:
-        linear-gradient(45deg, transparent 50%, var(--gold) 50%),
-        linear-gradient(135deg, var(--gold) 50%, transparent 50%);
-      background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
-      background-size: 6px 6px, 6px 6px;
-      background-repeat: no-repeat;
-      padding-right: 40px;
-    }
-
-    .nickname-status {
-      font-size: 12px;
-      margin-top: 8px;
-      min-height: 16px;
-      letter-spacing: 0.02em;
-    }
-    .nickname-status.ok { color: var(--success); }
-    .nickname-status.err { color: var(--danger); }
-    .nickname-status.info { color: var(--gold-light); }
-
-    .btn-primary {
-      width: 100%;
-      background: linear-gradient(135deg, var(--gold), #a07828);
-      color: var(--navy);
-      border: none;
-      border-radius: 12px;
-      padding: 16px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
-      margin-top: 8px;
-      letter-spacing: 0.04em;
-      box-shadow: 0 4px 18px rgba(212,168,67,0.25);
-      font-family: inherit;
-    }
-    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.35); }
-    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-
-    /* 프로필 스텝 인디케이터 */
-    .step-indicator {
-      display: inline-block;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--gold);
-      background: var(--gold-dim-2);
-      border: 1px solid var(--gold-border);
-      padding: 5px 12px;
-      border-radius: 999px;
-      margin-bottom: 14px;
-    }
-
-    /* 필드 힌트 (왜 필요한지 설명) */
-    .field-hint {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      margin-top: 6px;
-      line-height: 1.55;
-    }
-    .field-hint strong { color: var(--gold-light); font-weight: 500; }
-
-    /* 선택 필드 뱃지 */
-    .optional-tag {
-      display: inline-block;
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      background: var(--navy-light);
-      border: 1px solid var(--border);
-      padding: 2px 8px;
-      border-radius: 999px;
-      margin-left: 6px;
-      font-weight: 400;
-      vertical-align: middle;
-    }
-    .form-group.optional label { font-weight: 500; }
-
-    /* 진행률 바 */
-    .optional-progress {
-      background: var(--navy-light);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-bottom: 22px;
-    }
-    .optional-progress-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .optional-progress-pct {
-      color: var(--gold-light);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-    .optional-progress-bar {
-      height: 4px;
-      background: var(--border);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .optional-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--gold), var(--gold-light));
-      width: 0%;
-      transition: width 0.4s cubic-bezier(0.34,1.56,0.64,1);
-    }
-
-    /* 2버튼 동작 (건너뛰기 / 저장) */
-    .profile-actions {
-      display: grid;
-      grid-template-columns: 1fr 1.3fr;
-      gap: 10px;
-      margin-top: 8px;
-    }
-    .btn-ghost {
-      padding: 14px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
-      border-radius: 10px;
-      font-family: inherit;
-      font-size: 14px;
-      cursor: pointer;
-      transition: color 0.2s, border-color 0.2s;
-    }
-    .btn-ghost:hover { color: var(--white-dim); border-color: var(--gold-border); }
-    .profile-footnote {
-      text-align: center;
-      font-size: 11.5px;
-      color: var(--text-muted);
-      margin-top: 14px;
-      line-height: 1.6;
-    }
-    .profile-footnote strong { color: var(--gold-light); font-weight: 500; }
-
-    /* 성별 버튼 */
-    .gender-group { display: flex; gap: 12px; }
-    .gender-btn {
-      flex: 1;
-      padding: 15px;
-      background: var(--navy-light);
-      border: 1.5px solid var(--input-border);
-      border-radius: 12px;
-      color: var(--subtext);
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-    .gender-btn.selected {
-      border-color: var(--gold);
-      color: var(--gold-light);
-      background: var(--gold-dim);
-    }
-
-    .step { display: none; }
-    .step.active { display: block; animation: fadein 0.3s ease; }
-    @keyframes fadein {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .required-mark { color: var(--gold); margin-left: 3px; }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 24px 0;
-    }
-
-    select option { background: var(--surface); color: var(--white); }
-
-    /* Chip 선택 */
-    .chip-grid {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      margin-top: 4px;
-    }
-    .chip-grid.mbti-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-    }
-    .chip-item {
-      padding: 9px 14px;
-      background: var(--surface-2, rgba(212,168,67,0.06));
-      border: 1px solid var(--gold-border, rgba(212,168,67,0.35));
-      color: var(--white-dim, #e8e8e8);
-      border-radius: 18px;
-      font-size: 13.5px;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-    }
-    .chip-grid.mbti-grid .chip-item {
-      padding: 11px 6px;
-      text-align: center;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-    }
-    .chip-item:hover { background: rgba(212,168,67,0.15); border-color: var(--gold, #d4a843); }
-    .chip-item.selected {
-      background: var(--gold, #d4a843);
-      color: var(--navy, #0e1628);
-      border-color: var(--gold, #d4a843);
-      font-weight: 700;
-    }
-
-    .loading-text {
-      text-align: center;
-      color: var(--subtext);
-      font-size: 14px;
-      padding: 40px 0;
-    }
-
-    .legal {
-      text-align: center;
-      margin-top: 22px;
-      font-size: 11px;
-      color: var(--subtext);
-      line-height: 1.8;
-    }
-    .legal a { color: var(--subtext); text-decoration: underline; }
-    .legal a:hover { color: var(--gold); }
-
-    /* 게스트 방 참여 섹션 */
-    .join-section {
-      margin-top: 24px;
-      padding-top: 22px;
-      border-top: 1px solid var(--border);
-    }
-    .join-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--white);
-      margin-bottom: 4px;
-    }
-    .join-sub {
-      font-size: 12px;
-      color: var(--subtext);
-      margin-bottom: 16px;
-      line-height: 1.55;
-    }
-    .join-row {
-      display: flex;
-      gap: 10px;
-    }
-    .join-row input {
-      flex: 1;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      font-weight: 600;
-    }
-    .btn-secondary {
-      background: transparent;
-      color: var(--gold-light);
-      border: 1.5px solid var(--gold-border);
-      border-radius: 12px;
-      padding: 14px 22px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      white-space: nowrap;
-    }
-    .btn-secondary:hover:not(:disabled) {
-      border-color: var(--gold);
-      background: var(--gold-dim);
-    }
-    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
-    .join-hint {
-      font-size: 11px;
-      color: var(--subtext);
-      margin-top: 12px;
-      line-height: 1.7;
-    }
-    .join-hint strong { color: var(--gold-light); font-weight: 600; }
-
-    /* ── Focus visible (A11y) ── */
-    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
-      outline: 2px solid var(--gold);
-      outline-offset: 2px;
-    }
-
-    /* ── Mobile (≤480px) ── */
-    @media (max-width: 480px) {
-      body { padding: 20px 14px; padding-top: calc(20px + env(safe-area-inset-top)); padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-      .logo { margin-bottom: 28px; }
-      .logo-text { font-size: 34px; }
-      .card { padding: 28px 20px; border-radius: 18px; }
-      .section-title { font-size: 20px; }
-      .section-sub { font-size: 12.5px; margin-bottom: 20px; }
-      input[type="text"], select { padding: 13px 14px; font-size: 14.5px; }
-      .btn-primary { padding: 15px; font-size: 14.5px; }
-      .gender-btn { padding: 13px; font-size: 14px; }
-      .join-section { margin-top: 20px; padding-top: 18px; }
-      .join-title { font-size: 16px; }
-      .btn-secondary { padding: 13px 18px; font-size: 13.5px; }
-    }
-  </style>
-  <script src="/sentry-init.js" data-page="login" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>ntable — 누구나 호스트가 되는 모임</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; min-height: 100vh; }
+  body {
+    background: #0e1628;
+    color: #ffffff;
+    font-family: 'DM Sans', 'Noto Sans KR', sans-serif;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    padding-top: calc(32px + env(safe-area-inset-top));
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  }
+  .root {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    color: #d4a843;
+    margin-bottom: 12px;
+  }
+  .tagline {
+    font-size: 14px;
+    color: #c0c0c0;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 56px;
+  }
+  .hero {
+    margin-bottom: 48px;
+  }
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 38px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: #e8b84b;
+  }
+  .hero p {
+    font-size: 15px;
+    color: #e8e8e8;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+  .cta-primary {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    background: #e8b84b;
+    color: #0a0f1e;
+    border: none;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 0 16px rgba(232,184,75,0.35);
+    text-decoration: none;
+    margin-bottom: 16px;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .cta-primary:hover { transform: translateY(-1px); box-shadow: 0 0 26px rgba(232,184,75,0.5); }
+  .cta-primary:active { transform: scale(0.98); }
+  .guest-info {
+    margin-top: 28px;
+    padding: 20px;
+    background: rgba(212,168,67,0.06);
+    border: 1px dashed rgba(212,168,67,0.3);
+    border-radius: 12px;
+    font-size: 13.5px;
+    color: #c0c0c0;
+    line-height: 1.6;
+  }
+  .guest-info strong { color: #e8b84b; }
+  .footer-info {
+    margin-top: 40px;
+    font-size: 11.5px;
+    color: #c0c0c0;
+    opacity: 0.7;
+    line-height: 1.6;
+  }
+  .footer-info a { color: inherit; text-decoration: underline; }
+  .anon-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #7ee8a2;
+    opacity: 0.85;
+  }
+  .anon-note strong { color: #d4a843; }
+</style>
+<script src="/sentry-init.js" data-page="welcome" defer></script>
 </head>
 <body>
-  <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">ntable — 로그인 · 프로필 설정</h1>
-  <div class="container">
-    <div class="logo">
-      <div class="logo-text">ntable</div>
-      <div class="logo-sub">누가 열어도 재밌는 모임</div>
-    </div>
+<div class="root">
+  <div class="brand">ntable</div>
+  <div class="tagline">SOCIAL GATHERING FACILITATOR</div>
 
-    <div id="loading" class="loading-text">로딩 중...</div>
-
-    <!-- Step 1: 닉네임 로그인 -->
-    <div id="step-login" class="card step">
-      <h2 class="section-title">시작하기</h2>
-      <div class="section-sub">닉네임을 입력하세요. 이미 가입한 계정이면 자동으로 로그인됩니다.</div>
-      <div class="form-group">
-        <label>닉네임<span class="required-mark">*</span></label>
-        <input type="text" id="nickname-input" placeholder="닉네임을 입력하세요" maxlength="20" autocomplete="off" aria-label="닉네임" />
-        <div class="nickname-status" id="nickname-status"></div>
-      </div>
-      <button type="button" class="btn-primary" id="login-btn" disabled>🎤 모임 열기 (호스트)</button>
-
-      <div class="join-section">
-        <div class="join-title">🙋 모임 참여하기 (게스트)</div>
-        <div class="join-sub">호스트에게 받은 6자리 방 코드를 입력하세요.</div>
-        <div class="join-row">
-          <input type="text" id="room-code-input" placeholder="ABC123" maxlength="6" autocomplete="off" aria-label="방 코드 6자리" />
-          <button type="button" class="btn-secondary" id="join-btn" disabled>참여</button>
-        </div>
-        <div class="nickname-status" id="join-status"></div>
-        <div class="join-hint">
-          방 코드는 <strong>호스트에게 받거나 QR을 스캔</strong>하세요.<br>
-          아직 열린 모임이 없다면 위에서 닉네임을 입력하고 <strong>[모임 열기]</strong>로 직접 여세요.
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2a: 필수 정보 -->
-    <div id="step-profile-required" class="card step">
-      <div class="step-indicator">1 / 2 · 필수</div>
-      <h2 class="section-title">거의 다 왔어요</h2>
-      <div class="section-sub">매칭에 필요한 두 가지만 먼저 알려주세요.</div>
-
-      <div class="form-group">
-        <label>성별<span class="required-mark">*</span></label>
-        <div class="gender-group">
-          <button type="button" class="gender-btn" data-value="male" onclick="selectGender(this)">남성</button>
-          <button type="button" class="gender-btn" data-value="female" onclick="selectGender(this)">여성</button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>출생연도<span class="required-mark">*</span></label>
-        <select id="birth-year" aria-label="출생연도">
-          <option value="">선택하세요</option>
-        </select>
-        <div class="field-hint">참가자 연령대 매칭에 사용돼요. 나이는 공개되지 않고 모임 이름표에만 표시됩니다.</div>
-      </div>
-
-      <button type="button" class="btn-primary" id="profile-required-btn" disabled>다음 →</button>
-    </div>
-
-    <!-- Step 2b: 추가 정보 (선택) -->
-    <div id="step-profile-optional" class="card step">
-      <div class="step-indicator">2 / 2 · 선택</div>
-      <h2 class="section-title">더 좋은 매칭을 위해</h2>
-      <div class="section-sub">채우면 공통점 찾기가 훨씬 쉬워져요. <strong>지금 건너뛰고 나중에 채워도</strong> 돼요.</div>
-
-      <div class="optional-progress" id="optionalProgress">
-        <div class="optional-progress-label">
-          <span><span id="filledCount">0</span>/5 채움</span>
-          <span id="progressPct" class="optional-progress-pct">0%</span>
-        </div>
-        <div class="optional-progress-bar"><div class="optional-progress-fill" id="progressFill"></div></div>
-      </div>
-
-      <div class="form-group optional">
-        <label>지역 <span class="optional-tag">선택</span></label>
-        <input type="hidden" id="region">
-        <div class="chip-grid" data-chip-group="region">
-          <button type="button" class="chip-item" data-value="서울">서울</button>
-          <button type="button" class="chip-item" data-value="경기">경기</button>
-          <button type="button" class="chip-item" data-value="인천">인천</button>
-          <button type="button" class="chip-item" data-value="부산">부산</button>
-          <button type="button" class="chip-item" data-value="대구">대구</button>
-          <button type="button" class="chip-item" data-value="대전">대전</button>
-          <button type="button" class="chip-item" data-value="광주">광주</button>
-          <button type="button" class="chip-item" data-value="울산">울산</button>
-          <button type="button" class="chip-item" data-value="세종">세종</button>
-          <button type="button" class="chip-item" data-value="강원">강원</button>
-          <button type="button" class="chip-item" data-value="충북">충북</button>
-          <button type="button" class="chip-item" data-value="충남">충남</button>
-          <button type="button" class="chip-item" data-value="전북">전북</button>
-          <button type="button" class="chip-item" data-value="전남">전남</button>
-          <button type="button" class="chip-item" data-value="경북">경북</button>
-          <button type="button" class="chip-item" data-value="경남">경남</button>
-          <button type="button" class="chip-item" data-value="제주">제주</button>
-        </div>
-        <div class="field-hint">같은 지역 참가자와 오프라인 만남 기회</div>
-      </div>
-
-      <div class="form-group optional">
-        <label>업종 <span class="optional-tag">선택</span></label>
-        <input type="hidden" id="industry">
-        <div class="chip-grid" data-chip-group="industry">
-          <button type="button" class="chip-item" data-value="IT/개발">IT/개발</button>
-          <button type="button" class="chip-item" data-value="디자인">디자인</button>
-          <button type="button" class="chip-item" data-value="마케팅/광고">마케팅/광고</button>
-          <button type="button" class="chip-item" data-value="금융/회계">금융/회계</button>
-          <button type="button" class="chip-item" data-value="교육">교육</button>
-          <button type="button" class="chip-item" data-value="의료/보건">의료/보건</button>
-          <button type="button" class="chip-item" data-value="법률">법률</button>
-          <button type="button" class="chip-item" data-value="공무원">공무원</button>
-          <button type="button" class="chip-item" data-value="서비스업">서비스업</button>
-          <button type="button" class="chip-item" data-value="제조업">제조업</button>
-          <button type="button" class="chip-item" data-value="미디어/콘텐츠">미디어/콘텐츠</button>
-          <button type="button" class="chip-item" data-value="스타트업">스타트업</button>
-          <button type="button" class="chip-item" data-value="기타">기타</button>
-        </div>
-        <div class="field-hint">비슷한 업계끼리 자연스럽게 대화가 이어져요</div>
-      </div>
-
-      <div class="form-group optional">
-        <label>MBTI <span class="optional-tag">선택</span></label>
-        <input type="hidden" id="mbti">
-        <div class="chip-grid mbti-grid" data-chip-group="mbti">
-          <button type="button" class="chip-item" data-value="INTJ">INTJ</button>
-          <button type="button" class="chip-item" data-value="INTP">INTP</button>
-          <button type="button" class="chip-item" data-value="ENTJ">ENTJ</button>
-          <button type="button" class="chip-item" data-value="ENTP">ENTP</button>
-          <button type="button" class="chip-item" data-value="INFJ">INFJ</button>
-          <button type="button" class="chip-item" data-value="INFP">INFP</button>
-          <button type="button" class="chip-item" data-value="ENFJ">ENFJ</button>
-          <button type="button" class="chip-item" data-value="ENFP">ENFP</button>
-          <button type="button" class="chip-item" data-value="ISTJ">ISTJ</button>
-          <button type="button" class="chip-item" data-value="ISFJ">ISFJ</button>
-          <button type="button" class="chip-item" data-value="ESTJ">ESTJ</button>
-          <button type="button" class="chip-item" data-value="ESFJ">ESFJ</button>
-          <button type="button" class="chip-item" data-value="ISTP">ISTP</button>
-          <button type="button" class="chip-item" data-value="ISFP">ISFP</button>
-          <button type="button" class="chip-item" data-value="ESTP">ESTP</button>
-          <button type="button" class="chip-item" data-value="ESFP">ESFP</button>
-        </div>
-        <div class="field-hint">성향 매칭 정확도가 올라갑니다</div>
-      </div>
-
-      <div class="form-group optional">
-        <label>관심사 <span class="optional-tag">선택</span></label>
-        <div class="chip-grid" data-chip-group="interest-suggest">
-          <button type="button" class="chip-item" data-value="운동">운동</button>
-          <button type="button" class="chip-item" data-value="독서">독서</button>
-          <button type="button" class="chip-item" data-value="음식">음식</button>
-          <button type="button" class="chip-item" data-value="영화">영화</button>
-          <button type="button" class="chip-item" data-value="여행">여행</button>
-          <button type="button" class="chip-item" data-value="음악">음악</button>
-          <button type="button" class="chip-item" data-value="게임">게임</button>
-          <button type="button" class="chip-item" data-value="술">술</button>
-          <button type="button" class="chip-item" data-value="카페">카페</button>
-          <button type="button" class="chip-item" data-value="등산">등산</button>
-          <button type="button" class="chip-item" data-value="사진">사진</button>
-          <button type="button" class="chip-item" data-value="공연">공연</button>
-        </div>
-        <input type="text" id="interest" placeholder="또는 직접 입력 (예: 와인 클래스)" maxlength="30" aria-label="관심사" style="margin-top:10px;" />
-        <div class="field-hint">대화 시작할 거리가 생겨요</div>
-      </div>
-
-      <div class="form-group optional">
-        <label>인스타그램 <span class="optional-tag">선택</span></label>
-        <input type="text" id="instagram" placeholder="@ 제외하고 입력 (영어/숫자/. _)" maxlength="50" aria-label="인스타그램 아이디" inputmode="email" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" pattern="[a-z0-9._]+" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._]/g,'')" />
-        <div class="field-hint">모임 중 <strong>상호 동의</strong> 시에만 공개됩니다</div>
-      </div>
-
-      <div class="profile-actions">
-        <button type="button" class="btn-ghost" id="profile-skip-btn">건너뛰고 시작</button>
-        <button type="button" class="btn-primary" id="profile-save-btn">저장하고 시작</button>
-      </div>
-      <div class="profile-footnote">언제든 <strong>내 정보</strong> 페이지에서 수정할 수 있어요.</div>
-    </div>
-
-    <div class="legal">
-      계속하면 <a href="https://ntable.kr/privacy.html" target="_blank">개인정보처리방침</a>과
-      <a href="https://ntable.kr/terms.html" target="_blank">이용약관</a>에 동의하게 됩니다.
-    </div>
+  <div class="hero">
+    <h1>누가 열어도<br><em>재밌는 모임</em></h1>
+    <p>호스트 한 명, 스마트폰 하나면 끝.<br>플랫폼이 진행을 도와줍니다.</p>
   </div>
 
-  <script>
-    const API = '';
-    let currentUuid = null;
-    let selectedGender = null;
-    let nicknameTimer = null;
-    let nicknameAvailable = false;
-    let nicknameExists = false;
-    // QR 진입(next=/room/XXXXXX) 시 게스트 단독 UX로 전환
-    let guestMode = false;
-    let guestRoomCode = '';
+  <button type="button" class="cta-primary" id="openRoomBtn">모임 열기 →</button>
 
-    const birthSelect = document.getElementById('birth-year');
-    for (let y = 2007; y >= 1975; y--) {
-      const opt = document.createElement('option');
-      opt.value = y;
-      opt.textContent = y + '년';
-      birthSelect.appendChild(opt);
-    }
+  <div class="anon-note">
+    🔒 <strong>완전 익명</strong> — 닉네임은 방 안에서만 존재하고<br>모임이 끝나면 자동으로 사라져요
+  </div>
 
-    function getNextUrl() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('next') || null;
-    }
+  <div class="guest-info">
+    참가자라면 호스트가 보내준 <strong>링크</strong> 또는 <strong>QR</strong>로 바로 입장하세요.
+  </div>
 
-    function detectGuestRoom() {
-      const n = getNextUrl();
-      if (!n) return null;
-      const m = n.match(/\/room\/([A-Za-z0-9]+)/);
-      return m ? m[1].toUpperCase() : null;
-    }
+  <div class="footer-info">
+    MLPC Inc. · 사업자번호 286-87-02414<br>
+    <a href="https://ntable.kr">ntable.kr</a> ·
+    <a href="https://ntable.kr/privacy.html">개인정보처리방침</a> ·
+    <a href="https://ntable.kr/terms.html">이용약관</a>
+  </div>
+</div>
 
-    function applyGuestModeUI(roomCode) {
-      guestMode = true;
-      guestRoomCode = roomCode;
-      const titleEl = document.querySelector('#step-login .section-title');
-      const subEl = document.querySelector('#step-login .section-sub');
-      const joinSection = document.querySelector('#step-login .join-section');
-      if (titleEl) titleEl.textContent = '모임 참여하기';
-      if (subEl) {
-        subEl.innerHTML = '<strong style="color:var(--gold-light);letter-spacing:0.18em;font-weight:700;">' + roomCode + '</strong> 방에 입장합니다. 닉네임을 입력해주세요.';
-      }
-      if (joinSection) joinSection.style.display = 'none';
-      const btn = document.getElementById('login-btn');
-      if (btn) btn.textContent = '🙋 참여하기';
-    }
+<script>
+// uuid 자동 생성 (없으면). 닉네임/프로필 입력은 방 만들기/입장 단계에서 받음.
+function ensureUuid() {
+  let uuid = '';
+  try { uuid = localStorage.getItem('demo_uuid') || ''; } catch (_) {}
+  if (!uuid) {
+    uuid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : ('u-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36));
+    try { localStorage.setItem('demo_uuid', uuid); } catch (_) {}
+  }
+  return uuid;
+}
 
-    function showStep(id) {
-      document.getElementById('loading').style.display = 'none';
-      document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-      const el = document.getElementById(id);
-      if (el) el.classList.add('active');
-    }
+document.getElementById('openRoomBtn').addEventListener('click', () => {
+  ensureUuid();
+  // next 파라미터로 들어온 게스트는 그 방 직접 입장
+  const next = new URLSearchParams(location.search).get('next');
+  if (next && /^\/room\/[A-Z0-9]{6}/.test(next)) {
+    location.href = next;
+  } else {
+    location.href = '/create';
+  }
+});
 
-    async function init() {
-      const storedUuid = localStorage.getItem('demo_uuid');
-      const nextUrl = getNextUrl();
-      const guestRoom = detectGuestRoom();
-
-      if (storedUuid) {
-        if (nextUrl) { window.location.href = nextUrl; return; }
-        try {
-          const meRes = await fetch(`${API}/api/me?uuid=${storedUuid}`);
-          if (!meRes.ok) {
-            localStorage.removeItem('demo_uuid');
-            showStep('step-login');
-            if (guestRoom) applyGuestModeUI(guestRoom);
-            return;
-          }
-          const roomRes = await fetch(`${API}/api/my-room?uuid=${storedUuid}`);
-          const roomData = await roomRes.json();
-          if (roomData.room_code) { window.location.href = `/room/${roomData.room_code}/host`; }
-          else { window.location.href = "/create"; }
-        } catch {
-          localStorage.removeItem('demo_uuid');
-          showStep('step-login');
-          if (guestRoom) applyGuestModeUI(guestRoom);
-        }
-      } else {
-        showStep('step-login');
-        if (guestRoom) {
-          applyGuestModeUI(guestRoom);
-          setTimeout(() => { document.getElementById('nickname-input')?.focus(); }, 200);
-        } else {
-          // 랜딩 '먼저 참여해보기'에서 ?mode=guest 로 진입 시 게스트 섹션 강조
-          const params = new URLSearchParams(window.location.search);
-          if (params.get('mode') === 'guest') {
-            setTimeout(() => {
-              const joinSection = document.querySelector('.join-section');
-              if (joinSection) joinSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              document.getElementById('nickname-input')?.focus();
-            }, 200);
-          }
-        }
-      }
-    }
-
-    const nicknameInput = document.getElementById('nickname-input');
-    const nicknameStatus = document.getElementById('nickname-status');
-    const loginBtn = document.getElementById('login-btn');
-    let nicknameActive = false;
-    let isComposing = false;
-
-    function updateLoginBtnLabel() {
-      if (guestMode) {
-        loginBtn.textContent = nicknameActive ? '⛔ 이미 접속 중인 닉네임'
-                             : nicknameExists ? '🙋 이어서 참여하기'
-                             : '🙋 참여하기';
-        updateJoinBtn();
-        return;
-      }
-      if (nicknameActive) {
-        loginBtn.textContent = '⛔ 이미 접속 중인 닉네임';
-      } else {
-        loginBtn.textContent = nicknameExists ? '🎤 로그인 후 모임 열기' : '🎤 모임 열기 (호스트)';
-      }
-      updateJoinBtn();
-    }
-
-    nicknameInput.addEventListener('compositionstart', () => { isComposing = true; });
-    nicknameInput.addEventListener('compositionend', () => {
-      isComposing = false;
-      handleNicknameChange();
-    });
-
-    nicknameInput.addEventListener('input', (e) => {
-      // IME 조합 중(한글 타이핑) 필터링하면 자모가 지워져 조합이 깨짐
-      if (isComposing || e.isComposing) return;
-      handleNicknameChange();
-    });
-
-    function handleNicknameChange() {
-      nicknameInput.value = nicknameInput.value.replace(/[^가-힣a-zA-Z0-9]/g, '');
-      clearTimeout(nicknameTimer);
-      const val = nicknameInput.value.trim();
-      nicknameStatus.textContent = '';
-      nicknameStatus.className = 'nickname-status';
-      loginBtn.disabled = true;
-      nicknameAvailable = false;
-      nicknameExists = false;
-      nicknameActive = false;
-      updateLoginBtnLabel();
-
-      if (val.length < 1) return;
-
-      nicknameTimer = setTimeout(async () => {
-        try {
-          const res = await fetch(`${API}/api/check-nickname?nickname=${encodeURIComponent(val)}`);
-          const data = await res.json();
-          if (data.available) {
-            nicknameStatus.textContent = '✓ 새 닉네임이에요';
-            nicknameStatus.className = 'nickname-status ok';
-            nicknameAvailable = true;
-            nicknameExists = false;
-            nicknameActive = false;
-            loginBtn.disabled = false;
-          } else if (data.active) {
-            // 동일 닉네임이 이미 접속 중 — 본인 localStorage uuid가 일치하면 서버가 허용, 아니면 차단
-            const storedUuid = localStorage.getItem('demo_uuid');
-            if (storedUuid && storedUuid === data.uuid) {
-              nicknameStatus.textContent = 'ℹ️ 본인 계정으로 이어서 접속합니다.';
-              nicknameStatus.className = 'nickname-status info';
-              nicknameAvailable = true;
-              nicknameExists = true;
-              nicknameActive = false;
-              loginBtn.disabled = false;
-            } else {
-              nicknameStatus.textContent = '⛔ 같은 닉네임으로 이미 접속 중이에요. 다른 닉네임을 써주세요.';
-              nicknameStatus.className = 'nickname-status err';
-              nicknameAvailable = false;
-              nicknameExists = true;
-              nicknameActive = true;
-              loginBtn.disabled = true;
-            }
-          } else {
-            nicknameStatus.textContent = 'ℹ️ 기존 계정이 있어요. 본인이면 로그인합니다.';
-            nicknameStatus.className = 'nickname-status info';
-            nicknameAvailable = true;
-            nicknameExists = true;
-            nicknameActive = false;
-            loginBtn.disabled = false;
-          }
-          updateLoginBtnLabel();
-        } catch {
-          nicknameStatus.textContent = '확인 중 오류가 발생했어요';
-          nicknameStatus.className = 'nickname-status err';
-        }
-      }, 300);
-    }
-
-    // ─── 게스트: 방 코드 참여 ───
-    const roomCodeInput = document.getElementById('room-code-input');
-    const joinBtn = document.getElementById('join-btn');
-    const joinStatus = document.getElementById('join-status');
-
-    function updateJoinBtn() {
-      const code = roomCodeInput.value.trim().toUpperCase();
-      joinBtn.disabled = !(nicknameAvailable && code.length === 6);
-    }
-
-    roomCodeInput.addEventListener('input', () => {
-      roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      updateJoinBtn();
-      joinStatus.textContent = '';
-      joinStatus.className = 'nickname-status';
-    });
-
-    joinBtn.addEventListener('click', () => {
-      const code = roomCodeInput.value.trim().toUpperCase();
-      if (code.length !== 6) {
-        joinStatus.textContent = '6자리 방 코드를 입력하세요';
-        joinStatus.className = 'nickname-status err';
-        return;
-      }
-      if (!nicknameAvailable) {
-        joinStatus.textContent = '먼저 위에서 닉네임을 입력하세요';
-        joinStatus.className = 'nickname-status err';
-        return;
-      }
-      // URL에 next 파라미터를 주입하고 기존 로그인 플로우 재사용
-      history.replaceState(null, '', `/?next=/room/${encodeURIComponent(code)}`);
-      joinStatus.textContent = '방에 입장합니다…';
-      joinStatus.className = 'nickname-status info';
-      loginBtn.click();
-    });
-
-    // ─── 호스트: 기본 로그인 ───
-    loginBtn.addEventListener('click', async () => {
-      const nickname = nicknameInput.value.trim();
-      if (!nickname || !nicknameAvailable) return;
-      loginBtn.disabled = true;
-      loginBtn.textContent = '처리 중...';
-      try {
-        const storedUuid = localStorage.getItem('demo_uuid');
-        const res = await fetch(`${API}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nickname, uuid: storedUuid || undefined }),
-        });
-        const data = await res.json();
-        if (res.status === 409 && data.error === 'NICKNAME_IN_USE') {
-          nicknameStatus.textContent = '⛔ 같은 닉네임으로 이미 접속 중이에요.';
-          nicknameStatus.className = 'nickname-status err';
-          nicknameActive = true;
-          nicknameAvailable = false;
-          loginBtn.disabled = true;
-          updateLoginBtnLabel();
-          return;
-        }
-        if (!res.ok) throw new Error(data.error || 'login failed');
-
-        currentUuid = data.uuid;
-        localStorage.setItem('demo_uuid', currentUuid);
-
-        if (data.is_new) {
-          showStep('step-profile-required');
-        } else {
-          const nextUrl = getNextUrl();
-          if (nextUrl) { window.location.href = nextUrl; }
-          else {
-            // 미제출 설문 재진입 유도
-            const pendingSurvey = localStorage.getItem('pending_survey');
-            if (pendingSurvey) {
-              window.location.href = `/survey?room=${pendingSurvey}`;
-              return;
-            }
-            const roomRes = await fetch(`${API}/api/my-room?uuid=${currentUuid}`);
-            const roomData = await roomRes.json();
-            if (roomData.room_code) { window.location.href = `/room/${roomData.room_code}/host`; }
-            else { window.location.href = "/create"; }
-          }
-        }
-      } catch (err) {
-        alert('로그인 중 오류가 발생했어요. 다시 시도해주세요.');
-        loginBtn.disabled = false;
-        updateLoginBtnLabel();
-      }
-    });
-
-    function selectGender(btn) {
-      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedGender = btn.dataset.value;
-      validateProfileForm();
-    }
-
-    function validateRequiredProfile() {
-      const birthYear = document.getElementById('birth-year').value;
-      const btn = document.getElementById('profile-required-btn');
-      btn.disabled = !(selectedGender && birthYear);
-    }
-
-    document.getElementById('birth-year').addEventListener('change', validateRequiredProfile);
-
-    // Chip 선택 핸들러 — single select, 같은 값 다시 누르면 취소
-    document.addEventListener('click', (e) => {
-      const chip = e.target.closest('.chip-item');
-      if (!chip) return;
-      const grid = chip.closest('.chip-grid');
-      if (!grid) return;
-      const group = grid.dataset.chipGroup;
-      if (!group) return;
-      const wasSelected = chip.classList.contains('selected');
-      grid.querySelectorAll('.chip-item').forEach(c => c.classList.remove('selected'));
-      let value = '';
-      if (!wasSelected) {
-        chip.classList.add('selected');
-        value = chip.dataset.value || '';
-      }
-      // interest는 추천 chip → input value 채움 (하지만 input 직접 입력도 가능)
-      if (group === 'interest-suggest') {
-        const inp = document.getElementById('interest');
-        if (inp) inp.value = value;
-      } else {
-        const hidden = document.getElementById(group);
-        if (hidden) hidden.value = value;
-      }
-      if (typeof updateOptionalProgress === 'function') updateOptionalProgress();
-    });
-
-    // interest 직접 입력 시 chip 선택 해제
-    document.getElementById('interest')?.addEventListener('input', (e) => {
-      const v = e.target.value.trim();
-      const grid = document.querySelector('[data-chip-group="interest-suggest"]');
-      if (!grid) return;
-      grid.querySelectorAll('.chip-item').forEach(c => {
-        c.classList.toggle('selected', c.dataset.value === v);
-      });
-    });
-
-    // 공통 — 전체 프로필 저장
-    async function saveProfile(includeOptional) {
-      const payload = {
-        uuid: currentUuid,
-        gender: selectedGender,
-        birth_year: parseInt(document.getElementById('birth-year').value),
-        region: includeOptional ? (document.getElementById('region').value || null) : null,
-        industry: includeOptional ? (document.getElementById('industry').value || null) : null,
-        mbti: includeOptional ? (document.getElementById('mbti').value || null) : null,
-        interest: includeOptional ? (document.getElementById('interest').value.trim() || null) : null,
-        instagram: includeOptional ? (document.getElementById('instagram').value.trim() || null) : null,
-      };
-      const res = await fetch(`${API}/api/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        throw new Error(err.error || err.message || 'save failed');
-      }
-    }
-
-    function goAfterProfile() {
-      const nextUrl = getNextUrl();
-      window.location.href = nextUrl || '/create';
-    }
-
-    // Step 1 완료 → 필수만 저장 → Step 2 로 전환
-    document.getElementById('profile-required-btn').addEventListener('click', async () => {
-      if (!selectedGender || !document.getElementById('birth-year').value) return;
-      const btn = document.getElementById('profile-required-btn');
-      btn.disabled = true;
-      btn.textContent = '저장 중...';
-      try {
-        await saveProfile(false);
-        showStep('step-profile-optional');
-        updateOptionalProgress();
-      } catch (err) {
-        alert('저장 오류: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '다음 →';
-      }
-    });
-
-    // Step 2 — 건너뛰기
-    document.getElementById('profile-skip-btn').addEventListener('click', () => {
-      goAfterProfile();
-    });
-
-    // Step 2 — 저장하고 시작 (선택 필드 포함)
-    document.getElementById('profile-save-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('profile-save-btn');
-      btn.disabled = true;
-      btn.textContent = '저장 중...';
-      try {
-        await saveProfile(true);
-        goAfterProfile();
-      } catch (err) {
-        alert('저장 오류: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '저장하고 시작';
-      }
-    });
-
-    // 선택 필드 채움 수 집계 → 진행률 바
-    function updateOptionalProgress() {
-      const fields = ['region', 'industry', 'mbti', 'interest', 'instagram'];
-      let filled = 0;
-      for (const id of fields) {
-        const el = document.getElementById(id);
-        if (el && String(el.value || '').trim()) filled++;
-      }
-      const pct = Math.round((filled / fields.length) * 100);
-      document.getElementById('filledCount').textContent = filled;
-      document.getElementById('progressPct').textContent = pct + '%';
-      document.getElementById('progressFill').style.width = pct + '%';
-    }
-    ['region', 'industry', 'mbti', 'interest', 'instagram'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('input', updateOptionalProgress);
-        el.addEventListener('change', updateOptionalProgress);
-      }
-    });
-
-    init();
-  </script>
+// 페이지 로드 시 uuid 자동 보장 (백그라운드)
+ensureUuid();
+</script>
 </body>
 </html>
