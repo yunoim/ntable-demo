@@ -238,6 +238,58 @@
     animation: cardpop 0.4s ease;
   }
   .matching-emoji { font-size: 56px; margin-bottom: 18px; }
+  .match-photo-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  .match-photo {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    border: 3px solid var(--gold);
+    overflow: hidden;
+    box-shadow: 0 0 28px rgba(212,168,67,0.35);
+  }
+  .match-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mvp-celebrate {
+    margin-top: 28px;
+    padding: 22px 18px 18px;
+    background: linear-gradient(135deg, rgba(212,168,67,0.18), rgba(212,168,67,0.04));
+    border: 1px solid rgba(212,168,67,0.45);
+    border-radius: 16px;
+    text-align: center;
+  }
+  .mvp-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  .mvp-photo {
+    width: 96px; height: 96px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    border: 2px solid var(--gold-light);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+  }
+  .mvp-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mvp-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .mvp-sub {
+    font-size: 12px;
+    color: var(--subtext);
+    font-weight: 300;
+  }
   .matching-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 24px;
@@ -1097,6 +1149,9 @@
 <!-- Matching Result Overlay -->
 <div id="matchingOverlay">
   <div class="matching-card">
+    <div class="match-photo-wrap" id="matchPhotoWrap" hidden>
+      <div class="match-photo" id="matchPhoto"></div>
+    </div>
     <div class="matching-emoji" id="matchEmoji">🎉</div>
     <div class="matching-title" id="matchTitle"></div>
     <div class="matching-sub" id="matchSub"></div>
@@ -1104,6 +1159,12 @@
       📸 인스타그램 공개하기
     </button>
     <div class="insta-result-box" id="instaResultBox"></div>
+    <div class="mvp-celebrate" id="mvpCelebrate" hidden>
+      <div class="mvp-label">🏆 오늘의 MVP</div>
+      <div class="mvp-photo" id="mvpPhoto"></div>
+      <div class="mvp-name" id="mvpName"></div>
+      <div class="mvp-sub" id="mvpSub"></div>
+    </div>
   </div>
 </div>
 
@@ -2084,6 +2145,8 @@ function showMatchingResult(matchJson) {
   const sub = document.getElementById('matchSub');
   const instaBtn = document.getElementById('instaRevealBtn');
   const resultBox = document.getElementById('instaResultBox');
+  const photoWrap = document.getElementById('matchPhotoWrap');
+  const photoEl = document.getElementById('matchPhoto');
   resultBox.style.display = 'none';
   resultBox.innerHTML = '';
   STATE.instaRevealed = false;
@@ -2098,11 +2161,41 @@ function showMatchingResult(matchJson) {
       ? '서로 관심 있다는 신호를 보냈어요 ✨'
       : '성향이 비슷한 참가자를 연결해드렸어요';
     instaBtn.style.display = 'block';
+    const matchedPhoto = matched.uuid && STATE.photos[matched.uuid];
+    if (matchedPhoto && photoWrap && photoEl) {
+      photoEl.innerHTML = `<img src="${escHtml(matchedPhoto)}" alt="">`;
+      photoWrap.hidden = false;
+    } else if (photoWrap) {
+      photoWrap.hidden = true;
+    }
   } else {
     emoji.textContent = '🌙';
     title.textContent = '오늘은 매칭이 없어요';
     sub.textContent = '다음 모임에서 다시 만나요 :)';
     instaBtn.style.display = 'none';
+    if (photoWrap) photoWrap.hidden = true;
+  }
+
+  // MVP 발표
+  const mvp = matchJson && matchJson.mvp;
+  const mvpBox = document.getElementById('mvpCelebrate');
+  const mvpPhoto = document.getElementById('mvpPhoto');
+  const mvpName = document.getElementById('mvpName');
+  const mvpSub = document.getElementById('mvpSub');
+  if (mvp && mvp.nickname && mvpBox) {
+    const mvpUuid = mvp.uuid;
+    const isMe = mvpUuid && mvpUuid === STATE.uuid;
+    const photo = mvpUuid && STATE.photos[mvpUuid];
+    mvpPhoto.innerHTML = photo
+      ? `<img src="${escHtml(photo)}" alt="">`
+      : '🏆';
+    mvpName.textContent = mvp.nickname + (isMe ? ' (나)' : '');
+    mvpSub.textContent = (mvp.fi_count != null)
+      ? `투표 ${mvp.fi_count}표 — 오늘 가장 인상적인 사람`
+      : '오늘 가장 인상적인 사람';
+    mvpBox.hidden = false;
+  } else if (mvpBox) {
+    mvpBox.hidden = true;
   }
 
   overlay.classList.add('show');
