@@ -1004,7 +1004,12 @@
   }
 
   /* ─── FREE SCREEN ─── */
-  #screenFree { display: flex; flex-direction: column; }
+  #screenFree { display: flex; flex-direction: column; padding-bottom: 76px; }
+  #screenFree.active .chat-input-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 100;
+  }
   .chat-area {
     flex: 1;
     overflow-y: auto;
