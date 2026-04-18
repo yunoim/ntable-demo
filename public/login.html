@@ -24,7 +24,7 @@
     justify-content: center;
   }
 
-  /* HEADER (fixed) */
+  /* HEADER */
   .app-header {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     display: flex; align-items: center; justify-content: space-between;
@@ -63,10 +63,10 @@
     transition: left 0.2s, background 0.2s;
   }
   .login-toggle[data-on="true"] { color: #7ee8a2; }
-  .login-toggle[data-on="true"] .switch { background: rgba(126,232,162,0.35); }
+  .login-toggle[data-on="true"] .switch { background: rgba(126,232,162,0.45); }
   .login-toggle[data-on="true"] .switch::after { left: 16px; background: #7ee8a2; }
 
-  /* ACCORDION (under header) */
+  /* ACCORDION */
   .login-accordion {
     position: fixed;
     top: calc(48px + env(safe-area-inset-top));
@@ -78,7 +78,7 @@
     max-height: 0; overflow: hidden;
     transition: max-height 0.32s ease;
   }
-  .login-accordion[data-open="true"] { max-height: 220px; }
+  .login-accordion[data-open="true"] { max-height: 160px; }
   .login-accordion-inner {
     padding: 14px 18px;
     max-width: 420px; margin: 0 auto;
@@ -97,28 +97,9 @@
   }
   .btn-google { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
   .btn-kakao { background: #FEE500; color: #3a1d1d; border: none; font-weight: 700; }
-  .acc-badge {
-    padding: 10px;
-    background: rgba(126,232,162,0.08);
-    border: 1px dashed rgba(126,232,162,0.3);
-    border-radius: 8px;
-    font-size: 12px; color: #7ee8a2;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .acc-badge button {
-    padding: 6px 12px; background: transparent;
-    border: 1px solid rgba(126,232,162,0.4);
-    border-radius: 6px; color: #7ee8a2;
-    font-size: 11.5px; font-weight: 600;
-    cursor: pointer; font-family: inherit;
-  }
 
   /* MAIN */
-  .root {
-    width: 100%;
-    max-width: 420px;
-    text-align: center;
-  }
+  .root { width: 100%; max-width: 420px; text-align: center; }
   .brand {
     font-family: 'Cormorant Garamond', serif;
     font-size: 52px; font-weight: 600;
@@ -141,8 +122,6 @@
     font-size: 15px; color: #e8e8e8;
     font-weight: 300; line-height: 1.7;
   }
-
-  /* HOST CTA (1차) */
   .cta-primary {
     display: block; width: 100%; padding: 18px;
     background: #e8b84b; color: #0a0f1e;
@@ -163,7 +142,6 @@
   }
   .anon-note strong { color: #d4a843; }
 
-  /* GUEST (2차) */
   .guest-info {
     margin-top: 36px;
     padding: 20px;
@@ -175,7 +153,6 @@
   }
   .guest-info strong { color: #e8b84b; }
 
-  /* FOOTER */
   .footer-info {
     margin-top: 36px;
     font-size: 11.5px; color: #c0c0c0;
@@ -187,26 +164,20 @@
 </head>
 <body>
 
-<!-- 헤더 (fixed) — 좌: 로고 / 우: 로그인 토글 -->
 <header class="app-header">
   <span class="h-brand">ntable</span>
-  <button type="button" class="login-toggle" id="loginToggle" data-on="false" aria-expanded="false" aria-controls="loginAccordion" hidden>
-    <span class="toggle-label">↻ 다음에도 쓰기</span>
+  <button type="button" class="login-toggle" id="loginToggle" data-on="false" aria-expanded="false" aria-controls="loginAccordion" title="내 정보 기억하기" hidden>
+    <span class="toggle-label">내 정보 기억하기</span>
     <span class="switch" aria-hidden="true"></span>
   </button>
 </header>
 
-<!-- 로그인 아코디언 (헤더 아래 펼침) -->
 <div class="login-accordion" id="loginAccordion" data-open="false" aria-hidden="true">
   <div class="login-accordion-inner">
-    <div class="acc-intro" id="accIntro">다음 입장부터 자동 완성 — 로그인 (선택)</div>
-    <div class="acc-buttons" id="accButtons">
+    <div class="acc-intro">로그인하면 다음 입장부터 자동 완성</div>
+    <div class="acc-buttons">
       <button type="button" class="btn-google" id="googleBtn" hidden>Google</button>
       <button type="button" class="btn-kakao" id="kakaoBtn" hidden>카카오</button>
-    </div>
-    <div class="acc-badge" id="authedBadge" hidden>
-      <span style="flex:1;">✓ <strong id="authedName">로그인됨</strong> — 다음 입장부터 자동 완성</span>
-      <button type="button" id="logoutBtn">로그아웃</button>
     </div>
   </div>
 </div>
@@ -220,14 +191,12 @@
     <p>호스트 한 명, 스마트폰 하나면 시작됩니다.</p>
   </div>
 
-  <!-- 호스트 1차 CTA -->
-  <button type="button" class="cta-primary" id="openRoomBtn">익명으로 모임 열기 →</button>
+  <button type="button" class="cta-primary" id="openRoomBtn">익명으로 모임 열기</button>
 
   <div class="anon-note">
     🔒 <strong>방 안에서만 닉네임으로 표시</strong>됩니다.<br>방이 끝나면 표시는 사라져요.
   </div>
 
-  <!-- 참가자 2차 -->
   <div class="guest-info" id="guestSection">
     <div style="font-size:14px;color:#ffffff;margin-bottom:10px;font-weight:600;">참가자세요?</div>
     링크·QR이 있다면 바로 입장,<br>참여 코드를 받았다면 아래 입력하세요.
@@ -274,46 +243,38 @@ ensureUuid();
   const url = new URL(location.href);
   const tok = url.searchParams.get('auth_token');
   if (tok) {
-    try { localStorage.setItem('user_token', tok); } catch (_) {}
+    try {
+      localStorage.setItem('user_token', tok);
+      localStorage.setItem('login_remember', 'true');
+    } catch (_) {}
     history.replaceState(null, '', '/');
   }
   const err = url.searchParams.get('auth_error');
   if (err) {
-    alert('로그인 실패: ' + err);
     history.replaceState(null, '', '/');
   }
 })();
 
-// 토글·아코디언 제어
+// 토글 + 아코디언 제어
 const loginToggle = document.getElementById('loginToggle');
 const accordion = document.getElementById('loginAccordion');
-const accButtons = document.getElementById('accButtons');
-const accIntro = document.getElementById('accIntro');
-const authedBadge = document.getElementById('authedBadge');
+let isAuthed = false;
 
-function setToggle(on) {
+function setToggle(on, expand) {
   loginToggle.dataset.on = on ? 'true' : 'false';
-  loginToggle.setAttribute('aria-expanded', on ? 'true' : 'false');
-  accordion.dataset.open = on ? 'true' : 'false';
-  accordion.setAttribute('aria-hidden', on ? 'false' : 'true');
-}
-
-function showAuthedUI(me) {
-  authedBadge.hidden = false;
-  accButtons.style.display = 'none';
-  accIntro.style.display = 'none';
-  const nameEl = document.getElementById('authedName');
-  if (nameEl) nameEl.textContent = me.name || me.email || '로그인됨';
-}
-
-function showLoginButtonsUI() {
-  authedBadge.hidden = true;
-  accButtons.style.display = 'flex';
-  accIntro.style.display = 'block';
+  loginToggle.setAttribute('aria-expanded', expand ? 'true' : 'false');
+  accordion.dataset.open = expand ? 'true' : 'false';
+  accordion.setAttribute('aria-hidden', expand ? 'false' : 'true');
+  // 로그인 상태일 때 hover 툴팁
+  if (isAuthed) {
+    loginToggle.title = on ? '계정 연결됨' : '내 정보 기억하기';
+  } else {
+    loginToggle.title = '내 정보 기억하기';
+  }
 }
 
 (async () => {
-  // OAuth provider config — 활성된 provider만 노출
+  // OAuth provider config — 활성된 provider만 노출. 둘 다 비활성이면 토글 자체 숨김.
   let cfgGoogle = false, cfgKakao = false;
   try {
     const r = await fetch('/api/auth/status');
@@ -323,22 +284,28 @@ function showLoginButtonsUI() {
   } catch (_) {}
   if (cfgGoogle) document.getElementById('googleBtn').hidden = false;
   if (cfgKakao) document.getElementById('kakaoBtn').hidden = false;
-  // 둘 다 비활성이면 토글 자체 숨김
   if (!cfgGoogle && !cfgKakao) {
     loginToggle.style.display = 'none';
     return;
   }
   loginToggle.hidden = false;
 
-  // 로그인 상태 확인 → 자동 토글 ON + 배지
+  // 로그인 상태 확인 — 실명·이메일은 절대 노출하지 않음 (authed 여부만)
   try {
     const tok = localStorage.getItem('user_token');
     if (tok) {
       const r = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
       const me = r.ok ? await r.json() : {};
       if (me.authed) {
-        setToggle(true);
-        showAuthedUI(me);
+        isAuthed = true;
+        const remember = localStorage.getItem('login_remember');
+        // 사용자가 의도적으로 OFF했으면 OFF 유지. 그 외엔 자동 ON + 자동 접힘.
+        if (remember === 'false') {
+          setToggle(false, false);
+        } else {
+          try { localStorage.setItem('login_remember', 'true'); } catch (_) {}
+          setToggle(true, false);
+        }
       } else {
         try { localStorage.removeItem('user_token'); } catch (_) {}
       }
@@ -356,25 +323,31 @@ function showLoginButtonsUI() {
   } catch (_) {}
 })();
 
-// 토글 클릭 — 펼침/접힘
 loginToggle.addEventListener('click', () => {
-  const isOn = loginToggle.dataset.on === 'true';
-  setToggle(!isOn);
+  const wasOn = loginToggle.dataset.on === 'true';
+  if (wasOn) {
+    // ON → OFF: 기억 끄기. 모달 없음. 자동완성 prefill 데이터 삭제. 세션·토큰은 유지.
+    try {
+      localStorage.setItem('login_remember', 'false');
+      localStorage.removeItem('profile_snapshot');
+      localStorage.removeItem('preferred_nickname');
+    } catch (_) {}
+    setToggle(false, false);
+  } else {
+    // OFF → ON
+    try { localStorage.setItem('login_remember', 'true'); } catch (_) {}
+    if (isAuthed) {
+      // 로그인 상태: 아코디언 펼치지 않음 (초록 토글만)
+      setToggle(true, false);
+    } else {
+      // 비로그인: 아코디언 펼침
+      setToggle(true, true);
+    }
+  }
 });
 
 document.getElementById('googleBtn').addEventListener('click', () => { location.href = '/api/auth/google'; });
 document.getElementById('kakaoBtn').addEventListener('click', () => { location.href = '/api/auth/kakao'; });
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  if (!confirm('Google/카카오 로그아웃 할까요?\n(닉네임·프로필 캐시는 유지됩니다)')) return;
-  const tok = localStorage.getItem('user_token');
-  if (tok) {
-    try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-user-token': tok } }); } catch (_) {}
-  }
-  try { localStorage.removeItem('user_token'); } catch (_) {}
-  // 로그아웃 → 토글 OFF, 버튼 복원
-  showLoginButtonsUI();
-  setToggle(false);
-});
 
 // 참여 코드 입장
 document.getElementById('joinCodeBtn').addEventListener('click', () => {
