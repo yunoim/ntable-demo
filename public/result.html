@@ -268,25 +268,108 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── 매칭 카드 (share-card 톤 통일) ── */
+  .match-frame {
+    position: relative;
+    background: linear-gradient(135deg, rgba(212,168,67,0.10) 0%, rgba(212,168,67,0.03) 55%, rgba(20,29,53,0.4) 100%);
+    border: 1px solid var(--gold-border);
+    border-radius: 16px;
+    padding: 22px 18px 20px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .match-frame::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 18% 22%, rgba(212,168,67,0.18), transparent 55%),
+      radial-gradient(circle at 82% 78%, rgba(212,168,67,0.10), transparent 55%);
+    pointer-events: none;
+  }
+  .match-frame::after {
+    content: '✦ ✦ ✦';
+    position: absolute;
+    top: 10px; right: 14px;
+    font-size: 9px;
+    color: rgba(212,168,67,0.4);
+    letter-spacing: 0.3em;
+    pointer-events: none;
+  }
+  .match-eyebrow {
+    position: relative;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .match-heart {
+    position: relative;
+    font-size: 26px;
+    line-height: 1;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 2px 10px rgba(232,126,126,0.45));
+    animation: heartPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes heartPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
   .match-name {
+    position: relative;
     font-family: 'Cormorant Garamond', serif;
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 600;
     color: var(--gold);
-    margin: 8px 0 6px;
+    margin: 4px 0 8px;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
   }
-  .match-sub { font-size: 13px; color: var(--subtext); line-height: 1.6; }
+  .match-sub {
+    position: relative;
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 1.6;
+  }
+  .match-sub strong { color: var(--gold-light); font-weight: 600; }
   .fi-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: var(--gold-dim);
     color: var(--gold-light);
     border: 1px solid var(--gold-border);
-    border-radius: 10px;
-    padding: 6px 14px;
-    font-size: 13px;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 12.5px;
     font-weight: 600;
     margin-top: 14px;
+    position: relative;
   }
+  .match-fallback-frame {
+    position: relative;
+    background: var(--navy-light);
+    border: 1px dashed rgba(212,168,67,0.25);
+    border-radius: 14px;
+    padding: 22px 18px;
+    text-align: center;
+  }
+  .match-fallback-icon {
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 10px;
+    opacity: 0.85;
+  }
+  .match-fallback-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+  }
+  .match-fallback-text { font-size: 13px; color: var(--subtext); line-height: 1.65; }
 
   .stats-row { display: flex; gap: 12px; margin-bottom: 18px; }
   .stat-box {
@@ -605,12 +688,17 @@
       const data = await r.json();
 
       const matchEl = document.getElementById('match-content');
+      const escMatch = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       if (data.match_nickname) {
         matchedUuid = data.match_uuid || null;
         matchEl.innerHTML = `
-          <div class="match-name">💛 ${data.match_nickname}</div>
-          <div class="match-sub">오늘 모임에서 가장 잘 맞았던 분이에요</div>
-          ${data.fi_count ? `<div class="fi-badge">❤️ ${data.fi_count}명이 나에게 관심 표시</div>` : ''}
+          <div class="match-frame">
+            <div class="match-eyebrow">오늘의 인연</div>
+            <div class="match-heart">💛</div>
+            <div class="match-name">${escMatch(data.match_nickname)}</div>
+            <div class="match-sub">서로의 선택이 가장 많이 닿았어요</div>
+            ${data.fi_count ? `<div class="fi-badge">❤️ ${data.fi_count}명이 나에게 관심 표시</div>` : ''}
+          </div>
         `;
         document.getElementById('insta-card').style.display = 'block';
       } else {
@@ -618,12 +706,18 @@
         const hasInterest = (data.fi_count || 0) > 0;
         matchEl.innerHTML = hasInterest
           ? `
-            <div class="match-name" style="font-size:20px;color:var(--gold-light);">✨ 다음 만남을 기약</div>
-            <div class="match-sub">서로의 선택이 맞닿진 않았지만, <strong>${data.fi_count}명이 당신을 마음에 담았어요</strong>.<br>다음 모임에서 다시 연결될 수 있어요.</div>
+            <div class="match-fallback-frame">
+              <div class="match-fallback-icon">✨</div>
+              <div class="match-fallback-title">다음 만남을 기약</div>
+              <div class="match-fallback-text">서로의 선택이 맞닿진 않았지만,<br><strong style="color:var(--gold-light);">${data.fi_count}명이 당신을 마음에 담았어요</strong>.<br>다음 모임에서 다시 연결될 수 있어요.</div>
+            </div>
           `
           : `
-            <div class="match-name" style="font-size:20px;color:var(--gold-light);">🌙 오늘은 조용히</div>
-            <div class="match-sub">매칭은 타이밍이에요. 오늘 나눈 대화가 다음 누군가와의 연결로 이어질 거예요.<br>다음 모임에서 또 만나요.</div>
+            <div class="match-fallback-frame">
+              <div class="match-fallback-icon">🌙</div>
+              <div class="match-fallback-title">오늘은 조용히</div>
+              <div class="match-fallback-text">매칭은 타이밍이에요. 오늘 나눈 대화가<br>다음 누군가와의 연결로 이어질 거예요.</div>
+            </div>
           `;
       }
 
