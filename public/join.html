@@ -322,13 +322,15 @@ async function init() {
 }
 
 function rebuildSteps() {
-  // 인라인 hide 모델 — 별도 'display' step 폐기 / 사진 step 추가
   // couples: 닉 → 기본 → 사진 → 확인 (4단계)
-  // 일반:    닉 → 기본 → 지역 → 업종 → MBTI → 관심사 → 사진 → 확인 (8단계)
+  // 일반:    닉 → 기본 → 지역 → 업종 → MBTI → 관심사 → [인스타] → 사진 → 확인 (8~9단계)
+  // 인스타 step은 ROOM.instagram_collect=true 일 때만 (default: dating·icebreaker 팩)
   const isCouples = ROOM.pack_id === 'couples';
+  const collectInsta = ROOM.instagram_collect === true;
   const steps = ['nick', 'basic'];
   if (!isCouples) {
     steps.push('region', 'industry', 'mbti', 'interest');
+    if (collectInsta) steps.push('instagram');
   }
   steps.push('photo', 'confirm');
   STEPS = steps;
@@ -555,17 +557,25 @@ function renderStep() {
         <div class="field">
           <label class="chip df-check${data.hide_interest?' selected':''}" style="cursor:pointer;"><input type="checkbox" id="hide_interest"${data.hide_interest?' checked':''} style="display:none;"> 🔒 관심사 카드에 표시 안 함 (매칭에만 사용)</label>
         </div>
-
-        <div class="field" style="margin-top:24px;padding-top:18px;border-top:1px dashed rgba(212,168,67,0.2);">
-          <div class="field-label">인스타그램 <span style="opacity:0.5;font-size:11px;">(선택)</span></div>
-          <input type="text" id="instaInput" maxlength="50" placeholder="@your_id (영문·숫자·점·언더바)" value="${escHtml(data.instagram || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email">
-        </div>
-        <div class="field">
-          <label class="chip df-check${data.hide_instagram?' selected':''}" style="cursor:pointer;"><input type="checkbox" id="hide_instagram"${data.hide_instagram?' checked':''} style="display:none;"> 🔒 인스타그램 카드에 표시 안 함</label>
-        </div>
-
         <div class="actions">
           ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+        </div>
+      `;
+      break;
+    }
+    case 'instagram': {
+      body = `
+        <div class="step-num">${stepNum} · 인스타그램 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
+        <h2 class="step-title">매칭된 사람에게만<br>공개돼요 💌</h2>
+        <p class="step-sub">서로 입력했을 때만 양쪽에게 바로 보여요.<br><strong>오늘 아니면 다신 못 볼 사이</strong>, 놓치지 마세요.</p>
+        <div class="field">
+          <input type="text" id="instaInput" maxlength="50" placeholder="@your_instagram" value="${escHtml(data.instagram || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" style="text-align:center;font-size:18px;letter-spacing:0.04em;">
+          <div class="hint">영문·숫자·점·언더바만 가능. @ 는 자동으로 처리</div>
+        </div>
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-skip" onclick="skipInstagram()">건너뛰기</button>
           <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
         </div>
       `;
@@ -806,6 +816,12 @@ document.addEventListener('input', (e) => {
 function nextStep() {
   // basic step 떠날 때 birth_year default 1990 보장
   if (STEPS[CURRENT] === 'basic') ensureBirthDefault();
+  CURRENT = Math.min(CURRENT + 1, STEPS.length - 1);
+  renderStep();
+}
+function skipInstagram() {
+  data.instagram = null;
+  data.hide_instagram = false;
   CURRENT = Math.min(CURRENT + 1, STEPS.length - 1);
   renderStep();
 }

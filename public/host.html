@@ -1639,6 +1639,14 @@
     </div>
 
     <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;color:var(--gold);letter-spacing:0.1em;margin-bottom:8px;">인스타그램 수집</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <label class="rs-fc-chip"><input type="checkbox" id="rs_insta_collect"> 💌 매칭된 사람끼리 인스타 공유 허용</label>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">참가자 wizard에 인스타 step이 노출됩니다 (양쪽 모두 입력 시에만 공개).</div>
+    </div>
+
+    <div style="margin-bottom:20px;">
       <label style="display:block;font-size:11px;color:var(--gold);letter-spacing:0.1em;margin-bottom:8px;">호스트 역할</label>
       <div style="display:flex;gap:8px;">
         <button type="button" class="rs-chip" data-rs-role="participant" style="flex:1;padding:10px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;font-size:13px;cursor:pointer;color:var(--white-dim);font-family:inherit;">🙋 참여자로 참가</button>
@@ -3290,6 +3298,7 @@ function openRoomSettings() {
   document.getElementById('rs_fc_timer').checked = (parseInt(r.free_chat_timer_minutes, 10) || 0) > 0;
   document.getElementById('rs_fc_chat').checked = r.free_chat_chat_enabled !== false;
   document.getElementById('rs_fc_topic').checked = r.free_chat_topic_card_enabled !== false;
+  document.getElementById('rs_insta_collect').checked = r.instagram_collect === true;
   document.querySelectorAll('.rs-chip[data-rs-role]').forEach(c => c.style.background = c.dataset.rsRole === (r.host_role || 'participant') ? 'rgba(212,168,67,0.25)' : 'rgba(212,168,67,0.06)');
   document.querySelectorAll('.rs-chip[data-rs-mode]').forEach(c => c.style.background = c.dataset.rsMode === (r.display_mode || 'mobile') ? 'rgba(212,168,67,0.25)' : 'rgba(212,168,67,0.06)');
   document.getElementById('rs_status').textContent = '';
@@ -3316,6 +3325,7 @@ async function saveRoomSettings() {
     free_chat_timer_minutes: document.getElementById('rs_fc_timer').checked ? 15 : 0,
     free_chat_chat_enabled: document.getElementById('rs_fc_chat').checked,
     free_chat_topic_card_enabled: document.getElementById('rs_fc_topic').checked,
+    instagram_collect: document.getElementById('rs_insta_collect').checked,
     host_role: role,
     display_mode: mode,
   };
