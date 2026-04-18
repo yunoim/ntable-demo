@@ -566,6 +566,14 @@ async function handleMessage(msg) {
       STATE.matchJson = msg.match_json;
       if (STATE.currentPhase === 'closing-match-result') renderForPhase();
       break;
+    case 'room_updated':
+      // 호스트가 ⚙ 운영에서 display_mode='mobile'로 전환 → host 화면으로 자동 redirect
+      if (msg.changes && msg.changes.display_mode === 'mobile') {
+        location.replace(`/room/${ROOM_CODE}/host`);
+        return;
+      }
+      if (msg.changes) Object.assign(STATE.room, msg.changes);
+      break;
     case 'room_closed':
       STATE.currentPhase = 'closed';
       renderForPhase();

@@ -2009,8 +2009,9 @@ function renderApprovedList() {
       photoBtn = `<button type="button" class="approved-unban" title="사진 차단 해제" onclick="photoUnban('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">↺</button>`;
     }
     const isSelf = u.uuid === state.uuid;
+    // 호스트 본인은 강퇴 불가 — 라벨로 명시 (모임장 표시)
     const kickBtn = isSelf
-      ? `<span class="approved-name" style="font-size:11px;color:var(--gold-light);opacity:0.85;">나</span>`
+      ? `<span class="approved-name" style="font-size:11px;color:var(--gold-light);opacity:0.85;letter-spacing:0.04em;">🎤 나 · 모임장</span>`
       : `<button type="button" class="approved-kick-btn" title="이 참가자 강퇴" onclick="kickUser('${escHtml(u.uuid)}','${escHtml(u.nickname)}')">강퇴</button>`;
     el.innerHTML = `${photoHtml}<span class="approved-name">${escHtml(u.nickname)}</span>${photoBtn}${kickBtn}`;
     list.appendChild(el);
