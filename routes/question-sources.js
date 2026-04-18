@@ -111,6 +111,24 @@ function getPack(packId) {
 // 하위 호환 — 기본 팩
 const DEFAULT_PACK_ID = 'icebreaker';
 
+// 팩별 마무리 단계 (closing_steps)
+// - 'mvp'           : MVP 투표 + 발표
+// - 'match'         : 사랑의 작대기 + 매칭 발표
+// - 'explore-result': 라운드별 탐구 결과 카드
+// 빈 배열이면 closing 단계 없이 모임 종료
+const PACK_FLOW_DEFAULTS = {
+  couples: [],                                // 1:1 — closing-explore-result 자동
+  icebreaker: ['mvp'],                        // 첫만남 — MVP 만
+  reunion: ['explore-result'],                // 오랜만 — 탐구 결과 카드만
+  dating: ['mvp', 'match'],                   // 연애 — MVP + 작대기
+  'team-building': ['mvp', 'explore-result'], // 팀빌딩 — MVP + 결과
+};
+
+function getPackFlow(packId) {
+  if (PACK_FLOW_DEFAULTS[packId]) return PACK_FLOW_DEFAULTS[packId];
+  return ['mvp']; // 미정의 팩 기본값
+}
+
 function parseQuestions() {
   return getPack(DEFAULT_PACK_ID)?.questions || [];
 }
@@ -127,4 +145,6 @@ module.exports = {
   parseQuestions,
   parseFreeTopics,
   DEFAULT_PACK_ID,
+  PACK_FLOW_DEFAULTS,
+  getPackFlow,
 };

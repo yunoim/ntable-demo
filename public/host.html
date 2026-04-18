@@ -1448,7 +1448,7 @@
       <span id="user-nick"></span>
       <button type="button" id="open-settings-btn" title="질문/주제/문항수 편집 (모임 시작 전)">설정 ⚙</button>
       <button type="button" onclick="location.href='/profile?next='+encodeURIComponent(location.pathname)">내 정보 ✎</button>
-      <button type="button" onclick="logout()">로그아웃</button>
+      <button type="button" onclick="logout()">정보 초기화</button>
     </div>
   </nav>
 
@@ -2645,7 +2645,7 @@ async function closeRoom() {
 }
 
 function logout() {
-  if (!confirm('로그아웃할까요? 진행 중인 모임은 유지되지만 저장된 닉네임/프로필은 모두 지워집니다.')) return;
+  if (!confirm('이 기기에 저장된 닉네임·프로필을 모두 지울까요?\n진행 중인 모임은 유지되지만 다음 모임 진입 시 처음부터 입력합니다.')) return;
   try { if (state.ws) state.ws.close(); } catch {}
   try {
     localStorage.removeItem('demo_uuid');

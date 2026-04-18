@@ -1353,7 +1353,7 @@
 
 <!-- Waiting Screen -->
 <div class="screen" id="screenWaiting">
-  <button type="button" class="waiting-logout" onclick="guestLogout()" aria-label="로그아웃">로그아웃</button>
+  <button type="button" class="waiting-logout" onclick="guestLogout()" aria-label="이 방에서 나가기">방 나가기</button>
   <div class="waiting-msg">
     <h2>호스트 승인을<br>기다리고 있어요</h2>
     <p id="waitingStatus">방금 도착. 호스트가 확인 중이에요.</p>
@@ -2448,7 +2448,7 @@ function escHtml(s) {
 }
 
 function guestLogout() {
-  if (!confirm('이 방에서 나가고 로그아웃할까요? 저장된 닉네임/프로필도 모두 지워집니다.')) return;
+  if (!confirm('이 방에서 나가시겠어요? 이 기기에 저장된 닉네임·프로필도 함께 지워집니다.')) return;
   try { if (STATE.ws) STATE.ws.close(); } catch (_) {}
   try {
     localStorage.removeItem('demo_uuid');
