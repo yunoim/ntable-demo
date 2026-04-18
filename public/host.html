@@ -2300,7 +2300,7 @@ function switchTab(tab) {
   updatePrimaryButton();
 }
 
-// 1:1 (총 2명 이하)이면 MVP 카드 숨기고 자동 매칭 안내 표시
+// 1:1 (총 2명 이하)이면 MVP/작대기 단계 모두 생략하고 자동으로 매칭 결과 발표
 function applyOneOnOneEnding() {
   const total = state.approvedUsers.length + (state.hostRole === 'participant' ? 1 : 0);
   const mvpCard = document.querySelector('#panel-ending .free-card');
@@ -2309,11 +2309,25 @@ function applyOneOnOneEnding() {
   if (total <= 2) {
     if (substeps) substeps.style.display = 'none';
     mvpCard.innerHTML = `
-      <div class="card-head">💑 1:1 모임 — 자동 매칭</div>
+      <div class="card-head">💑 1:1 모임 — 매칭 발표 중</div>
       <div class="card-help" style="font-size:13px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
-        2명 이하라 MVP/작대기 투표가 생략됩니다. <strong style="color:var(--gold-light);">강제 매칭</strong> 버튼을 눌러 결과를 발표해주세요.
+        2명 이하라 MVP/작대기 투표가 생략됩니다. 잠시 후 매칭 결과가 자동 발표됩니다.
       </div>`;
     state.oneOnOne = true;
+    // 자동 매칭 발표 — closing-match-result 로 즉시 점프
+    if (!state.matchAutoFired) {
+      state.matchAutoFired = true;
+      setTimeout(async () => {
+        try {
+          await doMatch();
+          state.closingPhase = 'closing-match-result';
+          if (typeof renderClosingSubsteps === 'function') renderClosingSubsteps('closing-match-result');
+          updateState({ phase: 'closing-match-result', current_tab: 'closing' });
+        } catch (e) {
+          console.error('[1:1 auto match]', e);
+        }
+      }, 800);
+    }
   }
 }
 
