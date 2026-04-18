@@ -754,7 +754,10 @@
     padding: 8px 0;
     position: relative;
     transition: color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
+  .phase-step .phase-label { white-space: nowrap; }
   .phase-step:hover { color: var(--white-dim); }
   .phase-num {
     display: flex;
@@ -781,6 +784,26 @@
   .phase-step.done .phase-num {
     background: rgba(212,168,67,0.35);
     color: var(--white);
+  }
+
+  /* 운영 옵션 모달 자유대화 칩 — 체크 상태 시각 구분 */
+  .rs-fc-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px;
+    background: rgba(212,168,67,0.06);
+    border: 1px solid var(--gold-border);
+    border-radius: 18px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--white-dim);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .rs-fc-chip input { width: 14px; height: 14px; accent-color: var(--gold); cursor: pointer; }
+  .rs-fc-chip:has(input:checked) {
+    background: rgba(212,168,67,0.22);
+    border-color: var(--gold);
+    color: var(--gold-light);
+    font-weight: 600;
   }
   #user-menu {
     display: flex;
@@ -1446,7 +1469,7 @@
 
     <!-- INTRO -->
     <div class="panel active" id="panel-intro">
-      <div class="stage-tag">Step 01 · 소개</div>
+      <div class="stage-tag" hidden>Step 01 · 소개</div>
       <h1 class="stage-title">오늘의 <em>참가자</em></h1>
       <p class="stage-sub">승인된 참가자의 프로필이 카드로 표시됩니다. 좌우로 넘기며 확인하세요.</p>
       <div id="profile-carousel"></div>
@@ -1457,7 +1480,7 @@
 
     <!-- EXPLORE -->
     <div class="panel" id="panel-explore">
-      <div class="stage-tag">Step 02 · 탐구</div>
+      <div class="stage-tag" hidden>Step 02 · 탐구</div>
       <div class="q-number" id="q-number">Q1 / 13</div>
       <div class="q-text" id="q-text">문항 로딩 중...</div>
       <div class="vote-bars" id="vote-bars"></div>
@@ -1466,7 +1489,7 @@
 
     <!-- FREE -->
     <div class="panel" id="panel-free">
-      <div class="stage-tag">Step 03 · 자유대화</div>
+      <div class="stage-tag" hidden>Step 03 · 자유대화</div>
       <h1 class="stage-title">대화의 <em>시간</em></h1>
       <p class="stage-sub">타이머와 질문 카드로 대화의 리듬을 유지하세요.</p>
 
@@ -1499,7 +1522,7 @@
 
     <!-- ENDING -->
     <div class="panel" id="panel-ending">
-      <div class="stage-tag">Step 04 · 마무리</div>
+      <div class="stage-tag" hidden>Step 04 · 마무리</div>
       <h1 class="stage-title">오늘의 <em>결과</em></h1>
       <p class="stage-sub">MVP 투표 → 발표 → 작대기 → 매칭 발표 순서로 진행하세요.</p>
 
@@ -1533,7 +1556,7 @@
     </div>
     <div class="action-right">
       <button type="button" class="btn btn-outline" id="force-match-btn" style="display:none;">강제 매칭</button>
-      <button type="button" class="btn btn-gold" id="primary-btn">탐구 시작 →</button>
+      <button type="button" class="btn btn-gold" id="primary-btn">다음 · 탐구로</button>
       <button type="button" class="btn btn-red" id="close-room-btn" style="display:none;">모임 종료</button>
     </div>
   </div>
@@ -1556,12 +1579,12 @@
 
 <!-- 설정 모달 (waiting 전용) -->
 <!-- 운영 옵션 모달 (탐구 문항 / 자유대화 / 호스트 역할 / 화면 형태) -->
-<div id="room-settings-modal" hidden role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;">
+<div id="room-settings-modal" role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;">
   <div onclick="closeRoomSettings()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
   <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:24px;max-width:420px;width:calc(100% - 32px);max-height:85vh;overflow-y:auto;">
     <button type="button" onclick="closeRoomSettings()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#c0c0c0;font-size:24px;cursor:pointer;">×</button>
     <h3 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);">⚙ 운영 옵션</h3>
-    <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px;">방 생성 후 언제든 변경 가능합니다.</div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px;">모임 생성 후 언제든 변경 가능합니다.</div>
 
     <div style="margin-bottom:20px;">
       <label style="display:block;font-size:11px;color:var(--gold);letter-spacing:0.1em;margin-bottom:8px;">탐구 문항 수</label>
@@ -1573,10 +1596,10 @@
 
     <div style="margin-bottom:20px;">
       <label style="display:block;font-size:11px;color:var(--gold);letter-spacing:0.1em;margin-bottom:8px;">자유대화 구성</label>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:18px;font-size:13px;cursor:pointer;color:var(--white-dim);"><input type="checkbox" id="rs_fc_timer"> ⏱ 타이머 15분</label>
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:18px;font-size:13px;cursor:pointer;color:var(--white-dim);"><input type="checkbox" id="rs_fc_chat"> 💬 익명채팅</label>
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:18px;font-size:13px;cursor:pointer;color:var(--white-dim);"><input type="checkbox" id="rs_fc_topic"> 🃏 주제카드</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="rs_fc_chips">
+        <label class="rs-fc-chip"><input type="checkbox" id="rs_fc_timer"> ⏱ 타이머 15분</label>
+        <label class="rs-fc-chip"><input type="checkbox" id="rs_fc_chat"> 💬 익명채팅</label>
+        <label class="rs-fc-chip"><input type="checkbox" id="rs_fc_topic"> 🃏 주제카드</label>
       </div>
     </div>
 
@@ -1657,7 +1680,7 @@
     <div class="qr-modal-brand">ntable</div>
     <img id="qr-modal-img" class="qr-modal-img" src="" alt="모임 입장 QR 코드 (확대)" />
     <div class="qr-modal-code" id="qr-modal-code">—</div>
-    <div class="qr-modal-hint">📨 게스트 초대 — QR 또는 링크를 공유해 주세요.<br>참가자가 들어오면 호스트 도구에서 승인하면 됩니다.</div>
+    <div class="qr-modal-hint">📨 참가자 초대 — QR 또는 링크를 공유해 주세요.<br>들어온 참가자는 호스트 도구에서 확인 가능합니다.</div>
     <button type="button" id="qr-modal-copy" class="qr-modal-copy-btn">입장 링크 복사</button>
   </div>
 </div>
@@ -2257,7 +2280,7 @@ function updatePrimaryButton() {
 
   switch (state.activeTab) {
     case 'intro':
-      btn.textContent = '탐구 시작 →';
+      btn.textContent = '다음 · 탐구로';
       btn.style.display = 'inline-flex';
       break;
     case 'explore':
@@ -3148,9 +3171,9 @@ function openRoomSettings() {
   document.querySelectorAll('.rs-chip[data-rs-role]').forEach(c => c.style.background = c.dataset.rsRole === (r.host_role || 'participant') ? 'rgba(212,168,67,0.25)' : 'rgba(212,168,67,0.06)');
   document.querySelectorAll('.rs-chip[data-rs-mode]').forEach(c => c.style.background = c.dataset.rsMode === (r.display_mode || 'mobile') ? 'rgba(212,168,67,0.25)' : 'rgba(212,168,67,0.06)');
   document.getElementById('rs_status').textContent = '';
-  document.getElementById('room-settings-modal').hidden = false;
+  document.getElementById('room-settings-modal').style.display = 'flex';
 }
-function closeRoomSettings() { document.getElementById('room-settings-modal').hidden = true; }
+function closeRoomSettings() { document.getElementById('room-settings-modal').style.display = 'none'; }
 document.getElementById('open-room-settings-btn')?.addEventListener('click', openRoomSettings);
 document.getElementById('rs_qcount')?.addEventListener('input', (e) => { document.getElementById('rs_qcount_val').textContent = e.target.value; });
 document.querySelectorAll('.rs-chip[data-rs-role]').forEach(c => c.addEventListener('click', () => {
