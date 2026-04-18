@@ -119,9 +119,9 @@ const DEFAULT_PACK_ID = 'icebreaker';
 const PACK_FLOW_DEFAULTS = {
   couples: [],                                // 1:1 — closing-explore-result 자동
   icebreaker: ['mvp'],                        // 첫만남 — MVP 만
-  reunion: ['explore-result'],                // 오랜만 — 탐구 결과 카드만
+  'friends-reunion': ['explore-result'],      // 오랜만 — 탐구 결과 카드
   dating: ['mvp', 'match'],                   // 연애 — MVP + 작대기
-  'team-building': ['mvp', 'explore-result'], // 팀빌딩 — MVP + 결과
+  teambuilding: ['mvp', 'explore-result'],    // 팀빌딩 — MVP + 결과
 };
 
 function getPackFlow(packId) {

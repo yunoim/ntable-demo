@@ -385,49 +385,65 @@
     }
     #packSetup[hidden] { display: none; }
 
-    /* 질문 팩 선택 */
+    /* 5개 방 카드 (1-tap) */
     .pack-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 560px) {
+      .pack-grid { grid-template-columns: repeat(2, 1fr); }
+      .pack-card.featured { grid-column: 1 / -1; }
     }
     .pack-card {
       background: var(--navy-light);
       border: 1.5px solid var(--input-border);
-      border-radius: 12px;
-      padding: 12px 12px;
+      border-radius: 14px;
+      padding: 16px 16px;
       cursor: pointer;
       text-align: left;
       transition: all 0.2s;
       font-family: inherit;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
+      position: relative;
     }
-    .pack-card:hover { border-color: var(--gold-border); }
-    .pack-card.selected {
+    .pack-card:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,168,67,0.15); }
+    .pack-card:active { transform: scale(0.98); }
+    .pack-card.featured {
+      background: linear-gradient(135deg, rgba(212,168,67,0.16), rgba(212,168,67,0.04));
       border-color: var(--gold);
-      background: var(--gold-dim);
     }
-    .pack-card .pack-head { display: flex; align-items: center; gap: 8px; }
-    .pack-card .pack-icon { font-size: 18px; }
-    .pack-card .pack-title { font-size: 13px; font-weight: 600; color: var(--white); }
-    .pack-card.selected .pack-title { color: var(--gold-light); }
+    .pack-card .pack-head { display: flex; align-items: center; gap: 10px; }
+    .pack-card .pack-icon { font-size: 24px; line-height: 1; }
+    .pack-card .pack-title { font-size: 15px; font-weight: 700; color: var(--white); letter-spacing: 0.01em; }
     .pack-card .pack-desc {
-      font-size: 11px;
+      font-size: 12.5px;
       color: var(--text-muted);
-      line-height: 1.5;
-      margin-top: 2px;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      line-height: 1.55;
     }
     .pack-card .pack-meta {
-      font-size: 10px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      font-size: 11px;
       color: var(--text-dim);
-      margin-top: auto;
+      margin-top: 2px;
     }
+    .pack-card .pack-meta-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(212,168,67,0.18);
+      border-radius: 999px;
+      letter-spacing: 0.02em;
+    }
+    .pack-card .pack-meta-chip.fc { color: var(--white-muted); }
+    .pack-card .pack-cta {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 18px; color: var(--gold-light);
+      opacity: 0.6; transition: opacity 0.2s;
+    }
+    .pack-card:hover .pack-cta { opacity: 1; }
     .pack-loading {
       grid-column: 1 / -1;
       text-align: center;
@@ -550,20 +566,8 @@
     <div class="welcome" id="welcomeMsg">지금 바로 모임을 열어보세요.</div>
 
     <div class="card">
-      <!-- 히어로: 2인 전용 1-tap 시작 -->
-      <div class="couples-hero" id="couplesHero">
-        <span class="couples-hero-eyebrow">💞 둘이서만</span>
-        <h3>지금 마주앉은 사람과</h3>
-        <p>2인 전용 팩으로 1분 안에 바로 시작. 친구·썸·연인·1:1 멘토링 뭐든.</p>
-        <button type="button" class="couples-hero-btn" id="quickCouplesBtn">둘이서 시작하기 →</button>
-      </div>
-
-      <div class="group-section-header">그룹·다인원 팩</div>
-
-      <!-- 추천 팩 4개 -->
-      <div class="pack-grid" id="packGrid">
-        <div class="pack-loading">팩 불러오는 중...</div>
-      </div>
+      <!-- 5개 방 카드 (1-tap = 즉시 방 생성 + 호스트 대시보드) -->
+      <div class="pack-grid" id="packGrid"></div>
 
       <!-- 1-tap UX 전환 (2026-04-19) — 팩 클릭 = 즉시 방 생성. 기존 '전체 11팩 펼침' + packSetup 8개 옵션 폐기. 기획 결정 후 5/7 카드로 재구성 예정. -->
       <!--
@@ -590,118 +594,112 @@
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // 추천 팩 (히어로 제외, 여러명용 상단 4개)
-    const FEATURED_PACK_IDS = ['icebreaker', 'friends-reunion', 'dating', 'teambuilding'];
+    // 5개 방 카드 (Phase 1 확정 — 2026-04-19). 각 방은 "바로 쓸 수 있는 완성 세트".
+    // 자유대화 메타는 v1 표시용. 실제 server 적용은 백로그.
+    const ROOM_KITS = [
+      {
+        id: 'couples', icon: '💞', title: '둘이서',
+        desc: '지금 마주앉은 한 명과 1:1로',
+        people: '2명', time: '약 10분', fc: '자유대화 없음',
+        featured: true,
+        defaults: {
+          question_count: 10,
+          display_fields: ['birth_year', 'region', 'industry', 'interest'],
+          birth_year_format: 'exact',
+          host_role: 'participant', display_mode: 'mobile',
+          photo_enabled: true, region_detail: false,
+        },
+      },
+      {
+        id: 'icebreaker', icon: '🧊', title: '첫만남 아이스브레이크',
+        desc: '어느 모임에나 붙이는 가벼운 오프닝',
+        people: '3~15명', time: '약 20분', fc: '타이머 10분 + 주제카드',
+        defaults: {
+          question_count: 5,
+          display_fields: ['birth_year', 'region', 'interest'],
+          birth_year_format: 'decade_half',
+          host_role: 'participant', display_mode: 'mobile',
+          photo_enabled: true, region_detail: false,
+        },
+      },
+      {
+        id: 'dating', icon: '💘', title: '연애 성향 탐구',
+        desc: '소개팅·연애 모임. 실시간 매칭 공개',
+        people: '4~10명', time: '약 40분', fc: '타이머 15분 + 익명채팅',
+        defaults: {
+          question_count: 10,
+          display_fields: ['birth_year', 'region', 'interest'],
+          birth_year_format: 'decade_half',
+          host_role: 'participant', display_mode: 'mobile',
+          photo_enabled: true, region_detail: false,
+        },
+      },
+      {
+        id: 'friends-reunion', icon: '🍻', title: '오랜만에 만난 사이',
+        desc: '동창회·송년회·이사 집들이',
+        people: '4~12명', time: '약 35분', fc: '타이머 20분 + 주제카드',
+        defaults: {
+          question_count: 8,
+          display_fields: ['birth_year', 'region', 'interest'],
+          birth_year_format: 'decade_half',
+          host_role: 'participant', display_mode: 'mobile',
+          photo_enabled: true, region_detail: false,
+        },
+      },
+      {
+        id: 'teambuilding', icon: '💼', title: '팀빌딩·워크숍',
+        desc: '회사 팀 합류·부서 워크숍·신입 OT',
+        people: '4~20명', time: '약 40분', fc: '타이머 15분 + 주제카드',
+        defaults: {
+          question_count: 10,
+          display_fields: ['birth_year', 'region', 'interest'],
+          birth_year_format: 'decade_half',
+          host_role: 'participant', display_mode: 'mobile',
+          photo_enabled: true, region_detail: false,
+        },
+      },
+    ];
 
-    function renderPackCard(p) {
+    function renderRoomCard(kit) {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'pack-card';
-      card.dataset.packId = p.id;
+      card.className = 'pack-card' + (kit.featured ? ' featured' : '');
+      card.dataset.packId = kit.id;
       card.innerHTML = `
+        <span class="pack-cta" aria-hidden="true">→</span>
         <div class="pack-head">
-          <span class="pack-icon">${escHtml(p.icon || '📦')}</span>
-          <span class="pack-title">${escHtml(p.title)}</span>
+          <span class="pack-icon">${escHtml(kit.icon)}</span>
+          <span class="pack-title">${escHtml(kit.title)}</span>
         </div>
-        <div class="pack-desc" title="${escHtml(p.description || '')}">${escHtml(p.description || '')}</div>
-        <div class="pack-meta">${escHtml(p.recommended || '')} · 탐구 ${p.question_count}문항</div>
+        <div class="pack-desc">${escHtml(kit.desc)}</div>
+        <div class="pack-meta">
+          <span class="pack-meta-chip">👥 ${escHtml(kit.people)}</span>
+          <span class="pack-meta-chip">⏱ ${escHtml(kit.time)}</span>
+          <span class="pack-meta-chip fc">💬 ${escHtml(kit.fc)}</span>
+        </div>
       `;
-      card.addEventListener('click', () => selectPack(p.id));
+      card.addEventListener('click', () => createRoomFromKit(kit));
       return card;
     }
 
-    async function loadPacks() {
-      const featuredGrid = document.getElementById('packGrid');
-      const allGrid = document.getElementById('allPackGrid');
-      const expandBtn = document.getElementById('expandPackBtn');
-      try {
-        const res = await fetch('/api/packs');
-        const data = await res.json();
-        packs = Array.isArray(data.packs) ? data.packs : [];
-        if (!packs.length) {
-          featuredGrid.innerHTML = '<div class="pack-loading">사용 가능한 팩이 없어요</div>';
-          return;
-        }
-
-        // 히어로에 쓰는 couples 는 목록에서 제외
-        const multi = packs.filter(p => p.id !== 'couples');
-
-        // 추천 팩 (정의된 순서대로)
-        const featured = FEATURED_PACK_IDS
-          .map(id => multi.find(p => p.id === id))
-          .filter(Boolean);
-        // 나머지는 전체 보기에
-        const rest = multi.filter(p => !FEATURED_PACK_IDS.includes(p.id));
-
-        featuredGrid.innerHTML = '';
-        featured.forEach(p => featuredGrid.appendChild(renderPackCard(p)));
-
-        if (rest.length) {
-          allGrid.innerHTML = '';
-          rest.forEach(p => allGrid.appendChild(renderPackCard(p)));
-          expandBtn.hidden = false;
-          expandBtn.addEventListener('click', () => {
-            const wasHidden = allGrid.hidden;
-            allGrid.hidden = !wasHidden;
-            expandBtn.textContent = wasHidden ? '접기 ▲' : `전체 ${multi.length}개 팩 보기 ▼`;
-          });
-        }
-      } catch (err) {
-        featuredGrid.innerHTML = '<div class="pack-loading">팩을 불러오지 못했어요</div>';
-      }
+    function loadPacks() {
+      const grid = document.getElementById('packGrid');
+      grid.innerHTML = '';
+      ROOM_KITS.forEach(kit => grid.appendChild(renderRoomCard(kit)));
     }
 
-    // 1-tap UX: 팩 클릭 = 즉시 방 생성 (default 옵션). 기존 selectPack→packSetup 흐름 폐기.
-    function selectPack(packId) {
-      const pack = packs.find(p => p.id === packId);
-      if (!pack) return;
-      createRoomFromPack(pack);
-    }
-
-    function quickStartCouples() {
-      const pack = packs.find(p => p.id === 'couples');
-      if (pack) createRoomFromPack(pack);
-    }
-    document.getElementById('quickCouplesBtn').addEventListener('click', quickStartCouples);
-
-    // 팩별 default 옵션 (기획 결정 후 5/7로 압축 시 여기 매핑)
-    function defaultsForPack(packId) {
-      const base = {
-        question_count: 5,
-        display_fields: ['birth_year', 'region', 'interest'],
-        birth_year_format: 'decade',
-        host_role: 'participant',
-        display_mode: 'mobile',
-        photo_enabled: true,
-        region_detail: false,
-      };
-      if (packId === 'couples') return { ...base, question_count: 5 };
-      if (packId === 'dating') return { ...base, question_count: 8 };
-      if (packId === 'icebreaker') return { ...base, question_count: 3 };
-      if (packId === 'friends-reunion') return { ...base, question_count: 5 };
-      if (packId === 'teambuilding') return {
-        ...base,
-        question_count: 8,
-        display_fields: ['birth_year', 'region', 'industry', 'interest'],
-        host_role: 'host_only',
-        display_mode: 'presenter',
-      };
-      return base;
-    }
-
-    async function createRoomFromPack(pack) {
+    async function createRoomFromKit(kit) {
       const errMsg = document.getElementById('errorMsg');
       errMsg.textContent = '';
       const d = new Date();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      const title = `${pack.title} · ${mm}.${dd}`;
-      const opts = defaultsForPack(pack.id);
+      const title = `${kit.title} · ${mm}.${dd}`;
       try {
         const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid, title, pack_id: pack.id, ...opts })
+          body: JSON.stringify({ uuid, title, pack_id: kit.id, ...kit.defaults })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');
