@@ -194,6 +194,108 @@
     .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.35); }
     .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
+    /* 프로필 스텝 인디케이터 */
+    .step-indicator {
+      display: inline-block;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: var(--gold-dim-2);
+      border: 1px solid var(--gold-border);
+      padding: 5px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    /* 필드 힌트 (왜 필요한지 설명) */
+    .field-hint {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.55;
+    }
+    .field-hint strong { color: var(--gold-light); font-weight: 500; }
+
+    /* 선택 필드 뱃지 */
+    .optional-tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 6px;
+      font-weight: 400;
+      vertical-align: middle;
+    }
+    .form-group.optional label { font-weight: 500; }
+
+    /* 진행률 바 */
+    .optional-progress {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 22px;
+    }
+    .optional-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .optional-progress-pct {
+      color: var(--gold-light);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .optional-progress-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .optional-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      width: 0%;
+      transition: width 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    /* 2버튼 동작 (건너뛰기 / 저장) */
+    .profile-actions {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .btn-ghost {
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--white-dim); border-color: var(--gold-border); }
+    .profile-footnote {
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+    .profile-footnote strong { color: var(--gold-light); font-weight: 500; }
+
     /* 성별 버튼 */
     .gender-group { display: flex; gap: 12px; }
     .gender-btn {
@@ -364,10 +466,12 @@
       </div>
     </div>
 
-    <!-- Step 2: 프로필 작성 -->
-    <div id="step-profile" class="card step">
-      <h2 class="section-title">프로필 설정</h2>
-      <div class="section-sub">모임 참가자들에게 보여질 기본 정보예요.</div>
+    <!-- Step 2a: 필수 정보 -->
+    <div id="step-profile-required" class="card step">
+      <div class="step-indicator">1 / 2 · 필수</div>
+      <h2 class="section-title">거의 다 왔어요</h2>
+      <div class="section-sub">매칭에 필요한 두 가지만 먼저 알려주세요.</div>
+
       <div class="form-group">
         <label>성별<span class="required-mark">*</span></label>
         <div class="gender-group">
@@ -375,15 +479,34 @@
           <button type="button" class="gender-btn" data-value="female" onclick="selectGender(this)">여성</button>
         </div>
       </div>
+
       <div class="form-group">
         <label>출생연도<span class="required-mark">*</span></label>
         <select id="birth-year" aria-label="출생연도">
           <option value="">선택하세요</option>
         </select>
+        <div class="field-hint">참가자 연령대 매칭에 사용돼요. 나이는 공개되지 않고 모임 이름표에만 표시됩니다.</div>
       </div>
-      <div class="divider"></div>
-      <div class="form-group">
-        <label>지역</label>
+
+      <button type="button" class="btn-primary" id="profile-required-btn" disabled>다음 →</button>
+    </div>
+
+    <!-- Step 2b: 추가 정보 (선택) -->
+    <div id="step-profile-optional" class="card step">
+      <div class="step-indicator">2 / 2 · 선택</div>
+      <h2 class="section-title">더 좋은 매칭을 위해</h2>
+      <div class="section-sub">채우면 공통점 찾기가 훨씬 쉬워져요. <strong>지금 건너뛰고 나중에 채워도</strong> 돼요.</div>
+
+      <div class="optional-progress" id="optionalProgress">
+        <div class="optional-progress-label">
+          <span><span id="filledCount">0</span>/5 채움</span>
+          <span id="progressPct" class="optional-progress-pct">0%</span>
+        </div>
+        <div class="optional-progress-bar"><div class="optional-progress-fill" id="progressFill"></div></div>
+      </div>
+
+      <div class="form-group optional">
+        <label>지역 <span class="optional-tag">선택</span></label>
         <select id="region" aria-label="지역">
           <option value="">선택하세요</option>
           <option>서울</option><option>경기</option><option>인천</option>
@@ -393,9 +516,11 @@
           <option>전북</option><option>전남</option><option>경북</option>
           <option>경남</option><option>제주</option>
         </select>
+        <div class="field-hint">같은 지역 참가자와 오프라인 만남 기회</div>
       </div>
-      <div class="form-group">
-        <label>업종</label>
+
+      <div class="form-group optional">
+        <label>업종 <span class="optional-tag">선택</span></label>
         <select id="industry" aria-label="업종">
           <option value="">선택하세요</option>
           <option>IT/개발</option><option>디자인</option><option>마케팅/광고</option>
@@ -404,9 +529,11 @@
           <option>제조업</option><option>미디어/콘텐츠</option><option>스타트업</option>
           <option>기타</option>
         </select>
+        <div class="field-hint">비슷한 업계끼리 자연스럽게 대화가 이어져요</div>
       </div>
-      <div class="form-group">
-        <label>MBTI</label>
+
+      <div class="form-group optional">
+        <label>MBTI <span class="optional-tag">선택</span></label>
         <select id="mbti" aria-label="MBTI">
           <option value="">선택하세요</option>
           <option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option>
@@ -414,16 +541,26 @@
           <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
           <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
         </select>
+        <div class="field-hint">성향 매칭 정확도가 올라갑니다</div>
       </div>
-      <div class="form-group">
-        <label>관심사</label>
+
+      <div class="form-group optional">
+        <label>관심사 <span class="optional-tag">선택</span></label>
         <input type="text" id="interest" placeholder="예: 등산, 독서, 요리" maxlength="30" aria-label="관심사" />
+        <div class="field-hint">대화 시작할 거리가 생겨요. 쉼표로 여러 개 OK</div>
       </div>
-      <div class="form-group">
-        <label>인스타그램 아이디</label>
+
+      <div class="form-group optional">
+        <label>인스타그램 <span class="optional-tag">선택</span></label>
         <input type="text" id="instagram" placeholder="@ 제외하고 입력" maxlength="50" aria-label="인스타그램 아이디" />
+        <div class="field-hint">모임 중 <strong>상호 동의</strong> 시에만 공개됩니다</div>
       </div>
-      <button type="button" class="btn-primary" id="profile-btn" disabled>프로필 저장</button>
+
+      <div class="profile-actions">
+        <button type="button" class="btn-ghost" id="profile-skip-btn">건너뛰고 시작</button>
+        <button type="button" class="btn-primary" id="profile-save-btn">저장하고 시작</button>
+      </div>
+      <div class="profile-footnote">언제든 <strong>내 정보</strong> 페이지에서 수정할 수 있어요.</div>
     </div>
 
     <div class="legal">
@@ -686,7 +823,7 @@
         localStorage.setItem('demo_uuid', currentUuid);
 
         if (data.is_new) {
-          showStep('step-profile');
+          showStep('step-profile-required');
         } else {
           const nextUrl = getNextUrl();
           if (nextUrl) { window.location.href = nextUrl; }
@@ -717,48 +854,97 @@
       validateProfileForm();
     }
 
-    function validateProfileForm() {
+    function validateRequiredProfile() {
       const birthYear = document.getElementById('birth-year').value;
-      const profileBtn = document.getElementById('profile-btn');
-      profileBtn.disabled = !(selectedGender && birthYear);
+      const btn = document.getElementById('profile-required-btn');
+      btn.disabled = !(selectedGender && birthYear);
     }
 
-    document.getElementById('birth-year').addEventListener('change', validateProfileForm);
+    document.getElementById('birth-year').addEventListener('change', validateRequiredProfile);
 
-    document.getElementById('profile-btn').addEventListener('click', async () => {
-      if (!selectedGender || !document.getElementById('birth-year').value) return;
-      const profileBtn = document.getElementById('profile-btn');
-      profileBtn.disabled = true;
-      profileBtn.textContent = '저장 중...';
-
+    // 공통 — 전체 프로필 저장
+    async function saveProfile(includeOptional) {
       const payload = {
         uuid: currentUuid,
         gender: selectedGender,
         birth_year: parseInt(document.getElementById('birth-year').value),
-        region: document.getElementById('region').value || null,
-        industry: document.getElementById('industry').value || null,
-        mbti: document.getElementById('mbti').value || null,
-        interest: document.getElementById('interest').value.trim() || null,
-        instagram: document.getElementById('instagram').value.trim() || null,
+        region: includeOptional ? (document.getElementById('region').value || null) : null,
+        industry: includeOptional ? (document.getElementById('industry').value || null) : null,
+        mbti: includeOptional ? (document.getElementById('mbti').value || null) : null,
+        interest: includeOptional ? (document.getElementById('interest').value.trim() || null) : null,
+        instagram: includeOptional ? (document.getElementById('instagram').value.trim() || null) : null,
       };
+      const res = await fetch(`${API}/api/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || err.message || 'save failed');
+      }
+    }
 
+    function goAfterProfile() {
+      const nextUrl = getNextUrl();
+      window.location.href = nextUrl || '/create';
+    }
+
+    // Step 1 완료 → 필수만 저장 → Step 2 로 전환
+    document.getElementById('profile-required-btn').addEventListener('click', async () => {
+      if (!selectedGender || !document.getElementById('birth-year').value) return;
+      const btn = document.getElementById('profile-required-btn');
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
       try {
-        const res = await fetch(`${API}/api/profile`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(()=>({}));
-          throw new Error(JSON.stringify(errData));
-        }
-        const nextUrl = getNextUrl();
-        window.location.href = nextUrl || '/create';
+        await saveProfile(false);
+        showStep('step-profile-optional');
+        updateOptionalProgress();
       } catch (err) {
-        console.error('[profile error]', err.message);
         alert('저장 오류: ' + err.message);
-        profileBtn.disabled = false;
-        profileBtn.textContent = '프로필 저장';
+        btn.disabled = false;
+        btn.textContent = '다음 →';
+      }
+    });
+
+    // Step 2 — 건너뛰기
+    document.getElementById('profile-skip-btn').addEventListener('click', () => {
+      goAfterProfile();
+    });
+
+    // Step 2 — 저장하고 시작 (선택 필드 포함)
+    document.getElementById('profile-save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('profile-save-btn');
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+      try {
+        await saveProfile(true);
+        goAfterProfile();
+      } catch (err) {
+        alert('저장 오류: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '저장하고 시작';
+      }
+    });
+
+    // 선택 필드 채움 수 집계 → 진행률 바
+    function updateOptionalProgress() {
+      const fields = ['region', 'industry', 'mbti', 'interest', 'instagram'];
+      let filled = 0;
+      for (const id of fields) {
+        const el = document.getElementById(id);
+        if (el && String(el.value || '').trim()) filled++;
+      }
+      const pct = Math.round((filled / fields.length) * 100);
+      document.getElementById('filledCount').textContent = filled;
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressFill').style.width = pct + '%';
+    }
+    ['region', 'industry', 'mbti', 'interest', 'instagram'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateOptionalProgress);
+        el.addEventListener('change', updateOptionalProgress);
       }
     });
 
