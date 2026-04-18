@@ -276,10 +276,17 @@ async function init() {
     if (ROOM.status === 'closed') { renderErr('이 모임은 이미 종료됐어요'); return; }
     document.getElementById('roomTitle').textContent = ROOM.title || ROOM_CODE;
 
-    // 이미 join 했으면 바로 게스트 화면으로
+    // 호스트 / 게스트 판별 — host_uuid 매칭
+    ROOM.isHost = ROOM.host_uuid && ROOM.host_uuid === UUID;
+    if (ROOM.isHost) {
+      const sub = document.querySelector('.room-tag');
+      if (sub) sub.textContent = `방 코드 ${ROOM_CODE} · 호스트`;
+    }
+
+    // 이미 join 했으면 바로 호스트/게스트 화면으로
     const meRes = await fetch(`/api/rooms/${ROOM_CODE}/me?uuid=${encodeURIComponent(UUID)}`);
     if (meRes.ok) {
-      location.replace(`/room/${ROOM_CODE}`);
+      location.replace(ROOM.isHost ? `/room/${ROOM_CODE}/host` : `/room/${ROOM_CODE}`);
       return;
     }
 
@@ -416,13 +423,14 @@ function renderStep() {
       `;
       break;
     case 'interest':
+      const selectedSet = new Set((data.interest || '').split(',').map(s => s.trim()).filter(Boolean));
       body = `
         <div class="step-num">${stepNum} · 관심사</div>
         <h2 class="step-title">뭘 좋아하세요?</h2>
-        <p class="step-sub">하나만 골라도 OK. 직접 입력도 가능.</p>
+        <p class="step-sub"><strong>여러 개 골라도 OK</strong>. 안 골라도 OK. 직접 입력도 가능.</p>
         <div class="field">
-          <div class="chip-row">${INTERESTS.map(v => `<button type="button" class="chip${data.interest===v?' selected':''}" data-group="interest" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
-          <input type="text" id="interestInput" maxlength="30" placeholder="또는 직접 입력" value="${escHtml(data.interest || '')}" style="margin-top:14px;">
+          <div class="chip-row">${INTERESTS.map(v => `<button type="button" class="chip${selectedSet.has(v)?' selected':''}" data-group="interest" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
+          <input type="text" id="interestInput" maxlength="60" placeholder="또는 직접 입력 (콤마로 여러 개)" value="${escHtml(data.interest || '')}" style="margin-top:14px;">
         </div>
         <div class="actions">
           ${prevBtn}
@@ -432,10 +440,14 @@ function renderStep() {
       `;
       break;
     case 'confirm':
+      const subText = ROOM.isHost
+        ? '호스트로 모임을 시작해요. 게스트들에게는 이렇게 보입니다.'
+        : '아래 정보로 다른 참가자에게 보입니다.';
+      const submitLabel = ROOM.isHost ? '호스트 화면 진입' : '입장하기';
       body = `
         <div class="step-num">${stepNum} · 확인</div>
         <h2 class="step-title">이렇게 입장해요</h2>
-        <p class="step-sub">아래 정보로 다른 참가자에게 보입니다.</p>
+        <p class="step-sub">${subText}</p>
         <div class="summary">
           <div class="summary-row"><span class="key">닉네임</span><span class="val">${escHtml(data.nickname)}</span></div>
           ${row('성별', data.gender === 'male' ? '남성' : data.gender === 'female' ? '여성' : '')}
@@ -447,7 +459,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" id="submitBtn" onclick="submitJoin()">입장하기</button>
+          <button type="button" class="btn btn-next" id="submitBtn" onclick="submitJoin()">${submitLabel}</button>
         </div>
         <div class="err-msg" id="errMsg"></div>
       `;
@@ -487,16 +499,25 @@ document.addEventListener('click', (e) => {
   const group = chip.dataset.group;
   if (!group) return;
   const wasSelected = chip.classList.contains('selected');
+
+  if (group === 'interest') {
+    // 관심사는 multi-select (0개~여러 개 OK)
+    chip.classList.toggle('selected', !wasSelected);
+    const selected = Array.from(document.querySelectorAll(`.chip[data-group="interest"].selected`))
+      .map(c => c.dataset.value);
+    data.interest = selected.length ? selected.join(', ') : null;
+    const inp = document.getElementById('interestInput');
+    if (inp) inp.value = data.interest || '';
+    return;
+  }
+
+  // 다른 그룹은 single-select (다시 누르면 취소)
   document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
   if (!wasSelected) {
     chip.classList.add('selected');
     data[group] = chip.dataset.value;
   } else {
     data[group] = null;
-  }
-  if (group === 'interest') {
-    const inp = document.getElementById('interestInput');
-    if (inp) inp.value = wasSelected ? '' : chip.dataset.value;
   }
 });
 
@@ -505,11 +526,10 @@ document.addEventListener('input', (e) => {
     const y = parseInt(e.target.value, 10);
     data.birth_year = (y >= 1940 && y <= 2030) ? y : null;
   } else if (e.target.id === 'interestInput') {
+    // 직접 입력 — 콤마로 구분된 문자열 그대로 저장. chip 자동선택은 끔(자유 텍스트)
     const v = e.target.value.trim();
-    data.interest = v || data.interest;
-    document.querySelectorAll('.chip[data-group="interest"]').forEach(c => {
-      c.classList.toggle('selected', c.dataset.value === v);
-    });
+    data.interest = v || null;
+    document.querySelectorAll('.chip[data-group="interest"]').forEach(c => c.classList.remove('selected'));
   }
 });
 
@@ -562,7 +582,7 @@ async function submitJoin() {
         industry: data.industry, mbti: data.mbti, interest: data.interest,
       }));
     } catch (_) {}
-    location.replace(`/room/${ROOM_CODE}`);
+    location.replace(ROOM.isHost ? `/room/${ROOM_CODE}/host` : `/room/${ROOM_CODE}`);
   } catch (e) {
     err.textContent = '서버 연결 실패';
     btn.disabled = false;
