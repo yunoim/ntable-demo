@@ -91,6 +91,16 @@ app.use('/api', adminAuthRouter);
 app.use('/api', userAuthRouter);
 
 // Page routes
+// OAuth 콜백 호환 wrapper — 카카오/Google 콘솔에 등록된 짧은 URI(/auth/...) 를 /api/auth/... 로 forward
+app.get('/auth/kakao/callback', (req, res) => {
+  const qs = new URLSearchParams(req.query).toString();
+  res.redirect('/api/auth/kakao/callback' + (qs ? '?' + qs : ''));
+});
+app.get('/auth/google/callback', (req, res) => {
+  const qs = new URLSearchParams(req.query).toString();
+  res.redirect('/api/auth/google/callback' + (qs ? '?' + qs : ''));
+});
+
 app.get('/room/:code/host', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'host.html'));
 });
