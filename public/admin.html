@@ -73,6 +73,38 @@
     font-size: 15px; font-weight: 700; cursor: pointer;
   }
   .login-err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .google-login {
+    width: 100%;
+    background: #fff !important;
+    color: #1f1f1f !important;
+    border: 1px solid #dadce0 !important;
+    border-radius: 10px;
+    padding: 12px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .google-login:hover { background: #f8f9fa !important; }
+  .google-login[hidden] { display: none; }
+  .login-divider {
+    position: relative;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    margin: 16px 0;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; position: absolute; top: 50%;
+    width: 30%; height: 1px; background: var(--border);
+  }
+  .login-divider::before { left: 0; }
+  .login-divider::after { right: 0; }
+  .login-divider[hidden] { display: none; }
 
   /* App */
   .app { display: none; min-height: 100vh; }
@@ -275,6 +307,19 @@
   <div class="login-card">
     <h1>ntable 관리자</h1>
     <p>플랫폼 운영 콘솔</p>
+
+    <button type="button" id="googleLoginBtn" class="google-login" hidden>
+      <svg width="18" height="18" viewBox="0 0 18 18" style="vertical-align:middle;margin-right:8px;">
+        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.964 10.707a5.41 5.41 0 0 1-.282-1.707c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
+        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+      </svg>
+      Google 로 로그인
+    </button>
+
+    <div class="login-divider" id="loginDivider" hidden>또는 비밀번호</div>
+
     <input type="password" id="passwordInput" placeholder="관리자 비밀번호" autocomplete="current-password" aria-label="관리자 비밀번호" />
     <button type="button" id="loginBtn">로그인</button>
     <div class="login-err" id="loginErr"></div>
@@ -382,6 +427,50 @@ function showLogin() {
   app.classList.remove('active');
 }
 
+// OAuth 콜백에서 돌아온 토큰 수신 (#token=XXX)
+(function captureOAuthToken() {
+  if (location.hash.startsWith('#token=')) {
+    const t = decodeURIComponent(location.hash.slice(7));
+    if (t) {
+      localStorage.setItem(TOKEN_KEY, t);
+      token = t;
+      history.replaceState(null, '', location.pathname);
+    }
+  }
+  // 콜백 에러 파라미터
+  const params = new URLSearchParams(location.search);
+  const errCode = params.get('error');
+  if (errCode) {
+    const msg = ({
+      not_allowed: '접근 권한이 없는 계정이에요. 관리자에게 문의하세요.',
+      email_unverified: '인증되지 않은 이메일은 사용할 수 없어요.',
+      state_mismatch: '세션이 만료되었어요. 다시 시도해주세요.',
+      server: '서버 오류. 잠시 후 다시 시도해주세요.',
+    })[errCode] || ('로그인 실패: ' + errCode);
+    setTimeout(() => {
+      const errEl = document.getElementById('loginErr');
+      if (errEl) errEl.textContent = msg;
+    }, 100);
+    history.replaceState(null, '', location.pathname);
+  }
+})();
+
+// OAuth 가용성 체크 — 활성화돼 있으면 Google 버튼 노출
+(async function initOAuthUI() {
+  try {
+    const r = await fetch('/api/admin/auth/status');
+    const data = await r.json();
+    if (data.oauth_available) {
+      document.getElementById('googleLoginBtn').hidden = false;
+      document.getElementById('loginDivider').hidden = false;
+    }
+  } catch {}
+})();
+
+document.getElementById('googleLoginBtn')?.addEventListener('click', () => {
+  location.href = '/api/admin/auth/google';
+});
+
 if (token) showApp(); else showLogin();
 
 document.getElementById('loginBtn').addEventListener('click', login);
@@ -411,7 +500,14 @@ async function login() {
   }
 }
 
-function logout() {
+async function logout() {
+  // 서버 세션 무효화 (OAuth 토큰일 경우)
+  try {
+    await fetch('/api/admin/auth/logout', {
+      method: 'POST',
+      headers: { 'x-admin-token': token },
+    });
+  } catch {}
   localStorage.removeItem(TOKEN_KEY);
   token = '';
   showLogin();

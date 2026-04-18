@@ -1,29 +1,42 @@
 // routes/panel.js
 // 플랫폼 운영자용 관리자 API
-// 인증: ADMIN_PASSWORD 환경변수 (미설정 시 'admin123')
+// 인증: Google OAuth 세션 토큰 (권장) 또는 ADMIN_PASSWORD (레거시, OAuth 확인 후 제거 예정)
 
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const adminAuth = require('./admin-auth');
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-function requireAdmin(req, res, next) {
+// 인증 미들웨어 — OAuth 우선, password 폴백
+async function requireAdmin(req, res, next) {
   const token = req.headers['x-admin-token'] || req.query.token;
-  if (!token || token !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'UNAUTHORIZED' });
+  if (!token) return res.status(401).json({ error: 'UNAUTHORIZED' });
+
+  // 1) OAuth 토큰 검증
+  const oauthUser = await adminAuth.verifyOAuthToken(token);
+  if (oauthUser) {
+    req.admin = oauthUser;
+    return next();
   }
-  next();
+
+  // 2) 레거시 password 토큰 허용 (OAuth 설정 전 환경)
+  if (token === ADMIN_PASSWORD) {
+    req.admin = { email: 'legacy-admin', role: 'super_admin', legacy: true };
+    return next();
+  }
+
+  return res.status(401).json({ error: 'UNAUTHORIZED' });
 }
 
-// POST /api/panel/login
+// POST /api/panel/login — 비밀번호 로그인 (레거시)
 router.post('/panel/login', (req, res) => {
   const { password } = req.body || {};
   if (!password || password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'INVALID_PASSWORD' });
   }
-  // 간단히 password 자체를 토큰으로 사용 (단일 관리자 가정)
-  res.json({ token: ADMIN_PASSWORD });
+  res.json({ token: ADMIN_PASSWORD, method: 'password' });
 });
 
 // GET /api/panel/stats

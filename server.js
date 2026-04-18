@@ -15,6 +15,7 @@ const adminRouter = require('./routes/admin');
 const surveyRouter = require('./routes/survey');
 const aiRouter = require('./routes/ai');
 const panelRouter = require('./routes/panel');
+const adminAuthRouter = require('./routes/admin-auth');
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use('/api', adminRouter);
 app.use('/api', surveyRouter);
 app.use('/api', aiRouter);
 app.use('/api', panelRouter);
+app.use('/api', adminAuthRouter);
 
 // Page routes
 app.get('/room/:code/host', (req, res) => {
@@ -131,6 +133,7 @@ const server = http.createServer(app);
 
 wsRouter.init(server);
 adminRouter.init(require('./db').pool, wsRouter);
+adminAuthRouter.init(require('./db').pool);
 
 const PORT = process.env.PORT || 8080;
 

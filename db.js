@@ -142,6 +142,42 @@ async function initDB() {
       )
     `);
 
+    // admin_users — Google OAuth 화이트리스트
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        google_sub VARCHAR(64) UNIQUE,
+        name VARCHAR(100),
+        picture TEXT,
+        role VARCHAR(20) NOT NULL DEFAULT 'tenant_admin',
+        tenant_id VARCHAR(40),
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        last_login_at TIMESTAMP
+      )
+    `);
+
+    // admin_sessions — OAuth 로그인 후 발급되는 세션 토큰
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_sessions (
+        token VARCHAR(128) PRIMARY KEY,
+        admin_id INTEGER REFERENCES admin_users(id) ON DELETE CASCADE,
+        expires_at TIMESTAMP NOT NULL,
+        ip VARCHAR(45),
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Bootstrap super_admin — skb.yunho.im@gmail.com
+    await client.query(
+      `INSERT INTO admin_users (email, role, active)
+       VALUES ($1, 'super_admin', true)
+       ON CONFLICT (email) DO UPDATE SET role = 'super_admin', active = true`,
+      ['skb.yunho.im@gmail.com']
+    );
+
     console.log('[DB] All tables initialized');
   } catch (err) {
     console.error('[DB] initDB error:', err);
