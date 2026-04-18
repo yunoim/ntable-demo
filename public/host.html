@@ -1861,6 +1861,15 @@ function connectWS() {
     // 호스트 입장 시 기존 참가자에게 사진 다시 broadcast 요청 + 차단 목록 동기화
     try { ws.send(JSON.stringify({ type: 'request_photos' })); } catch (_) {}
     try { ws.send(JSON.stringify({ type: 'request_banlist' })); } catch (_) {}
+    // 본인 사진(wizard에서 저장) broadcast — 게스트와 동일 패턴
+    try {
+      const savedPhoto = localStorage.getItem(`ntable_photo_${state.roomCode}`);
+      if (savedPhoto) {
+        state.photos[state.uuid] = savedPhoto;
+        ws.send(JSON.stringify({ type: 'photo_update', photo: savedPhoto }));
+        renderApprovedList();
+      }
+    } catch (_) {}
   };
   ws.onmessage = (e) => { try { handleWSMessage(JSON.parse(e.data)); } catch {} };
   ws.onclose = () => {
