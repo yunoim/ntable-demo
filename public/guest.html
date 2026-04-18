@@ -1177,6 +1177,41 @@
     font-weight: 500;
   }
   .vote-done-msg.show { display: block; }
+  .vote-submit-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 13px 0;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .vote-submit-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .vote-submit-btn:not(:disabled):hover { transform: translateY(-1px); }
+  .closing-wait-msg {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  .closing-wait-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+  .closing-wait-msg div:not(.closing-wait-icon) {
+    font-size: 14px;
+    line-height: 1.6;
+  }
 
   /* ─── ERROR SCREEN ─── */
   #screenError {
@@ -1463,17 +1498,23 @@
     <span class="room-tag" id="closingRoomTag">—</span>
   </div>
   <div class="closing-content">
-    <div class="section-block">
+    <div class="section-block" id="mvpSection">
       <div class="section-title">🏆 오늘의 MVP</div>
-      <div class="section-block-hint">오늘 가장 인상 깊었던 분 한 명을 선택해주세요.</div>
+      <div class="section-block-hint">오늘 가장 인상 깊었던 분 한 명을 선택해주세요. (다시 누르면 취소)</div>
       <div id="mvpList"></div>
+      <button type="button" class="vote-submit-btn" id="mvpSubmit" onclick="submitVote('mvp')" disabled>투표 완료</button>
       <div class="vote-done-msg" id="mvpDoneMsg">✓ 투표 완료</div>
     </div>
-    <div class="section-block">
+    <div class="section-block" id="matchSection">
       <div class="section-title">💘 사랑의 작대기</div>
-      <div class="section-block-hint">마음에 든 분 한 명을 선택해주세요. 서로 지목하면 매칭돼요.</div>
+      <div class="section-block-hint">마음에 든 분 한 명을 선택해주세요. 서로 지목하면 매칭돼요. (다시 누르면 취소)</div>
       <div id="matchList"></div>
+      <button type="button" class="vote-submit-btn" id="matchSubmit" onclick="submitVote('match')" disabled>선택 완료</button>
       <div class="vote-done-msg" id="matchDoneMsg">✓ 선택 완료</div>
+    </div>
+    <div class="closing-wait-msg" id="closingWaitMsg" hidden>
+      <div class="closing-wait-icon">⏳</div>
+      <div>호스트가 다음 단계로 진행할 때까지 기다려주세요</div>
     </div>
   </div>
 </div>
@@ -1501,6 +1542,8 @@ const STATE = {
   mouseStartX: 0,
   mvpVoted: false,
   matchVoted: false,
+  mvpPending: null,    // 로컬 선택(서버 미전송)
+  matchPending: null,  // 로컬 선택(서버 미전송)
   matchResult: null,
   instaRevealed: false,
 };
@@ -1676,6 +1719,7 @@ async function handleWSMessage(msg) {
       } else if (current_tab === 'closing') {
         switchScreen('closing');
         try { await loadClosingData(); } catch (e) { console.warn('loadClosingData', e); }
+        applyClosingPhase(msg.state.phase || 'closing');
       }
       break;
     }
@@ -1765,7 +1809,64 @@ async function handleWSMessage(msg) {
       const myAv2 = document.getElementById('myAvatar');
       if (myAv2) { myAv2.disabled = false; myAv2.title = '사진 업로드'; }
       break;
+
+    case 'mvp_announce':
+      // 호스트가 MVP 결과 발표 → mvpOverlay 표시 (matching_result 와 분리)
+      showMVPOverlay(msg.mvp);
+      break;
   }
+}
+
+// closing phase 별로 section 토글
+function applyClosingPhase(phase) {
+  const mvpSec = document.getElementById('mvpSection');
+  const matchSec = document.getElementById('matchSection');
+  const wait = document.getElementById('closingWaitMsg');
+  if (!mvpSec || !matchSec) return; // 1:1 자동스킵 시엔 closing-content 가 oneonone 으로 교체됨
+  switch (phase) {
+    case 'closing-mvp':
+      mvpSec.hidden = false;
+      matchSec.hidden = true;
+      if (wait) wait.hidden = true;
+      break;
+    case 'closing-mvp-result':
+      mvpSec.hidden = true;
+      matchSec.hidden = true;
+      if (wait) { wait.hidden = false; wait.querySelector('div:not(.closing-wait-icon)').textContent = '🏆 MVP 발표 중…'; }
+      break;
+    case 'closing-match':
+      mvpSec.hidden = true;
+      matchSec.hidden = false;
+      if (wait) wait.hidden = true;
+      break;
+    case 'closing-match-result':
+      mvpSec.hidden = true;
+      matchSec.hidden = true;
+      if (wait) { wait.hidden = false; wait.querySelector('div:not(.closing-wait-icon)').textContent = '💘 매칭 결과 발표 중…'; }
+      break;
+    default: // legacy 'closing'
+      mvpSec.hidden = false;
+      matchSec.hidden = false;
+      if (wait) wait.hidden = true;
+  }
+}
+
+function showMVPOverlay(mvp) {
+  if (!mvp || !mvp.nickname) return;
+  const overlay = document.getElementById('mvpOverlay');
+  const photo = document.getElementById('mvpPhoto');
+  const name = document.getElementById('mvpName');
+  const sub = document.getElementById('mvpSub');
+  if (!overlay) return;
+  const mvpUuid = mvp.uuid;
+  const isMe = mvpUuid && mvpUuid === STATE.uuid;
+  const photoData = mvpUuid && STATE.photos[mvpUuid];
+  photo.innerHTML = photoData ? `<img src="${escHtml(photoData)}" alt="">` : '🏆';
+  name.textContent = mvp.nickname + (isMe ? ' (나)' : '');
+  sub.textContent = (mvp.fi_count != null)
+    ? `투표 ${mvp.fi_count}표 — 오늘 가장 인상적인 사람`
+    : '오늘 가장 인상적인 사람';
+  overlay.hidden = false;
 }
 
 // ─── helpers ──────────────────────────────────────
@@ -2345,33 +2446,72 @@ function renderVoteList(containerId, type) {
     });
 }
 
+// 로컬 선택만 (서버 전송은 submitVote에서) — 두번 누르면 취소
 function selectVote(el, type, targetUuid) {
   const isDone = type === 'mvp' ? STATE.mvpVoted : STATE.matchVoted;
   if (isDone) return;
 
-  el.closest('div').querySelectorAll('.member-vote-item').forEach(i => {
+  const list = el.closest('[id$=List]') || el.parentElement;
+  const isSelected = el.classList.contains('selected');
+
+  // 모두 비선택 처리
+  list.querySelectorAll('.member-vote-item').forEach(i => {
     i.classList.remove('selected');
     i.querySelector('.vote-check').textContent = '○';
   });
-  el.classList.add('selected');
-  el.querySelector('.vote-check').textContent = '✓';
+
+  // 두번째 클릭 = 취소 (그대로 둠), 첫번째 또는 다른 항목 클릭 = 선택
+  let selected = null;
+  if (!isSelected) {
+    el.classList.add('selected');
+    el.querySelector('.vote-check').textContent = '✓';
+    selected = targetUuid;
+  }
+
+  // 로컬 상태 + submit 버튼 활성화
+  if (type === 'mvp') {
+    STATE.mvpPending = selected;
+    document.getElementById('mvpSubmit').disabled = !selected;
+  } else {
+    STATE.matchPending = selected;
+    document.getElementById('matchSubmit').disabled = !selected;
+  }
+}
+
+// 투표 완료 버튼 — 서버로 전송 + 잠금
+async function submitVote(type) {
+  const isDone = type === 'mvp' ? STATE.mvpVoted : STATE.matchVoted;
+  if (isDone) return;
+  const targetUuid = type === 'mvp' ? STATE.mvpPending : STATE.matchPending;
+  if (!targetUuid) return;
+
+  const submitBtn = document.getElementById(type === 'mvp' ? 'mvpSubmit' : 'matchSubmit');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '전송 중…';
 
   const endpoint = type === 'mvp' ? 'vote/mvp' : 'vote/match';
-  fetch(`/api/rooms/${STATE.roomCode}/${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uuid: STATE.uuid, target_uuid: targetUuid }),
-  }).catch(() => {});
-
-  if (type === 'mvp') {
-    STATE.mvpVoted = true;
-    el.closest('div').querySelectorAll('.member-vote-item').forEach(i => i.classList.add('done'));
-    document.getElementById('mvpDoneMsg').classList.add('show');
-  } else {
-    STATE.matchVoted = true;
-    el.closest('div').querySelectorAll('.member-vote-item').forEach(i => i.classList.add('done'));
-    document.getElementById('matchDoneMsg').classList.add('show');
+  try {
+    await fetch(`/api/rooms/${STATE.roomCode}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid: STATE.uuid, target_uuid: targetUuid }),
+    });
+  } catch (_) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = type === 'mvp' ? '투표 완료' : '선택 완료';
+    if (typeof toast === 'function') toast('전송 실패. 다시 시도해주세요');
+    return;
   }
+
+  // 잠금
+  const listId = type === 'mvp' ? 'mvpList' : 'matchList';
+  document.getElementById(listId).querySelectorAll('.member-vote-item')
+    .forEach(i => i.classList.add('done'));
+  document.getElementById(type === 'mvp' ? 'mvpDoneMsg' : 'matchDoneMsg').classList.add('show');
+  submitBtn.style.display = 'none';
+
+  if (type === 'mvp') STATE.mvpVoted = true;
+  else STATE.matchVoted = true;
 }
 
 // ─── MATCHING RESULT ──────────────────────────────
@@ -2431,26 +2571,11 @@ function showMatchingResult(matchJson) {
     if (photoWrap) photoWrap.hidden = true;
   }
 
-  // MVP 발표 — 별도 overlay로 먼저 띄움 (매칭 결과는 아래에 이미 준비됨)
-  const mvp = matchJson && matchJson.mvp;
+  // MVP 발표는 별도 'mvp_announce' WS 메시지로 처리됨 (이 함수에서는 매칭만 표시)
+  // — 단, mvp_announce 가 아직 안 온 환경(legacy)에서는 matchJson.mvp 도 띄움
   const mvpOverlay = document.getElementById('mvpOverlay');
-  const mvpPhoto = document.getElementById('mvpPhoto');
-  const mvpName = document.getElementById('mvpName');
-  const mvpSub = document.getElementById('mvpSub');
-  if (mvp && mvp.nickname && mvpOverlay) {
-    const mvpUuid = mvp.uuid;
-    const isMe = mvpUuid && mvpUuid === STATE.uuid;
-    const photo = mvpUuid && STATE.photos[mvpUuid];
-    mvpPhoto.innerHTML = photo
-      ? `<img src="${escHtml(photo)}" alt="">`
-      : '🏆';
-    mvpName.textContent = mvp.nickname + (isMe ? ' (나)' : '');
-    mvpSub.textContent = (mvp.fi_count != null)
-      ? `투표 ${mvp.fi_count}표 — 오늘 가장 인상적인 사람`
-      : '오늘 가장 인상적인 사람';
-    mvpOverlay.hidden = false;
-  } else if (mvpOverlay) {
-    mvpOverlay.hidden = true;
+  if (mvpOverlay && mvpOverlay.hidden && matchJson && matchJson.mvp) {
+    showMVPOverlay(matchJson.mvp);
   }
 
   overlay.classList.add('show');

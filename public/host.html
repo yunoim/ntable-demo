@@ -549,6 +549,38 @@
   .approved-unban:hover { background: rgba(126,232,162,0.28); }
   .empty-msg { color: var(--text-muted); font-size: 13px; padding: 6px 2px; }
 
+  .closing-substeps {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: 12px 0 18px;
+  }
+  .csub {
+    padding: 6px 11px; border-radius: 14px;
+    font-size: 12px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--gold-border);
+  }
+  .csub.active {
+    background: var(--gold);
+    color: var(--navy);
+    border-color: var(--gold);
+    font-weight: 700;
+  }
+  .csub.done { color: var(--gold-light); }
+  .csub-next-btn {
+    margin-top: 14px;
+    padding: 11px 18px;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .csub-next-btn:hover { background: var(--gold-light); }
+
   /* ── MAIN STAGE ────────────────────────────────── */
   #main {
     flex: 1;
@@ -1340,13 +1372,21 @@
     <div class="panel" id="panel-ending">
       <div class="stage-tag">Step 04 · 마무리</div>
       <h1 class="stage-title">오늘의 <em>결과</em></h1>
-      <p class="stage-sub">MVP와 매칭 결과를 확인하고 모임을 마무리하세요.</p>
+      <p class="stage-sub">MVP 투표 → 발표 → 작대기 → 매칭 발표 순서로 진행하세요.</p>
+
+      <div class="closing-substeps" id="closingSubsteps">
+        <span class="csub" data-sub="mvp">① MVP 투표</span>
+        <span class="csub" data-sub="mvp-result">② MVP 발표</span>
+        <span class="csub" data-sub="match">③ 작대기 투표</span>
+        <span class="csub" data-sub="match-result">④ 매칭 발표</span>
+      </div>
 
       <div class="closing-grid">
         <div class="free-card">
-          <div class="card-head">🏆 MVP 투표 — 가장 인상적인 사람</div>
+          <div class="card-head" id="closing-card-head">🏆 MVP 투표 — 가장 인상적인 사람</div>
           <div id="mvp-list"></div>
-          <div class="card-help" style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.5;">참가자가 직접 투표합니다. 호스트 화면은 실시간 집계만 표시.</div>
+          <div class="card-help" id="closing-card-help" style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.5;">참가자가 직접 투표합니다. 호스트 화면은 실시간 집계만 표시.</div>
+          <button type="button" class="csub-next-btn" id="closingNextBtn" onclick="advanceClosingPhase()">다음 단계 →</button>
         </div>
         <div class="free-card" id="match-result-card" style="display:none;">
           <div class="card-head">💘 매칭 결과</div>
@@ -2019,10 +2059,12 @@ function bindEvents() {
   document.getElementById('primary-btn').addEventListener('click', onPrimary);
   document.getElementById('back-btn').addEventListener('click', onBack);
   document.getElementById('force-match-btn').addEventListener('click', async () => {
-    if (!confirm('지금까지의 투표로 매칭을 진행할까요?')) return;
+    if (!confirm('지금까지의 투표로 매칭을 즉시 발표할까요?')) return;
     await doMatch();
     switchTab('ending');
-    updateState({ phase: 'closing', current_tab: 'closing' });
+    state.closingPhase = 'closing-match-result';
+    renderClosingSubsteps('closing-match-result');
+    updateState({ phase: 'closing-match-result', current_tab: 'closing' });
   });
 
   document.getElementById('timer-minus').addEventListener('click', () => adjustTimer(-5));
@@ -2052,11 +2094,13 @@ function onPrimary() {
       }
       break;
     case 'free':
-      updateState({ phase: 'closing', current_tab: 'closing' });
+      // ending tab 진입 — switchTab 안에서 자동으로 closing-mvp 단계 시작 (updateState 포함)
       switchTab('ending');
       break;
     case 'ending':
-      doMatch();
+      // 새 흐름: closing 단계 진행은 closingNextBtn(advanceClosingPhase)이 담당.
+      // primary-btn 도 진행 단계로 매핑 (호환).
+      advanceClosingPhase();
       break;
   }
 }
@@ -2084,6 +2128,12 @@ function switchTab(tab) {
   if (tab === 'ending') {
     updateMVPList();
     applyOneOnOneEnding();
+    // 처음 진입 시 closing-mvp 단계로 시작
+    if (!state.closingPhase) {
+      state.closingPhase = 'closing-mvp';
+      renderClosingSubsteps('closing-mvp');
+      updateState({ phase: 'closing-mvp', current_tab: 'closing' });
+    }
   }
   updatePrimaryButton();
 }
@@ -2092,13 +2142,70 @@ function switchTab(tab) {
 function applyOneOnOneEnding() {
   const total = state.approvedUsers.length + (state.hostRole === 'participant' ? 1 : 0);
   const mvpCard = document.querySelector('#panel-ending .free-card');
+  const substeps = document.getElementById('closingSubsteps');
   if (!mvpCard) return;
   if (total <= 2) {
+    if (substeps) substeps.style.display = 'none';
     mvpCard.innerHTML = `
       <div class="card-head">💑 1:1 모임 — 자동 매칭</div>
       <div class="card-help" style="font-size:13px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
         2명 이하라 MVP/작대기 투표가 생략됩니다. <strong style="color:var(--gold-light);">강제 매칭</strong> 버튼을 눌러 결과를 발표해주세요.
       </div>`;
+    state.oneOnOne = true;
+  }
+}
+
+// closing 단계 시각 표시 + 카드 head/help 업데이트
+function renderClosingSubsteps(current) {
+  document.querySelectorAll('.csub').forEach(el => {
+    el.classList.toggle('active', el.dataset.sub === current.replace('closing-', ''));
+    const order = ['mvp', 'mvp-result', 'match', 'match-result'];
+    const curIdx = order.indexOf(current.replace('closing-', ''));
+    const elIdx = order.indexOf(el.dataset.sub);
+    el.classList.toggle('done', elIdx < curIdx);
+  });
+  const head = document.getElementById('closing-card-head');
+  const help = document.getElementById('closing-card-help');
+  const nextBtn = document.getElementById('closingNextBtn');
+  const labels = {
+    'closing-mvp':        ['🏆 MVP 투표 — 가장 인상적인 사람', '참가자가 본인 카드에서 투표 + "투표 완료" 누름. 호스트 화면은 실시간 집계.', 'MVP 발표 →'],
+    'closing-mvp-result': ['🏆 MVP 발표', '참가자 화면에 MVP 카드가 떴어요. 다음 단계로 넘기세요.', '작대기 시작 →'],
+    'closing-match':      ['💘 사랑의 작대기', '참가자가 또 만나고 싶은 사람을 선택 + "선택 완료". 모두 끝나면 매칭 발표로.', '매칭 발표 →'],
+    'closing-match-result': ['💘 매칭 결과', '매칭 카드가 참가자 화면에 떴어요. 인스타 공유 등 마무리 단계.', '모임 종료'],
+  };
+  const conf = labels[current] || labels['closing-mvp'];
+  if (head) head.textContent = conf[0];
+  if (help) help.textContent = conf[1];
+  if (nextBtn) nextBtn.textContent = conf[2];
+}
+
+async function advanceClosingPhase() {
+  const order = ['closing-mvp', 'closing-mvp-result', 'closing-match', 'closing-match-result'];
+  const cur = state.closingPhase || 'closing-mvp';
+  const idx = order.indexOf(cur);
+  const next = order[idx + 1];
+
+  if (!next) {
+    // 마지막 단계 → 모임 종료
+    closeRoom();
+    return;
+  }
+
+  state.closingPhase = next;
+  renderClosingSubsteps(next);
+
+  if (next === 'closing-mvp-result') {
+    // MVP 결과 발표 — 서버에 mvp-finalize 요청
+    try {
+      await api(`/api/rooms/${state.roomCode}/mvp-finalize`, 'POST', { host_uuid: state.uuid });
+    } catch (e) { console.error('mvp-finalize fail', e); }
+    updateState({ phase: 'closing-mvp-result', current_tab: 'closing' });
+  } else if (next === 'closing-match-result') {
+    // 매칭 발표 — doMatch + matching_result broadcast
+    await doMatch();
+    updateState({ phase: 'closing-match-result', current_tab: 'closing' });
+  } else {
+    updateState({ phase: next, current_tab: 'closing' });
   }
 }
 

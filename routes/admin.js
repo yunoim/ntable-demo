@@ -377,6 +377,40 @@ router.post('/rooms/:code/vote/mvp', async (req, res) => {
   }
 });
 
+// ─── POST /api/rooms/:code/mvp-finalize ──────────────────────────────────────
+// 호스트가 MVP 결과 발표 단계로 진입할 때 호출. 1위 mvp 산정 + broadcast 'mvp_announce'.
+router.post('/rooms/:code/mvp-finalize', async (req, res) => {
+  const { code } = req.params;
+  const { host_uuid } = req.body;
+  try {
+    const room = await pool.query(
+      'SELECT id, host_uuid FROM rooms WHERE room_code = $1', [code]
+    );
+    if (!room.rows.length) return res.status(404).json({ error: '방 없음' });
+    if (room.rows[0].host_uuid !== host_uuid) return res.status(403).json({ error: '권한 없음' });
+    const room_id = room.rows[0].id;
+
+    const top = await pool.query(
+      `SELECT mr.uuid, mr.fi_count, u.nickname
+         FROM member_results mr
+         LEFT JOIN users u ON u.uuid = mr.uuid
+        WHERE mr.room_id = $1 AND mr.fi_count > 0
+        ORDER BY mr.fi_count DESC, u.nickname ASC
+        LIMIT 1`,
+      [room_id]
+    );
+    const mvp = top.rows[0]
+      ? { uuid: top.rows[0].uuid, nickname: top.rows[0].nickname || '익명', fi_count: top.rows[0].fi_count || 0 }
+      : null;
+
+    broadcastToRoom(code, { type: 'mvp_announce', mvp });
+    res.json({ success: true, mvp });
+  } catch (err) {
+    console.error('mvp-finalize error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── POST /api/rooms/:code/insta-reveal ──────────────────────────────────────
 // 상호 동의 후 인스타그램 공개. body: { uuid }
 // 내 매칭 상대를 match_json.pairs 에서 찾고, 양쪽 모두 instagram_revealed=true 면 상대 instagram 반환
