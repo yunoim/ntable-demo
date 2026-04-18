@@ -385,15 +385,11 @@
     }
     #packSetup[hidden] { display: none; }
 
-    /* 5개 방 카드 (1-tap) */
+    /* 5개 방 카드 — When 중심, 동일 크기 1열 */
     .pack-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 560px) {
-      .pack-grid { grid-template-columns: repeat(2, 1fr); }
-      .pack-card.featured { grid-column: 1 / -1; }
+      gap: 10px;
     }
     .pack-card {
       background: var(--navy-light);
@@ -411,10 +407,7 @@
     }
     .pack-card:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,168,67,0.15); }
     .pack-card:active { transform: scale(0.98); }
-    .pack-card.featured {
-      background: linear-gradient(135deg, rgba(212,168,67,0.16), rgba(212,168,67,0.04));
-      border-color: var(--gold);
-    }
+    /* featured 강조는 폐기 — 모든 카드 동일 크기·톤 */
     .pack-card .pack-head { display: flex; align-items: center; gap: 10px; }
     .pack-card .pack-icon { font-size: 24px; line-height: 1; }
     .pack-card .pack-title { font-size: 15px; font-weight: 700; color: var(--white); letter-spacing: 0.01em; }
@@ -613,23 +606,9 @@
     <div class="welcome" id="welcomeMsg">어떤 모임을 하실 거예요?</div>
 
     <div class="card">
-      <!-- 둘이서만 1-tap 히어로 -->
-      <div class="couples-hero" id="couplesHero">
-        <span class="couples-hero-eyebrow">💕 둘이서</span>
-        <h3>지금 마주앉은 사람과</h3>
-        <p>지금 마주앉은 한 명과 1:1로</p>
-        <ul class="pack-features">
-          <li>10문항 A/B 투표</li>
-          <li>실시간 호환도 공개</li>
-          <li>매칭 결과 카드</li>
-          <li>AI 성향 카드</li>
-        </ul>
-        <button type="button" class="couples-hero-btn" id="quickCouplesBtn" style="margin-top:18px;">둘이서 시작하기</button>
-      </div>
+      <div class="group-section-header">어떤 자리인가요?</div>
 
-      <div class="group-section-header">그룹·다인원 팩</div>
-
-      <!-- 4개 그룹 방 카드 (couples는 hero로 분리) -->
+      <!-- 5개 방 카드 — 사용 맥락(When) 중심, 동일 크기 -->
       <div class="pack-grid" id="packGrid"></div>
 
       <!-- ⚙ 상세 설정 — 미노출 (2026-04-19 spec) -->
@@ -738,14 +717,7 @@
     const ROOM_KITS = [
       {
         id: 'couples', icon: '💕', title: '둘이서',
-        desc: '지금 마주앉은 한 명과 1:1로',
-        features: [
-          '10문항 A/B 투표',
-          '실시간 호환도 공개',
-          '매칭 결과 카드',
-          'AI 성향 카드',
-        ],
-        featured: true,
+        desc: '친구 · 썸 · 커플 · 1:1 미팅',
         defaults: {
           question_count: 10,
           display_fields: ['birth_year', 'region', 'industry', 'interest'],
@@ -756,16 +728,8 @@
         },
       },
       {
-        id: 'icebreaker', icon: '🧊', title: '첫만남 아이스브레이크',
-        desc: '어느 모임에나 붙이는 가벼운 오프닝',
-        features: [
-          'QR 입장 · 첫인상 투표',
-          '자동 참가자 소개',
-          '5문항 A/B 투표',
-          '자유대화 (타이머 · 주제카드)',
-          'MVP 투표',
-          'AI 성향 카드',
-        ],
+        id: 'icebreaker', icon: '🧊', title: '처음 만나는 자리',
+        desc: '낯선 사람들과 첫 인사',
         defaults: {
           question_count: 5,
           display_fields: ['birth_year', 'region', 'interest'],
@@ -776,17 +740,8 @@
         },
       },
       {
-        id: 'dating', icon: '💘', title: '연애 성향 탐구',
-        desc: '소개팅·연애 모임. 실시간 매칭 공개',
-        features: [
-          'QR 입장 · 첫인상 투표',
-          '자동 참가자 소개',
-          '10문항 A/B 투표 · 실시간 호환도',
-          '자유대화 (타이머 · 익명채팅)',
-          '베스트 페어 공개',
-          'MVP 투표 · 비밀 호감',
-          'AI 성향 카드',
-        ],
+        id: 'dating', icon: '💘', title: '소개팅·연애 모임',
+        desc: '호감도를 재미있게',
         defaults: {
           question_count: 10,
           display_fields: ['birth_year', 'region', 'interest'],
@@ -798,15 +753,7 @@
       },
       {
         id: 'friends-reunion', icon: '🍻', title: '오랜만에 만난 사이',
-        desc: '동창회·송년회·이사 집들이',
-        features: [
-          'QR 입장 · 닉네임 기반',
-          '자동 참가자 소개',
-          '8문항 A/B 투표',
-          '자유대화 (타이머 · 주제카드)',
-          '탐구 결과 공개',
-          'AI 성향 카드',
-        ],
+        desc: '동창회 · 송년회 · 집들이',
         defaults: {
           question_count: 8,
           display_fields: ['birth_year', 'region', 'interest'],
@@ -817,17 +764,8 @@
         },
       },
       {
-        id: 'teambuilding', icon: '💼', title: '팀빌딩·워크숍',
-        desc: '회사 팀 합류·부서 워크숍·신입 OT',
-        features: [
-          'QR 입장 · 자동 참가자 소개',
-          '10문항 A/B 투표',
-          '자유대화 (타이머 · 주제카드)',
-          '베스트 페어 공개',
-          'MVP 투표',
-          '탐구 결과 공개',
-          'AI 성향 카드',
-        ],
+        id: 'teambuilding', icon: '💼', title: '회사·팀 모임',
+        desc: '팀빌딩 · 신입 OT · 워크숍',
         defaults: {
           question_count: 10,
           display_fields: ['birth_year', 'region', 'interest'],
@@ -842,9 +780,8 @@
     function renderRoomCard(kit) {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'pack-card' + (kit.featured ? ' featured' : '');
+      card.className = 'pack-card';
       card.dataset.packId = kit.id;
-      const featuresHtml = (kit.features || []).map(f => `<li>${escHtml(f)}</li>`).join('');
       card.innerHTML = `
         <span class="pack-cta" aria-hidden="true">→</span>
         <div class="pack-head">
@@ -852,7 +789,6 @@
           <span class="pack-title">${escHtml(kit.title)}</span>
         </div>
         <div class="pack-desc">${escHtml(kit.desc)}</div>
-        <ul class="pack-features">${featuresHtml}</ul>
       `;
       card.addEventListener('click', () => createRoomFromKit(kit));
       return card;
@@ -861,15 +797,8 @@
     function loadPacks() {
       const grid = document.getElementById('packGrid');
       grid.innerHTML = '';
-      // couples는 hero로 별도 — grid에서 제외
-      ROOM_KITS.filter(k => k.id !== 'couples').forEach(kit => grid.appendChild(renderRoomCard(kit)));
+      ROOM_KITS.forEach(kit => grid.appendChild(renderRoomCard(kit)));
     }
-
-    // 둘이서 hero 1-tap
-    document.getElementById('quickCouplesBtn').addEventListener('click', () => {
-      const couples = ROOM_KITS.find(k => k.id === 'couples');
-      if (couples) createRoomFromKit(couples);
-    });
 
     async function createRoomFromKit(kit) {
       const errMsg = document.getElementById('errorMsg');
