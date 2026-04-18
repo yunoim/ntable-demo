@@ -118,6 +118,12 @@ async function initDB() {
     try { await client.query(`ALTER TABLE users ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
     try { await client.query(`ALTER TABLE room_members ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
 
+    // 카드 비공개 (입력+숨김) — 멤버별로 매칭에는 사용되지만 게스트 카드에는 안 보이게 마스킹
+    try { await client.query(`ALTER TABLE room_members ADD COLUMN hide_birth_year BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
+    try { await client.query(`ALTER TABLE room_members ADD COLUMN hide_region BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
+    try { await client.query(`ALTER TABLE room_members ADD COLUMN hide_industry BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
+    try { await client.query(`ALTER TABLE room_members ADD COLUMN hide_interest BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
+
     // users.nickname — 방별 익명 구조로 전환되며 더 이상 unique·required 아님
     // (호환성 위해 컬럼 자체는 유지)
     try { await client.query(`ALTER TABLE users ALTER COLUMN nickname DROP NOT NULL`); } catch (_) {}

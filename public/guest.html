@@ -1375,7 +1375,7 @@
 
 <!-- Waiting Screen -->
 <div class="screen" id="screenWaiting">
-  <button type="button" class="waiting-logout" onclick="guestLogout()" aria-label="이 방에서 나가기">방 나가기</button>
+  <button type="button" class="waiting-logout" onclick="guestLogout()" aria-label="이 모임에서 나가기">모임 나가기</button>
   <div class="waiting-msg">
     <h2>호스트 승인을<br>기다리고 있어요</h2>
     <p id="waitingStatus">방금 도착. 호스트가 확인 중이에요.</p>
@@ -1564,12 +1564,12 @@
   </div>
 </div>
 
-<!-- Nickname 입장 모달 (방 입장 시 닉네임 받기) -->
+<!-- Nickname 입장 모달 (모임 입장 시 닉네임 받기) -->
 <div id="nicknameOverlay" hidden>
   <div class="nick-card">
     <div class="nick-eyebrow">📍 <span id="nickRoomTitle">—</span></div>
     <h2 class="nick-title">닉네임을 정해주세요</h2>
-    <p class="nick-sub">이 모임 안에서만 사용돼요. <strong>방이 끝나면 자동으로 사라져요.</strong></p>
+    <p class="nick-sub">이 모임 안에서만 사용돼요. <strong>모임이 끝나면 자동으로 사라져요.</strong></p>
     <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" class="nick-input" autocomplete="off" autocapitalize="off" autocorrect="off" />
     <button type="button" id="nicknameJoinBtn" class="nick-btn" onclick="submitNickname()" disabled>입장하기</button>
     <div class="nick-msg" id="nickMsg"></div>
@@ -1702,7 +1702,7 @@ const STATE = {
 
   try {
     const res = await fetch(`/api/rooms/${STATE.roomCode}`);
-    if (!res.ok) { showError('방 정보를 불러올 수 없어요.'); return; }
+    if (!res.ok) { showError('모임 정보를 불러올 수 없어요.'); return; }
     const room = await res.json();
     STATE.room = room;
 
@@ -1710,7 +1710,7 @@ const STATE = {
 
     document.querySelectorAll('.room-tag').forEach(el => el.textContent = room.title || STATE.roomCode);
 
-    // 본인이 이 방에 join 했는지 확인 — 안 했으면 /join 페이지로
+    // 본인이 이 모임에 join 했는지 확인 — 안 했으면 /join 페이지로
     const meRes = await fetch(`/api/rooms/${STATE.roomCode}/me?uuid=${encodeURIComponent(STATE.uuid)}`);
     const me = meRes.ok ? await meRes.json() : { joined: false };
     if (!me.joined) {
@@ -1768,7 +1768,7 @@ async function submitNickname() {
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
-      msg.textContent = data.message || (data.error === 'NICKNAME_TAKEN' ? '이 방에서 이미 사용 중인 닉네임이에요' : '입장 실패');
+      msg.textContent = data.message || (data.error === 'NICKNAME_TAKEN' ? '이 모임에서 이미 사용 중인 닉네임이에요' : '입장 실패');
       btn.disabled = false;
       btn.textContent = '입장하기';
       return;
@@ -1814,7 +1814,7 @@ function switchScreen(state) {
   else stopGuestFreeTimer();
 }
 
-// 자유대화 옵션 적용 (방 생성 시 결정된 free_chat_*)
+// 자유대화 옵션 적용 (모임 생성 시 결정된 free_chat_*)
 let _guestFreeTimerInterval = null;
 function applyGuestFreeChatOptions() {
   const r = STATE.room || {};
@@ -1903,7 +1903,7 @@ function connectWS() {
   };
   STATE.ws.onclose = (e) => {
     console.log('[guest] ws.onclose', e.code, e.reason);
-    // 서버가 방 종료로 닫으면 곧장 설문으로 (room_closed broadcast 누락 fallback)
+    // 서버가 모임 종료로 닫으면 곧장 설문으로 (room_closed broadcast 누락 fallback)
     if (e.code === 4005 || /closed/i.test(e.reason || '')) {
       try { localStorage.setItem('pending_survey', STATE.roomCode); } catch (_) {}
       location.replace(`/survey?room=${STATE.roomCode}`);
@@ -1911,7 +1911,7 @@ function connectWS() {
     }
     // 호스트가 강퇴
     if (e.code === 4006 || /kicked/i.test(e.reason || '')) {
-      if (typeof toast === 'function') toast('호스트가 방에서 내보냈어요');
+      if (typeof toast === 'function') toast('호스트가 모임에서 내보냈어요');
       setTimeout(() => location.replace('/'), 1200);
       return;
     }
@@ -2083,7 +2083,7 @@ async function handleWSMessage(msg) {
     case 'kicked':
       if (msg.target_uuid === STATE.uuid) {
         try { if (STATE.ws) STATE.ws.close(); } catch (_) {}
-        if (typeof toast === 'function') toast('호스트가 방에서 내보냈어요');
+        if (typeof toast === 'function') toast('호스트가 모임에서 내보냈어요');
         setTimeout(() => location.replace('/'), 1200);
       }
       break;
@@ -2544,7 +2544,7 @@ function escHtml(s) {
 }
 
 function guestLogout() {
-  if (!confirm('이 방에서 나가시겠어요? 이 기기에 저장된 닉네임·프로필도 함께 지워집니다.')) return;
+  if (!confirm('이 모임에서 나가시겠어요? 이 기기에 저장된 닉네임·프로필도 함께 지워집니다.')) return;
   try { if (STATE.ws) STATE.ws.close(); } catch (_) {}
   try {
     localStorage.removeItem('demo_uuid');
@@ -3025,7 +3025,7 @@ async function revealInstagram() {
       resultBox.innerHTML = `📸 <strong>@${escHtml(data.partner.instagram)}</strong>`;
       btn.style.display = 'none';
     } else if (data.pending) {
-      resultBox.textContent = '공개 의사를 전달했어요. 상대방이 공개하면 자동으로 알려드릴게요 ⏳';
+      resultBox.textContent = '공개 의사를 전달했어요. 상대모임이 공개하면 자동으로 알려드릴게요 ⏳';
       btn.textContent = '✓ 공개 요청 완료';
       btn.style.opacity = '0.5';
       btn.disabled = true;

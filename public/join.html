@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
-<title>ntable — 방 입장</title>
+<title>ntable — 모임 입장</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -227,7 +227,7 @@
 <div class="root">
   <header>
     <div class="brand">ntable</div>
-    <div class="room-tag" id="roomTag">방 코드 —</div>
+    <div class="room-tag" id="roomTag">모임 코드 —</div>
     <div class="room-title" id="roomTitle">—</div>
   </header>
 
@@ -236,7 +236,7 @@
   <main id="main"><!-- steps injected --></main>
 
   <div class="anon-note">
-    🔒 <strong>방별 익명</strong> · 모임이 끝나면 모든 정보 자동 폐기
+    🔒 <strong>모임별 익명</strong> · 모임이 끝나면 모든 정보 자동 폐기
   </div>
 </div>
 
@@ -271,10 +271,10 @@ function escHtml(s) {
 async function init() {
   if (!ROOM_CODE) { renderErr('잘못된 경로'); return; }
   ensureUuid();
-  document.getElementById('roomTag').textContent = `방 코드 ${ROOM_CODE}`;
+  document.getElementById('roomTag').textContent = `모임 코드 ${ROOM_CODE}`;
   try {
     const r = await fetch(`/api/rooms/${ROOM_CODE}`);
-    if (!r.ok) { renderErr('방 정보를 불러올 수 없어요'); return; }
+    if (!r.ok) { renderErr('모임 정보를 불러올 수 없어요'); return; }
     ROOM = await r.json();
     if (ROOM.status === 'closed') { renderErr('이 모임은 이미 종료됐어요'); return; }
     document.getElementById('roomTitle').textContent = ROOM.title || ROOM_CODE;
@@ -283,7 +283,7 @@ async function init() {
     ROOM.isHost = ROOM.host_uuid && ROOM.host_uuid === UUID;
     if (ROOM.isHost) {
       const sub = document.querySelector('.room-tag');
-      if (sub) sub.textContent = `방 코드 ${ROOM_CODE} · 호스트`;
+      if (sub) sub.textContent = `모임 코드 ${ROOM_CODE} · 호스트`;
     }
 
     // 이미 join 했으면 바로 호스트/게스트 화면으로
@@ -381,7 +381,7 @@ function renderStep() {
       body = `
         <div class="step-num">${stepNum} · 시작</div>
         <h2 class="step-title">닉네임을 정해주세요</h2>
-        <p class="step-sub">이 방 안에서만 사용. <strong>방이 끝나면 사라져요.</strong></p>
+        <p class="step-sub">이 모임 안에서만 사용. <strong>모임이 끝나면 사라져요.</strong></p>
         ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 여기 입력한 내용은 다른 참가자 카드에 표시됩니다.</div>` : ''}
         <div class="field">
           <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" autocomplete="off" autocapitalize="off" autocorrect="off" value="${escHtml(data.nickname)}">
@@ -781,7 +781,7 @@ async function submitJoin() {
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      err.textContent = j.message || (j.error === 'NICKNAME_TAKEN' ? '이 방에서 이미 사용 중인 닉네임이에요' : (j.error || '입장 실패'));
+      err.textContent = j.message || (j.error === 'NICKNAME_TAKEN' ? '이 모임에서 이미 사용 중인 닉네임이에요' : (j.error || '입장 실패'));
       btn.disabled = false;
       btn.textContent = '입장하기';
       return;

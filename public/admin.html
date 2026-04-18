@@ -335,7 +335,7 @@
   <nav class="tabs">
     <button type="button" class="tab-btn active" data-tab="dashboard">대시보드</button>
     <button type="button" class="tab-btn" data-tab="insights">인사이트</button>
-    <button type="button" class="tab-btn" data-tab="rooms">방 관리</button>
+    <button type="button" class="tab-btn" data-tab="rooms">모임 관리</button>
     <button type="button" class="tab-btn" data-tab="users">유저</button>
     <button type="button" class="tab-btn" data-tab="surveys">후기</button>
   </nav>
@@ -344,7 +344,7 @@
     <!-- Dashboard -->
     <div class="panel active" id="panel-dashboard">
       <div class="stats-grid" id="statsGrid"></div>
-      <div class="section-h">최근 방 (10개)</div>
+      <div class="section-h">최근 모임 (10개)</div>
       <div class="table-wrap" id="dashRecentRooms"></div>
     </div>
 
@@ -560,7 +560,7 @@ function renderStats(s) {
       <div class="stat-value">${s.users}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">전체 방</div>
+      <div class="stat-label">전체 모임</div>
       <div class="stat-value">${s.rooms.total}</div>
       <div class="stat-sub">대기 ${s.rooms.waiting} · 진행 ${s.rooms.open} · 종료 ${s.rooms.closed}</div>
     </div>
@@ -632,7 +632,7 @@ function renderLiveSnap(s) {
       <div class="stat-sub">호스트 포함 동시 접속</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">오늘 생성된 방</div>
+      <div class="stat-label">오늘 생성된 모임</div>
       <div class="stat-value">${s.rooms_created_today}</div>
       <div class="stat-sub">자정 기준 누적</div>
     </div>
@@ -650,13 +650,13 @@ function renderPacksUsage(rows) {
     const pct = total ? ((r.rooms / total) * 100).toFixed(1) : '0';
     return `<tr>
       <td data-label="팩">${escHtml(r.pack_id)}</td>
-      <td data-label="전체 방">${r.rooms} <span style="color:var(--text-muted);">(${pct}%)</span></td>
+      <td data-label="전체 모임">${r.rooms} <span style="color:var(--text-muted);">(${pct}%)</span></td>
       <td data-label="종료">${r.closed}</td>
       <td data-label="최근 7일">${r.last_7d}</td>
     </tr>`;
   }).join('');
   wrap.innerHTML = `<table>
-    <thead><tr><th>팩</th><th>전체 방</th><th>종료</th><th>최근 7일</th></tr></thead>
+    <thead><tr><th>팩</th><th>전체 모임</th><th>종료</th><th>최근 7일</th></tr></thead>
     <tbody>${tbody}</tbody>
   </table>`;
 }
@@ -703,13 +703,13 @@ function renderMatchSuccess(data) {
       <div class="stat-value">${s.total_rooms_30d || 0}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">매칭 쌍 발생 방</div>
+      <div class="stat-label">매칭 쌍 발생 모임</div>
       <div class="stat-value">${s.rooms_with_match_30d || 0}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">매칭 발생률</div>
       <div class="stat-value">${rate}</div>
-      <div class="stat-sub">쌍이 하나라도 만들어진 방 비율</div>
+      <div class="stat-sub">쌍이 하나라도 만들어진 모임 비율</div>
     </div>
   `;
 
@@ -720,14 +720,14 @@ function renderMatchSuccess(data) {
     return;
   }
   const tbody = rows.map(r => `<tr>
-    <td data-label="방 코드">${escHtml(r.room_code)}</td>
+    <td data-label="모임 코드">${escHtml(r.room_code)}</td>
     <td data-label="제목">${escHtml(r.title || '-')}</td>
     <td data-label="참가자">${r.participants || 0}</td>
     <td data-label="매칭 쌍">${r.pair_count || 0}</td>
     <td data-label="종료일">${new Date(r.created_at).toISOString().slice(0, 10)}</td>
   </tr>`).join('');
   wrap.innerHTML = `<table>
-    <thead><tr><th>방 코드</th><th>제목</th><th>참가자</th><th>매칭 쌍</th><th>생성일</th></tr></thead>
+    <thead><tr><th>모임 코드</th><th>제목</th><th>참가자</th><th>매칭 쌍</th><th>생성일</th></tr></thead>
     <tbody>${tbody}</tbody>
   </table>`;
 }
@@ -748,7 +748,7 @@ function filterRooms(s) {
 
 function renderRoomsTable(rooms, containerId, withActions) {
   const c = document.getElementById(containerId);
-  if (!rooms.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>아직 열린 방이 없어요<span class="empty-hint">호스트가 방을 만들면 여기에 표시됩니다.</span></div>'; return; }
+  if (!rooms.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>아직 열린 모임이 없어요<span class="empty-hint">호스트가 모임을 만들면 여기에 표시됩니다.</span></div>'; return; }
   c.innerHTML = `
     <table>
       <thead><tr>
@@ -812,7 +812,7 @@ async function viewRoom(code) {
 }
 
 async function closeRoom(code) {
-  if (!confirm(`방 ${code}를 강제 종료하시겠어요?\n참가자들에게 종료 알림이 전송돼요.`)) return;
+  if (!confirm(`모임 ${code}를 강제 종료하시겠어요?\n참가자들에게 종료 알림이 전송돼요.`)) return;
   try {
     await api(`/api/panel/rooms/${code}/close`, { method: 'POST' });
     loadRooms();
@@ -820,7 +820,7 @@ async function closeRoom(code) {
 }
 
 async function deleteRoom(code) {
-  if (!confirm(`⚠️ 방 ${code}의 모든 데이터(멤버/투표/후기)가 삭제돼요.\n되돌릴 수 없어요. 계속하시겠어요?`)) return;
+  if (!confirm(`⚠️ 모임 ${code}의 모든 데이터(멤버/투표/후기)가 삭제돼요.\n되돌릴 수 없어요. 계속하시겠어요?`)) return;
   try {
     await api(`/api/panel/rooms/${code}`, { method: 'DELETE' });
     loadRooms();
@@ -887,13 +887,13 @@ function renderSurveysTable(surveys) {
   c.innerHTML = `
     <table>
       <thead><tr>
-        <th>방</th><th>닉네임</th><th>★</th><th>재방문</th><th>NPS</th>
+        <th>모임</th><th>닉네임</th><th>★</th><th>재방문</th><th>NPS</th>
         <th>베스트 순간</th><th>아쉬운 점</th><th>한 줄</th><th>작성</th>
       </tr></thead>
       <tbody>
       ${surveys.map(s => `
         <tr>
-          <td data-label="방" style="font-family:monospace;color:var(--gold);font-size:12px">${esc(s.room_code || '-')}</td>
+          <td data-label="모임" style="font-family:monospace;color:var(--gold);font-size:12px">${esc(s.room_code || '-')}</td>
           <td data-label="닉네임">${esc(s.nickname || '-')}</td>
           <td data-label="만족도">${s.satisfaction}</td>
           <td data-label="재방문">${s.revisit ? '✓' : '✗'}</td>

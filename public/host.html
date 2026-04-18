@@ -1395,7 +1395,7 @@
     </div>
   </div>
   <div id="qr-wrap">
-    <img id="qr-img" src="" alt="방 입장 QR 코드 — 탭하면 크게 보기" onclick="openQRModal()" />
+    <img id="qr-img" src="" alt="모임 입장 QR 코드 — 탭하면 크게 보기" onclick="openQRModal()" />
     <div id="room-code">—</div>
     <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기">🔍 QR 크게 보기</button>
     <button type="button" id="copy-url-btn">입장 링크 복사</button>
@@ -1607,7 +1607,7 @@
   <div class="qr-modal-card">
     <button type="button" class="qr-modal-close" onclick="closeQRModal()" aria-label="QR 모달 닫기">×</button>
     <div class="qr-modal-brand">ntable</div>
-    <img id="qr-modal-img" class="qr-modal-img" src="" alt="방 입장 QR 코드 (확대)" />
+    <img id="qr-modal-img" class="qr-modal-img" src="" alt="모임 입장 QR 코드 (확대)" />
     <div class="qr-modal-code" id="qr-modal-code">—</div>
     <div class="qr-modal-hint">📨 게스트 초대 — QR 또는 링크를 공유해 주세요.<br>참가자가 들어오면 호스트 도구에서 승인하면 됩니다.</div>
     <button type="button" id="qr-modal-copy" class="qr-modal-copy-btn">입장 링크 복사</button>
@@ -1733,7 +1733,7 @@ async function loadQR() {
     const data = await res.json();
     if (data.qr_data_url) {
       img.src = data.qr_data_url;
-      // 호스트가 방에 처음 도착하면 게스트 초대 모달을 자동 노출 (세션당 1회)
+      // 호스트가 모임에 처음 도착하면 게스트 초대 모달을 자동 노출 (세션당 1회)
       try {
         const flag = `host_invite_shown_${state.roomCode}`;
         if (!sessionStorage.getItem(flag)) {
@@ -1897,7 +1897,7 @@ function photoUnban(targetUuid, nickname) {
 }
 
 async function fetchUserProfile(uuid) {
-  // 방별 익명 — room_members 우선 (이 방의 닉/프로필 스냅샷)
+  // 모임별 익명 — room_members 우선 (이 모임의 닉/프로필 스냅샷)
   try {
     const res = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(uuid)}`);
     if (res.ok) return await res.json();
@@ -1966,7 +1966,7 @@ function renderApprovedList() {
 
 // 호스트 — 참가자 강퇴
 async function kickUser(targetUuid, nickname) {
-  if (!confirm(`"${nickname || '이 참가자'}"를 강퇴할까요?\n방에서 즉시 나가게 됩니다.`)) return;
+  if (!confirm(`"${nickname || '이 참가자'}"를 강퇴할까요?\n모임에서 즉시 나가게 됩니다.`)) return;
   try {
     await api(`/api/rooms/${state.roomCode}/kick`, 'POST', {
       host_uuid: state.uuid, target_uuid: targetUuid,
@@ -2233,7 +2233,7 @@ function updatePrimaryButton() {
   }
 }
 
-// 자유대화 옵션 적용 (방 생성 시 결정된 free_chat_*)
+// 자유대화 옵션 적용 (모임 생성 시 결정된 free_chat_*)
 let _freeTimerInterval = null;
 let _freeTimerStartMs = 0;
 let _freeTimerTotalSec = 0;
@@ -2776,7 +2776,7 @@ async function attachTV() {
       const errMap = {
         INVALID_CODE: '코드를 찾을 수 없어요. TV 화면을 다시 확인해주세요.',
         EXPIRED: '코드가 만료됐어요. TV 화면을 새로고침해주세요.',
-        ALREADY_ATTACHED: '이미 다른 방에 연결된 TV예요.',
+        ALREADY_ATTACHED: '이미 다른 모임에 연결된 TV예요.',
       };
       msg.className = 'tv-modal-msg err';
       msg.textContent = errMap[data.error] || `연결 실패: ${data.error || r.status}`;
@@ -2799,7 +2799,7 @@ function kakaoShare() {
     if (typeof toast === 'function') toast('카카오 공유 준비 중…');
     return;
   }
-  if (!state.roomCode) { if (typeof toast === 'function') toast('방 코드 로딩 중…'); return; }
+  if (!state.roomCode) { if (typeof toast === 'function') toast('모임 코드 로딩 중…'); return; }
   const url = `${location.origin}/room/${state.roomCode}`;
   try {
     Kakao.Share.sendDefault({

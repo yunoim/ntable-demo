@@ -384,7 +384,7 @@
     }
     #packSetup[hidden] { display: none; }
 
-    /* 4개 방 카드 — When 중심, 2x2 grid 동일 크기 */
+    /* 4개 모임 카드 — When 중심, 2x2 grid 동일 크기 */
     .pack-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -394,7 +394,7 @@
       .pack-grid { grid-template-columns: 1fr; }
     }
 
-    /* 확인 화면 (4개 방 클릭 시) */
+    /* 확인 화면 (4개 모임 클릭 시) */
     #confirmScreen[hidden] { display: none; }
     .confirm-head { text-align: center; margin-bottom: 18px; }
     .confirm-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
@@ -661,9 +661,9 @@
   <div class="container">
     <div class="welcome" id="welcomeMsg">어떤 자리인가요?</div>
 
-    <!-- 화면 1: 방 선택 -->
+    <!-- 화면 1: 모임 선택 -->
     <div class="card" id="selectScreen">
-      <!-- 둘이서 hero (즉시 방 생성, 확인 스킵) -->
+      <!-- 둘이서 hero (즉시 모임 생성, 확인 스킵) -->
       <div class="couples-hero" id="couplesHero">
         <span class="couples-hero-eyebrow">둘이서</span>
         <h3 style="font-size:19px;margin-bottom:14px;">친구 · 썸 · 커플 · 1:1 미팅</h3>
@@ -672,11 +672,11 @@
 
       <div class="group-section-header">아니면 여럿이서</div>
 
-      <!-- 4개 방 카드 (couples 제외) -->
+      <!-- 4개 모임 카드 (couples 제외) -->
       <div class="pack-grid" id="packGrid"></div>
     </div>
 
-    <!-- 화면 2: 확인 화면 (4개 방에서만) -->
+    <!-- 화면 2: 확인 화면 (4개 모임에서만) -->
     <div class="card" id="confirmScreen" hidden>
       <div class="confirm-head">
         <div class="confirm-icon" id="confirmIcon"></div>
@@ -689,18 +689,18 @@
       <!-- ⚙ 상세 설정 — 전면 제거 (2026-04-19 spec)
            - 카드 표시 정보·출생연도 표시·지역 세부·사진 업로드 → join wizard 2/8로 이동
            - 탐구 문항 수·자유대화·호스트 역할·화면 형태 → 호스트 대시보드 차후 구현
-           - 현재는 5개 방 카드별 default 그대로 사용 -->
+           - 현재는 5개 모임 카드별 default 그대로 사용 -->
       <div class="advanced-toggle" hidden style="display:none !important;">
         <button type="button" id="advancedBtn" aria-expanded="false">⚙</button>
         <div class="advanced-dirty-hint" id="advancedDirtyHint" data-dirty="false"></div>
       </div>
 
       <div class="confirm-actions">
-        <button type="button" class="btn-primary" id="confirmCreateBtn">방 열기</button>
+        <button type="button" class="btn-primary" id="confirmCreateBtn">모임 열기</button>
       </div>
       <div style="text-align:center;margin-top:10px;font-size:11.5px;color:var(--text-dim);letter-spacing:0.02em;">QR·참여코드를 바로 받아요</div>
       <div style="text-align:center;margin-top:18px;">
-        <button type="button" id="confirmBackBtn" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;font-family:inherit;letter-spacing:0.02em;padding:6px 12px;">← 다른 방 보기</button>
+        <button type="button" id="confirmBackBtn" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;font-family:inherit;letter-spacing:0.02em;padding:6px 12px;">← 다른 모임 보기</button>
       </div>
       <div class="advanced-panel" id="advancedPanel" hidden>
         <div class="field-group">
@@ -763,7 +763,7 @@
 
   <script>
     let uuid = null;
-    // host_role 기본값 'participant' — 방 생성 후 호스트 화면 설정 모달에서 토글 가능
+    // host_role 기본값 'participant' — 모임 생성 후 호스트 화면 설정 모달에서 토글 가능
     const DEFAULT_HOST_ROLE = 'participant';
     let selectedPack = null;
     let packs = [];
@@ -772,7 +772,7 @@
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // 5개 방 카드 (Phase 1 확정 — 2026-04-19). 각 방은 "바로 쓸 수 있는 완성 세트".
+    // 5개 모임 카드 (Phase 1 확정 — 2026-04-19). 각 모임은 "바로 쓸 수 있는 완성 세트".
     // 자유대화 메타는 v1 표시용. 실제 server 적용은 백로그.
     const ROOM_KITS = [
       {
@@ -888,7 +888,7 @@
         </div>
         <div class="pack-desc">${escHtml(kit.desc)}</div>
       `;
-      // 4개 방은 확인 화면 거침. couples는 hero에서 직접 처리.
+      // 4개 모임은 확인 화면 거침. couples는 hero에서 직접 처리.
       card.addEventListener('click', () => showConfirmScreen(kit));
       return card;
     }
@@ -899,7 +899,7 @@
       ROOM_KITS.filter(k => k.id !== 'couples').forEach(kit => grid.appendChild(renderRoomCard(kit)));
     }
 
-    // 둘이서 hero — 즉시 방 생성 (확인 스킵)
+    // 둘이서 hero — 즉시 모임 생성 (확인 스킵)
     document.getElementById('quickCouplesBtn').addEventListener('click', () => {
       const couples = ROOM_KITS.find(k => k.id === 'couples');
       if (couples) createRoomFromKit(couples);
@@ -954,10 +954,10 @@
           body: JSON.stringify({ uuid, title, pack_id: kit.id, ...merged })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '방 생성 실패');
+        if (!res.ok) throw new Error(data.error || '모임 생성 실패');
         window.location.href = `/room/${data.room_code}/join`;
       } catch (e) {
-        errMsg.textContent = e.message || '방 생성 중 오류';
+        errMsg.textContent = e.message || '모임 생성 중 오류';
       }
     }
 
