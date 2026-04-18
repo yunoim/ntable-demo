@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const QRCode = require('qrcode');
-const { listPacks, getPack, DEFAULT_PACK_ID } = require('./question-sources');
+const { listPacks, getPack, DEFAULT_PACK_ID, getPackFlow } = require('./question-sources');
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -52,6 +52,11 @@ router.post('/rooms', async (req, res) => {
     ? req.body.display_mode : 'mobile';
   const photo_enabled = req.body.photo_enabled === false ? false : true;
   const region_detail = req.body.region_detail === true ? true : false;
+  // 팩별 closing flow (호스트 override 가능)
+  const validSteps = ['mvp', 'match', 'explore-result'];
+  let closing_steps = Array.isArray(req.body.closing_steps)
+    ? req.body.closing_steps.filter(s => validSteps.includes(s))
+    : getPackFlow(pack.id);
 
   // uuid 보장 — 신규 익명 사용자는 자동 등록 (방별 익명 구조)
   await pool.query(
@@ -83,8 +88,8 @@ router.post('/rooms', async (req, res) => {
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail)
-       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps)
+       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
       [
         room_code, title, uuid, host_role, question_count,
         JSON.stringify(questionsSeed),
@@ -95,6 +100,7 @@ router.post('/rooms', async (req, res) => {
         display_mode,
         photo_enabled,
         region_detail,
+        JSON.stringify(closing_steps),
       ]
     );
     const room_id = roomResult.rows[0].id;
@@ -104,7 +110,7 @@ router.post('/rooms', async (req, res) => {
       [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
     );
     await client.query('COMMIT');
-    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail });
+    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('POST /api/rooms error:', err);
@@ -129,7 +135,7 @@ router.get('/packs', async (req, res) => {
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });

@@ -99,6 +99,13 @@ async function initDB() {
       if (e.code !== '42701') throw e;
     }
 
+    // 팩별 마무리 단계 — JSONB 배열 (예: ["mvp","match"], [], ["explore-result"])
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN closing_steps JSONB DEFAULT '["mvp"]'::jsonb`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
+
     // users.nickname — 방별 익명 구조로 전환되며 더 이상 unique·required 아님
     // (호환성 위해 컬럼 자체는 유지)
     try { await client.query(`ALTER TABLE users ALTER COLUMN nickname DROP NOT NULL`); } catch (_) {}

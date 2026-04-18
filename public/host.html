@@ -1689,6 +1689,8 @@ async function loadRoomInfo() {
     state.birthYearFormat = room.birth_year_format || 'exact';
     state.hostRole = room.host_role || 'host_only';
     state.questionCount = Number.isFinite(room.question_count) ? room.question_count : 10;
+    state.closingSteps = Array.isArray(room.closing_steps) ? room.closing_steps : ['mvp'];
+    state.closingSequence = stepsToPhases(state.closingSteps);
 
     // 호스트가 participant 면 본인 카드도 approvedUsers 에 포함
     if (state.hostRole === 'participant') {
@@ -2334,11 +2336,23 @@ function switchTab(tab) {
   if (tab === 'ending') {
     updateMVPList();
     applyOneOnOneEnding();
-    // 처음 진입 시 closing-mvp 단계로 시작
-    if (!state.closingPhase) {
-      state.closingPhase = 'closing-mvp';
-      renderClosingSubsteps('closing-mvp');
-      updateState({ phase: 'closing-mvp', current_tab: 'closing' });
+    // 1:1 자동 처리 안 됐으면 closing_steps 따라 첫 phase 진입
+    if (!state.closingPhase && !state.oneOnOne) {
+      const seq = state.closingSequence || ['closing-mvp', 'closing-mvp-result'];
+      const first = seq[0];
+      if (!first) {
+        // closing_steps == [] (드문 케이스)
+        closeRoom();
+        return;
+      }
+      state.closingPhase = first;
+      renderClosingSubsteps(first);
+      updateState({ phase: first, current_tab: 'closing' });
+      if (first === 'closing-explore-result' && typeof loadAndRenderExploreResult === 'function') {
+        loadAndRenderExploreResult();
+      } else if (first === 'closing-mvp-result') {
+        api(`/api/rooms/${state.roomCode}/mvp-finalize`, 'POST', { host_uuid: state.uuid }).catch(() => {});
+      }
     }
   }
   updatePrimaryButton();
@@ -2459,6 +2473,10 @@ function renderClosingSubsteps(current) {
     const elIdx = order.indexOf(el.dataset.sub);
     el.classList.toggle('done', elIdx < curIdx);
   });
+  // 마지막 phase면 nextBtn 라벨 "모임 종료"
+  const seq = state.closingSequence || [];
+  const isLast = seq.length && current === seq[seq.length - 1];
+
   const head = document.getElementById('closing-card-head');
   const help = document.getElementById('closing-card-help');
   const nextBtn = document.getElementById('closingNextBtn');
@@ -2467,21 +2485,51 @@ function renderClosingSubsteps(current) {
     'closing-mvp-result': ['🏆 MVP 발표', '참가자 화면에 MVP 카드가 떴어요. 다음 단계로 넘기세요.', '작대기 시작 →'],
     'closing-match':      ['💘 사랑의 작대기', '참가자가 또 만나고 싶은 사람을 선택 + "선택 완료". 모두 끝나면 매칭 발표로.', '매칭 발표 →'],
     'closing-match-result': ['💘 매칭 결과', '매칭 카드가 참가자 화면에 떴어요. 인스타 공유 등 마무리 단계.', '모임 종료'],
+    'closing-explore-result': ['📖 오늘의 탐구 결과', '진행한 모든 문항과 누가 무엇을 골랐는지 표시.', '모임 종료'],
   };
   const conf = labels[current] || labels['closing-mvp'];
   if (head) head.textContent = conf[0];
   if (help) help.textContent = conf[1];
-  if (nextBtn) nextBtn.textContent = conf[2];
+  if (nextBtn) nextBtn.textContent = isLast ? '모임 종료' : conf[2];
+
+  // closing-explore-result phase 진입 시 mvp-card 통째 결과 카드로 교체
+  if (current === 'closing-explore-result') {
+    const mvpCard = document.querySelector('#panel-ending .free-card');
+    if (mvpCard && !document.getElementById('explore-result-list')) {
+      mvpCard.innerHTML = `
+        <div id="explore-result-card" style="background:transparent;">
+          <div class="card-head">📖 오늘의 탐구 결과</div>
+          <div id="explore-result-list" style="margin-top:12px;font-size:13px;color:var(--text);line-height:1.7;">불러오는 중…</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button type="button" class="csub-next-btn" style="flex:1;background:transparent;color:#e8b84b;border:1px solid rgba(212,168,67,0.5);" onclick="saveExploreResultImage('#explore-result-card')">📷 사진으로 저장</button>
+          <button type="button" class="csub-next-btn" style="flex:1;" onclick="closeRoom()">모임 종료</button>
+        </div>`;
+      if (typeof loadAndRenderExploreResult === 'function') loadAndRenderExploreResult();
+    }
+  }
+}
+
+// closing_steps 배열 → phase 시퀀스로 변환
+function stepsToPhases(steps) {
+  const phases = [];
+  for (const s of (steps || [])) {
+    if (s === 'mvp') phases.push('closing-mvp', 'closing-mvp-result');
+    else if (s === 'match') phases.push('closing-match', 'closing-match-result');
+    else if (s === 'explore-result') phases.push('closing-explore-result');
+  }
+  return phases;
 }
 
 async function advanceClosingPhase() {
-  const order = ['closing-mvp', 'closing-mvp-result', 'closing-match', 'closing-match-result'];
-  const cur = state.closingPhase || 'closing-mvp';
-  const idx = order.indexOf(cur);
-  const next = order[idx + 1];
+  const seq = state.closingSequence && state.closingSequence.length
+    ? state.closingSequence
+    : ['closing-mvp', 'closing-mvp-result']; // 안전 기본값
+  const cur = state.closingPhase || seq[0];
+  const idx = seq.indexOf(cur);
+  const next = seq[idx + 1];
 
   if (!next) {
-    // 마지막 단계 → 모임 종료
     closeRoom();
     return;
   }
@@ -2490,15 +2538,17 @@ async function advanceClosingPhase() {
   renderClosingSubsteps(next);
 
   if (next === 'closing-mvp-result') {
-    // MVP 결과 발표 — 서버에 mvp-finalize 요청
     try {
       await api(`/api/rooms/${state.roomCode}/mvp-finalize`, 'POST', { host_uuid: state.uuid });
     } catch (e) { console.error('mvp-finalize fail', e); }
     updateState({ phase: 'closing-mvp-result', current_tab: 'closing' });
   } else if (next === 'closing-match-result') {
-    // 매칭 발표 — doMatch + matching_result broadcast
     await doMatch();
     updateState({ phase: 'closing-match-result', current_tab: 'closing' });
+  } else if (next === 'closing-explore-result') {
+    // 다인 모임 탐구 결과 — host도 fetch + 게스트에게 phase broadcast
+    if (typeof loadAndRenderExploreResult === 'function') loadAndRenderExploreResult();
+    updateState({ phase: 'closing-explore-result', current_tab: 'closing' });
   } else {
     updateState({ phase: next, current_tab: 'closing' });
   }
