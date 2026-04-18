@@ -295,15 +295,20 @@ async function init() {
     }
 
     // step 구성: 호스트가 정한 display_fields 에 따라 동적
+    // couples(둘이서)는 1:1 즉시 시작이라 닉네임+출생연도만 (간소화)
     const df = Array.isArray(ROOM.display_fields)
       ? ROOM.display_fields
       : ['birth_year','region','industry','interest'];
-    STEPS = ['nick', 'basic'];
-    if (df.includes('region')) STEPS.push('region');
-    if (df.includes('industry')) STEPS.push('industry');
-    STEPS.push('mbti'); // MBTI 는 선택, 항상 노출 (매칭 정확도)
-    if (df.includes('interest')) STEPS.push('interest');
-    STEPS.push('confirm');
+    if (ROOM.pack_id === 'couples') {
+      STEPS = ['nick', 'basic', 'confirm'];
+    } else {
+      STEPS = ['nick', 'basic'];
+      if (df.includes('region')) STEPS.push('region');
+      if (df.includes('industry')) STEPS.push('industry');
+      STEPS.push('mbti'); // MBTI 는 선택, 항상 노출 (매칭 정확도)
+      if (df.includes('interest')) STEPS.push('interest');
+      STEPS.push('confirm');
+    }
 
     await prefillFromCache();
     renderProgress();
@@ -364,7 +369,7 @@ function renderStep() {
         <div class="step-num">${stepNum} · 시작</div>
         <h2 class="step-title">닉네임을 정해주세요</h2>
         <p class="step-sub">이 방 안에서만 사용. <strong>방이 끝나면 사라져요.</strong></p>
-        ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 호스트가 입력하는 모든 정보는 <strong>오늘 모임 게스트들의 카드</strong>에 공유됩니다.</div>` : ''}
+        ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 여기 입력한 내용은 다른 참가자 카드에 표시됩니다.</div>` : ''}
         <div class="field">
           <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" autocomplete="off" autocapitalize="off" autocorrect="off" value="${escHtml(data.nickname)}">
         </div>
@@ -389,15 +394,15 @@ function renderStep() {
           ? '카드에 "30대" 형태로 표시'
           : '카드에 정확한 연도가 표시됩니다';
       body = `
-        <div class="step-num">${stepNum} · 기본 정보</div>
+        <div class="step-num">${stepNum} · 기본 정보 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">간단히 알려주세요</h2>
-        <p class="step-sub">성별과 출생연도. <strong>건너뛰어도 OK.</strong></p>
-        ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 입력값은 게스트 카드에 공유됩니다.</div>` : ''}
+        <p class="step-sub">매칭·표시에 쓰여요.</p>
         <div class="field">
           <div class="field-label">성별</div>
           <div class="chip-row">
             <button type="button" class="chip${data.gender==='male'?' selected':''}" data-group="gender" data-value="male">남성</button>
             <button type="button" class="chip${data.gender==='female'?' selected':''}" data-group="gender" data-value="female">여성</button>
+            <button type="button" class="chip${data.gender==='unspecified'?' selected':''}" data-group="gender" data-value="unspecified">선택 안 함</button>
           </div>
         </div>
         <div class="field">
@@ -418,9 +423,9 @@ function renderStep() {
       const seoulGu = isSeoulPicked ? regionPicked.replace(/^서울\s*/, '').trim() : '';
       const showGu = ROOM.region_detail && (regionPicked === '서울' || isSeoulPicked);
       body = `
-        <div class="step-num">${stepNum} · 지역</div>
+        <div class="step-num">${stepNum} · 지역 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">주로 활동하는 지역</h2>
-        <p class="step-sub">근처에 사는 분과 인연이 생길 수도. 건너뛰어도 OK.</p>
+        <p class="step-sub">근처에 사는 분과 인연이 생길 수도.</p>
         <div class="field">
           <div class="chip-row">${REGIONS.map(v => {
             const sel = regionPicked === v || (v === '서울' && isSeoulPicked);
@@ -440,9 +445,9 @@ function renderStep() {
       break;
     case 'industry':
       body = `
-        <div class="step-num">${stepNum} · 업종</div>
+        <div class="step-num">${stepNum} · 업종 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">주로 어떤 분야</h2>
-        <p class="step-sub">대화 거리가 생겨요. 건너뛰어도 OK.</p>
+        <p class="step-sub">대화 거리가 생겨요.</p>
         <div class="field">
           <div class="chip-row">${INDUSTRIES.map(v => `<button type="button" class="chip${data.industry===v?' selected':''}" data-group="industry" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
         </div>
@@ -454,9 +459,9 @@ function renderStep() {
       break;
     case 'mbti':
       body = `
-        <div class="step-num">${stepNum} · MBTI</div>
+        <div class="step-num">${stepNum} · MBTI <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">MBTI는요?</h2>
-        <p class="step-sub">매칭 정확도가 올라가요. 모르면 건너뛰기.</p>
+        <p class="step-sub">매칭 정확도가 올라가요.</p>
         <div class="field">
           <div class="chip-row mbti">${MBTIS.map(v => `<button type="button" class="chip${data.mbti===v?' selected':''}" data-group="mbti" data-value="${v}">${v}</button>`).join('')}</div>
         </div>
@@ -469,9 +474,9 @@ function renderStep() {
     case 'interest':
       const selectedSet = new Set((data.interest || '').split(',').map(s => s.trim()).filter(Boolean));
       body = `
-        <div class="step-num">${stepNum} · 관심사</div>
+        <div class="step-num">${stepNum} · 관심사 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">뭘 좋아하세요?</h2>
-        <p class="step-sub"><strong>여러 개 골라도 OK</strong>. 안 골라도 OK. 직접 입력도 가능.</p>
+        <p class="step-sub">여러 개 가능. 직접 입력도 OK.</p>
         <div class="field">
           <div class="chip-row">${INTERESTS.map(v => `<button type="button" class="chip${selectedSet.has(v)?' selected':''}" data-group="interest" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
           <input type="text" id="interestInput" maxlength="60" placeholder="또는 직접 입력 (콤마로 여러 개)" value="${escHtml(data.interest || '')}" style="margin-top:14px;">
@@ -486,7 +491,7 @@ function renderStep() {
       const subText = ROOM.isHost
         ? '호스트로 모임을 시작해요. 게스트들에게는 이렇게 보입니다.'
         : '아래 정보로 다른 참가자에게 보입니다.';
-      const submitLabel = ROOM.isHost ? '호스트 화면 진입' : '입장하기';
+      const submitLabel = ROOM.isHost ? 'QR·참여코드 받기' : '입장하기';
       body = `
         <div class="step-num">${stepNum} · 확인</div>
         <h2 class="step-title">이렇게 입장해요</h2>
