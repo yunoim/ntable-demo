@@ -1420,11 +1420,12 @@
   <div id="qr-wrap">
     <img id="qr-img" src="" alt="모임 입장 QR 코드 — 탭하면 크게 보기" onclick="openQRModal()" />
     <div id="room-code">—</div>
-    <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기">🔍 QR 크게 보기</button>
-    <button type="button" id="copy-url-btn">입장 링크 복사</button>
+    <!-- 사이드바 액션 버튼들은 상단 [📋 호스트 도구] 드롭다운으로 이전됨. 코드 보존(hidden) — 호환·접근성. -->
+    <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기" hidden>🔍 QR 크게 보기</button>
+    <button type="button" id="copy-url-btn" hidden>입장 링크 복사</button>
     <button type="button" id="sidebar-kakao-btn" class="sidebar-kakao-btn" onclick="kakaoShare()" hidden>💛 카카오톡으로 초대</button>
-    <button type="button" id="sidebar-tv-btn" class="sidebar-tv-btn" onclick="openTVModal()">📺 TV 연결</button>
-    <button type="button" id="sidebar-end-btn" class="sidebar-end-btn" onclick="closeRoom()">🛑 모임 종료</button>
+    <button type="button" id="sidebar-tv-btn" class="sidebar-tv-btn" onclick="openTVModal()" hidden>📺 TV 연결</button>
+    <button type="button" id="sidebar-end-btn" class="sidebar-end-btn" onclick="closeRoom()" hidden>🛑 모임 종료</button>
   </div>
   <div id="waiting-section">
     <!-- 자동 입장 (2026-04-19) — 승인 절차 폐지. 참가자는 즉시 입장. 호스트는 강퇴 권한 유지. -->
@@ -1460,10 +1461,22 @@
     <div id="user-menu">
       <span id="user-nick"></span>
       <span id="oauth-badge" class="oauth-badge" hidden></span>
+      <div style="position:relative;display:inline-block;">
+        <button type="button" id="open-host-tools-btn" title="초대·연결·종료" style="background:rgba(212,168,67,0.12);border:1px solid var(--gold-border);color:var(--gold-light);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;">📋 호스트 도구 ▾</button>
+        <div id="host-tools-menu" hidden style="position:absolute;top:calc(100% + 6px);right:0;background:#141d35;border:1px solid var(--gold-border);border-radius:10px;padding:6px;min-width:200px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+          <button type="button" onclick="openQRModal();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">🔍 QR 크게 보기</button>
+          <button type="button" onclick="document.getElementById('copy-url-btn').click();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">🔗 입장 링크 복사</button>
+          <button type="button" id="host-tools-kakao" hidden onclick="kakaoShare();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">💛 카카오톡으로 초대</button>
+          <button type="button" onclick="openTVModal();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">📺 TV 연결</button>
+          <div style="height:1px;background:var(--border);margin:6px 0;"></div>
+          <button type="button" onclick="closeRoom();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:#ff8a8a;font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">🛑 모임 끝내기</button>
+        </div>
+      </div>
       <button type="button" id="open-settings-btn" title="질문/주제/문항수 편집 (모임 시작 전)">설정 ⚙</button>
       <button type="button" id="open-room-settings-btn" title="모임 운영 옵션 (자유대화·역할·화면)">⚙ 운영</button>
-      <button type="button" onclick="location.href='/profile?next='+encodeURIComponent(location.pathname)">내 정보 ✎</button>
-      <button type="button" onclick="logout()">정보 초기화</button>
+      <button type="button" onclick="location.href='/profile?next='+encodeURIComponent(location.pathname)">👤 내 정보</button>
+      <!-- 정보 초기화는 내 정보 모달 안으로 이동 예정 (다음 commit). 일단 hidden -->
+      <button type="button" onclick="logout()" hidden>정보 초기화</button>
     </div>
   </nav>
 
@@ -3174,6 +3187,30 @@ async function saveSettings() {
 }
 
 document.getElementById('open-settings-btn')?.addEventListener('click', openSettings);
+
+// 호스트 도구 드롭다운 toggle
+const hostToolsBtn = document.getElementById('open-host-tools-btn');
+const hostToolsMenu = document.getElementById('host-tools-menu');
+function closeHostTools() { if (hostToolsMenu) hostToolsMenu.hidden = true; }
+hostToolsBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hostToolsMenu.hidden = !hostToolsMenu.hidden;
+});
+document.addEventListener('click', (e) => {
+  if (hostToolsMenu && !hostToolsMenu.hidden && !e.target.closest('#host-tools-menu') && !e.target.closest('#open-host-tools-btn')) {
+    hostToolsMenu.hidden = true;
+  }
+});
+// KAKAO_JS_KEY 활성 시 host-tools 드롭다운에도 카카오 노출
+const _kakaoCheck = setInterval(() => {
+  const sb = document.getElementById('sidebar-kakao-btn');
+  if (sb && !sb.hidden) {
+    const ht = document.getElementById('host-tools-kakao');
+    if (ht) ht.hidden = false;
+    clearInterval(_kakaoCheck);
+  }
+}, 500);
+setTimeout(() => clearInterval(_kakaoCheck), 10000);
 
 // 운영 옵션 모달 (탐구 문항·자유대화·역할·화면)
 function openRoomSettings() {
