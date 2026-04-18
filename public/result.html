@@ -412,10 +412,6 @@
         <div class="share-card-text" id="personality-text"></div>
         <div class="share-card-footer">오늘의 모임 유형 · ntable.kr</div>
       </div>
-      <label class="photo-include-toggle" id="photoToggleWrap" hidden>
-        <input type="checkbox" id="includePhotoToggle">
-        <span>내 사진 포함하기 <small>(이 기기에 저장된 사진만 사용)</small></span>
-      </label>
       <div class="share-actions">
         <button type="button" id="save-image-btn" class="share-btn" aria-label="이미지 저장">📷 이미지 저장</button>
         <button type="button" id="insta-share-btn" class="share-btn outline" aria-label="인스타 스토리로 공유">📸 인스타 스토리 공유</button>
@@ -462,7 +458,6 @@
       document.getElementById('share-type').textContent = data.personality || '탐구형';
       document.getElementById('personality-text').textContent = data.text || '분석 결과를 불러올 수 없어요.';
       document.getElementById('personality-body').style.display = 'block';
-      setupPhotoToggle();
     } catch {
       document.getElementById('personality-loading').innerHTML = '<span style="color:var(--subtext)">분석 결과를 불러올 수 없어요.</span>';
     }
