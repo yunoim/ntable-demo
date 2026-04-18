@@ -57,6 +57,12 @@ async function initDB() {
     } catch (e) {
       if (e.code !== '42701') throw e;
     }
+    // 팩 식별자 — 분석/리포팅용
+    try {
+      await client.query(`ALTER TABLE rooms ADD COLUMN pack_id VARCHAR(40)`);
+    } catch (e) {
+      if (e.code !== '42701') throw e;
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_state (

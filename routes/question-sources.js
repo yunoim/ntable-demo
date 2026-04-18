@@ -1,46 +1,130 @@
-// md 파일에서 탐구 질문 / 자유대화 주제 파싱하는 헬퍼.
+// 질문/주제 팩 파서.
+// questions/packs/*.md — 각 파일이 하나의 팩 (메타 + 탐구 질문 + 자유대화 주제)
 // admin.js · rooms.js 에서 공용 사용.
 
 const fs = require('fs');
 const path = require('path');
 
-// 반환 포맷: { id, question, options: ["A. ...", "B. ..."] }
-// — host/guest 클라이언트가 options 배열을 기대.
-function parseQuestions() {
-  const filePath = path.join(__dirname, '../questions/season1.md');
+const PACKS_DIR = path.join(__dirname, '../questions/packs');
+
+// 한 파일을 파싱해서 팩 객체 반환
+function parsePack(filePath) {
   const content = fs.readFileSync(filePath, 'utf-8');
+  const meta = {};
   const questions = [];
-  let current = null;
+  const topics = [];
+
+  let inFrontmatter = false;
+  let frontmatterDone = false;
+  let section = null;
+  let currentQ = null;
+
   for (const raw of content.split(/\r?\n/)) {
     const trimmed = raw.trim();
-    const qMatch = trimmed.match(/^Q(\d+)\.\s+(.+)/);
-    if (qMatch) {
-      if (current) questions.push(current);
-      current = { id: parseInt(qMatch[1], 10), question: qMatch[2], options: [] };
+
+    // Frontmatter (--- 블록)
+    if (!frontmatterDone) {
+      if (trimmed === '---') {
+        if (!inFrontmatter) { inFrontmatter = true; continue; }
+        frontmatterDone = true;
+        inFrontmatter = false;
+        continue;
+      }
+      if (inFrontmatter) {
+        const m = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.+)$/);
+        if (m) meta[m[1]] = m[2].trim();
+        continue;
+      }
+    }
+
+    // 섹션 헤더 전환
+    if (trimmed.startsWith('## ')) {
+      if (currentQ) { questions.push(currentQ); currentQ = null; }
+      const header = trimmed.slice(3);
+      if (header.includes('탐구') || /questions/i.test(header)) section = 'questions';
+      else if (header.includes('주제') || header.includes('자유') || /topics/i.test(header)) section = 'topics';
+      else section = null;
       continue;
     }
-    const optMatch = trimmed.match(/^([AB])\.\s+(.+)/);
-    if (optMatch && current) {
-      current.options.push(`${optMatch[1]}. ${optMatch[2]}`);
+
+    if (section === 'questions') {
+      const qMatch = trimmed.match(/^Q(\d+)\.\s+(.+)/);
+      if (qMatch) {
+        if (currentQ) questions.push(currentQ);
+        currentQ = { id: parseInt(qMatch[1], 10), question: qMatch[2], options: [] };
+        continue;
+      }
+      const optMatch = trimmed.match(/^([AB])\.\s+(.+)/);
+      if (optMatch && currentQ) {
+        currentQ.options.push(`${optMatch[1]}. ${optMatch[2]}`);
+      }
+    } else if (section === 'topics') {
+      if (trimmed.startsWith('- ')) {
+        topics.push({ id: topics.length + 1, text: trimmed.slice(2).trim() });
+      }
     }
   }
-  if (current) questions.push(current);
-  return questions;
+  if (currentQ) questions.push(currentQ);
+
+  return {
+    id: meta.id || path.basename(filePath, '.md'),
+    title: meta.title || meta.id || '',
+    description: meta.description || '',
+    icon: meta.icon || '📦',
+    recommended: meta.recommended || '',
+    tone: meta.tone || '',
+    category: meta.category || 'other',
+    questions,
+    topics,
+  };
+}
+
+function loadAllPacks() {
+  if (!fs.existsSync(PACKS_DIR)) return [];
+  const files = fs.readdirSync(PACKS_DIR).filter(f => f.endsWith('.md'));
+  return files.map(f => parsePack(path.join(PACKS_DIR, f)));
+}
+
+// 팩 목록 (메타만 — 질문·주제는 제외)
+function listPacks() {
+  return loadAllPacks().map(p => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    icon: p.icon,
+    recommended: p.recommended,
+    tone: p.tone,
+    category: p.category,
+    question_count: p.questions.length,
+    topic_count: p.topics.length,
+  }));
+}
+
+function getPack(packId) {
+  if (!packId) return null;
+  const safeId = String(packId).replace(/[^a-zA-Z0-9_-]/g, '');
+  const file = path.join(PACKS_DIR, `${safeId}.md`);
+  if (!fs.existsSync(file)) return null;
+  return parsePack(file);
+}
+
+// 하위 호환 — 기본 팩
+const DEFAULT_PACK_ID = 'icebreaker';
+
+function parseQuestions() {
+  return getPack(DEFAULT_PACK_ID)?.questions || [];
 }
 
 function parseFreeTopics() {
-  const filePath = path.join(__dirname, '../questions/free-topics.md');
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const topics = [];
-  let id = 1;
-  for (const raw of content.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line.startsWith('- ')) continue;
-    const text = line.slice(2).trim();
-    if (!text) continue;
-    topics.push({ id: id++, text });
-  }
-  return topics;
+  return getPack(DEFAULT_PACK_ID)?.topics || [];
 }
 
-module.exports = { parseQuestions, parseFreeTopics };
+module.exports = {
+  parsePack,
+  loadAllPacks,
+  listPacks,
+  getPack,
+  parseQuestions,
+  parseFreeTopics,
+  DEFAULT_PACK_ID,
+};

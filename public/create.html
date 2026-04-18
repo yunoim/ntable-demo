@@ -269,30 +269,55 @@
     }
     .tagline-hero strong { color: var(--gold); font-weight: 700; }
 
-    /* 모임 유형 선택 */
-    .type-options {
+    /* 질문 팩 선택 */
+    .pack-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
     }
-    .type-btn {
+    .pack-card {
       background: var(--navy-light);
       border: 1.5px solid var(--input-border);
       border-radius: 12px;
-      color: var(--subtext);
-      font-size: 13px;
-      padding: 12px 10px;
+      padding: 12px 12px;
       cursor: pointer;
-      text-align: center;
+      text-align: left;
       transition: all 0.2s;
       font-family: inherit;
-      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    .type-btn:hover { border-color: var(--gold-border); color: var(--white); }
-    .type-btn.selected {
+    .pack-card:hover { border-color: var(--gold-border); }
+    .pack-card.selected {
       border-color: var(--gold);
       background: var(--gold-dim);
-      color: var(--gold-light);
+    }
+    .pack-card .pack-head { display: flex; align-items: center; gap: 8px; }
+    .pack-card .pack-icon { font-size: 18px; }
+    .pack-card .pack-title { font-size: 13px; font-weight: 600; color: var(--white); }
+    .pack-card.selected .pack-title { color: var(--gold-light); }
+    .pack-card .pack-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 2px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .pack-card .pack-meta {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: auto;
+    }
+    .pack-loading {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
     }
 
     .divider {
@@ -379,13 +404,11 @@
       <div class="section-sub">모임을 열면 QR코드와 입장 링크가 자동 생성돼요.</div>
 
       <div class="field-group">
-        <label>모임 유형 <span style="opacity:0.5;font-weight:400;text-transform:none;letter-spacing:0;">(선택)</span></label>
-        <div class="type-options">
-          <button type="button" class="type-btn" data-type="소셜 모임" onclick="selectType('소셜 모임')">🫂 소셜 모임</button>
-          <button type="button" class="type-btn" data-type="팀빌딩" onclick="selectType('팀빌딩')">🤝 팀빌딩</button>
-          <button type="button" class="type-btn" data-type="친목·MT" onclick="selectType('친목·MT')">🎉 친목 · MT</button>
-          <button type="button" class="type-btn" data-type="" onclick="selectType('')">✨ 기타</button>
+        <label>질문 팩<span class="required-mark">*</span></label>
+        <div class="pack-grid" id="packGrid">
+          <div class="pack-loading">팩 불러오는 중...</div>
         </div>
+        <div class="qcount-hint" style="margin-top:10px;">선택한 팩의 질문과 자유대화 주제가 방에 복사됩니다. 생성 후 호스트가 수정할 수 있어요.</div>
       </div>
 
       <div class="field-group">
@@ -429,13 +452,61 @@
   <script>
     let uuid = null;
     let selectedRole = null;
-    let selectedType = null;
+    let selectedPack = null;
+    let packs = [];
 
-    function selectType(type) {
-      selectedType = type;
-      document.querySelectorAll('.type-btn').forEach(btn => {
-        btn.classList.toggle('selected', btn.dataset.type === type);
+    function escHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function loadPacks() {
+      const grid = document.getElementById('packGrid');
+      try {
+        const res = await fetch('/api/packs');
+        const data = await res.json();
+        packs = Array.isArray(data.packs) ? data.packs : [];
+        if (!packs.length) {
+          grid.innerHTML = '<div class="pack-loading">사용 가능한 팩이 없어요</div>';
+          return;
+        }
+        grid.innerHTML = '';
+        packs.forEach(p => {
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'pack-card';
+          card.dataset.packId = p.id;
+          card.innerHTML = `
+            <div class="pack-head">
+              <span class="pack-icon">${escHtml(p.icon || '📦')}</span>
+              <span class="pack-title">${escHtml(p.title)}</span>
+            </div>
+            <div class="pack-desc">${escHtml(p.description || '')}</div>
+            <div class="pack-meta">${escHtml(p.recommended || '')} · 탐구 ${p.question_count}문항 · 주제 ${p.topic_count}개</div>
+          `;
+          card.addEventListener('click', () => selectPack(p.id));
+          grid.appendChild(card);
+        });
+        // 기본 선택 — icebreaker 있으면 그것, 없으면 첫 번째
+        const defaultPack = packs.find(p => p.id === 'icebreaker') || packs[0];
+        if (defaultPack) selectPack(defaultPack.id);
+      } catch (err) {
+        grid.innerHTML = '<div class="pack-loading">팩을 불러오지 못했어요</div>';
+      }
+    }
+
+    function selectPack(packId) {
+      selectedPack = packId;
+      document.querySelectorAll('.pack-card').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.packId === packId);
       });
+      // 추천 문항 수로 슬라이더 초기값 맞추기 (팩 question_count 있으면)
+      const pack = packs.find(p => p.id === packId);
+      if (pack && pack.question_count) {
+        const target = Math.min(Math.max(pack.question_count > 10 ? 10 : pack.question_count, 1), 15);
+        qcountSlider.value = target;
+        qcountValue.textContent = target;
+      }
+      checkReady();
     }
 
     async function init() {
@@ -451,6 +522,7 @@
       } catch {
         document.getElementById('welcomeMsg').textContent = '모임을 열어보세요.';
       }
+      loadPacks();
     }
 
     function logout() {
@@ -481,17 +553,15 @@
     });
 
     function checkReady() {
-      const ready = titleInput.value.trim().length > 0 && selectedRole !== null;
+      const ready = titleInput.value.trim().length > 0 && selectedRole !== null && selectedPack !== null;
       document.getElementById('createBtn').disabled = !ready;
     }
 
     async function createRoom() {
       const rawTitle = titleInput.value.trim();
-      if (!rawTitle || !selectedRole) return;
+      if (!rawTitle || !selectedRole || !selectedPack) return;
 
-      // 모임 유형이 선택됐으면 제목 앞에 프리픽스, 100자 이내로 캡
-      let title = selectedType ? `[${selectedType}] ${rawTitle}` : rawTitle;
-      if (title.length > 100) title = title.slice(0, 100);
+      const title = rawTitle.length > 100 ? rawTitle.slice(0, 100) : rawTitle;
 
       const btn = document.getElementById('createBtn');
       const errMsg = document.getElementById('errorMsg');
@@ -504,7 +574,7 @@
         const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid, title, host_role: selectedRole, question_count })
+          body: JSON.stringify({ uuid, title, host_role: selectedRole, question_count, pack_id: selectedPack })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '방 생성 실패');

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const QRCode = require('qrcode');
-const { parseQuestions, parseFreeTopics } = require('./question-sources');
+const { listPacks, getPack, DEFAULT_PACK_ID } = require('./question-sources');
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -33,6 +33,13 @@ router.post('/rooms', async (req, res) => {
     return res.status(400).json({ error: 'question_count must be between 1 and 15' });
   }
 
+  // 팩 선택 — 기본 icebreaker
+  const pack_id = String(req.body.pack_id || DEFAULT_PACK_ID).replace(/[^a-zA-Z0-9_-]/g, '');
+  const pack = getPack(pack_id) || getPack(DEFAULT_PACK_ID);
+  if (!pack) {
+    return res.status(500).json({ error: 'no pack available' });
+  }
+
   // uuid 검증
   const userCheck = await pool.query('SELECT uuid FROM users WHERE uuid = $1', [uuid]);
   if (userCheck.rows.length === 0) {
@@ -55,22 +62,21 @@ router.post('/rooms', async (req, res) => {
     return res.status(500).json({ error: 'Failed to generate unique room code' });
   }
 
-  // md 템플릿 스냅샷 — 방 생성 시점에 복사해서 호스트가 자유롭게 편집
-  let questionsSeed = [];
-  let topicsSeed = [];
-  try { questionsSeed = parseQuestions(); } catch (_) {}
-  try { topicsSeed = parseFreeTopics(); } catch (_) {}
+  // 팩 스냅샷 — 방 생성 시점에 복사해서 호스트가 자유롭게 편집
+  const questionsSeed = pack.questions || [];
+  const topicsSeed = pack.topics || [];
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json)
-       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7) RETURNING id`,
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id)
+       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8) RETURNING id`,
       [
         room_code, title, uuid, host_role, question_count,
         JSON.stringify(questionsSeed),
         JSON.stringify(topicsSeed),
+        pack.id,
       ]
     );
     const room_id = roomResult.rows[0].id;
@@ -80,7 +86,7 @@ router.post('/rooms', async (req, res) => {
       [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
     );
     await client.query('COMMIT');
-    res.json({ room_code, title, host_role, question_count });
+    res.json({ room_code, title, host_role, question_count, pack_id: pack.id });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('POST /api/rooms error:', err);
@@ -90,11 +96,22 @@ router.post('/rooms', async (req, res) => {
   }
 });
 
+// GET /api/packs — 팩 목록 (create.html 선택 UI 용)
+router.get('/packs', async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
+  try {
+    res.json({ packs: listPacks() });
+  } catch (err) {
+    console.error('GET /api/packs error:', err);
+    res.status(500).json({ error: 'packs load failed' });
+  }
+});
+
 // GET /api/rooms/:code
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_uuid, host_role, status, question_count FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });
