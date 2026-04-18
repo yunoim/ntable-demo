@@ -412,8 +412,9 @@ router.post('/rooms/:code/mvp-finalize', async (req, res) => {
 });
 
 // ─── POST /api/rooms/:code/insta-reveal ──────────────────────────────────────
-// 상호 동의 후 인스타그램 공개. body: { uuid }
-// 내 매칭 상대를 match_json.pairs 에서 찾고, 양쪽 모두 instagram_revealed=true 면 상대 instagram 반환
+// 사랑의 작대기 mutual 페어 + 양쪽 모두 wizard에서 인스타 입력했으면 즉시 공개.
+// 별도 의사표시 단계(instagram_revealed) 폐지 — wizard 인스타 step 입력 자체가 공개 동의.
+// body: { uuid }
 router.post('/rooms/:code/insta-reveal', async (req, res) => {
   const { code } = req.params;
   const { uuid } = req.body;
@@ -424,78 +425,59 @@ router.post('/rooms/:code/insta-reveal', async (req, res) => {
     if (!roomRes.rows.length) return res.status(404).json({ error: '방 없음' });
     const room_id = roomRes.rows[0].id;
 
-    // 내 매칭 상대 uuid 탐색 — 모든 멤버의 match_json.pairs 검사
+    // mutual 페어 탐색 — match_json.pairs 의 type === 'mutual' 만
     const allRes = await pool.query(
       'SELECT uuid, match_json FROM member_results WHERE room_id = $1',
       [room_id]
     );
-
-    // 1) 방장(호스트)이 발표한 pairs 우선 — 모든 row에 동일 pairs가 broadcast 후 저장될 수도 있으니
-    //    각 row의 match_json.pairs 를 전부 합쳐 유니크하게 본다.
     let partnerUuid = null;
     for (const row of allRes.rows) {
       const pairs = row.match_json?.pairs;
       if (!Array.isArray(pairs)) continue;
       for (const p of pairs) {
+        // type=mutual 페어만 인스타 공개 (type=recommended 는 단순 추천이라 제외)
+        if (p.type && p.type !== 'mutual') continue;
         if (p.a?.uuid === uuid) { partnerUuid = p.b?.uuid || null; break; }
         if (p.b?.uuid === uuid) { partnerUuid = p.a?.uuid || null; break; }
       }
       if (partnerUuid) break;
     }
-    // 2) pairs 기록이 없으면 본인의 match_json.pick 폴백 (단방향 관심 표시)
-    if (!partnerUuid) {
-      const myRow = allRes.rows.find(r => r.uuid === uuid);
-      partnerUuid = myRow?.match_json?.pick || null;
-    }
-
     if (!partnerUuid) {
       return res.json({ mutual: false, pending: false, partner: null });
     }
 
-    // 내 match_json.instagram_revealed = true 기록
-    await pool.query(
-      `INSERT INTO member_results (uuid, room_id, room_code, votes_json, match_json, fi_count)
-       VALUES ($1, $2, $3, '{}', '{}', 0)
-       ON CONFLICT (uuid, room_id) DO NOTHING`,
-      [uuid, room_id, code]
+    // room_members 우선 (wizard 입력) — users 테이블은 legacy fallback
+    const myMember = await pool.query(
+      'SELECT nickname, instagram FROM room_members WHERE room_id=$1 AND uuid=$2',
+      [room_id, uuid]
     );
-    await pool.query(
-      `UPDATE member_results
-          SET match_json = jsonb_set(COALESCE(match_json, '{}'::jsonb), '{instagram_revealed}', 'true'::jsonb)
-        WHERE uuid = $1 AND room_id = $2`,
-      [uuid, room_id]
+    const partnerMember = await pool.query(
+      'SELECT nickname, instagram FROM room_members WHERE room_id=$1 AND uuid=$2',
+      [room_id, partnerUuid]
     );
+    const myInsta = myMember.rows[0]?.instagram;
+    const partnerInsta = partnerMember.rows[0]?.instagram;
 
-    // 상대도 공개했는지 확인
-    const partnerRow = await pool.query(
-      'SELECT match_json FROM member_results WHERE uuid = $1 AND room_id = $2',
-      [partnerUuid, room_id]
-    );
-    const partnerRevealed = !!partnerRow.rows[0]?.match_json?.instagram_revealed;
-
-    if (!partnerRevealed) {
-      return res.json({ mutual: false, pending: true, partner: { uuid: partnerUuid } });
+    // 양쪽 중 한쪽이라도 인스타 미입력 → 비공개
+    if (!myInsta || !partnerInsta) {
+      return res.json({
+        mutual: false,
+        pending: false,
+        partner: { uuid: partnerUuid, nickname: partnerMember.rows[0]?.nickname || '' },
+        reason: !myInsta && !partnerInsta ? 'both_empty' : (!myInsta ? 'me_empty' : 'partner_empty'),
+      });
     }
 
-    // 상호 공개 완료 → 상대 instagram + nickname 반환
-    const partnerUser = await pool.query(
-      'SELECT nickname, instagram FROM users WHERE uuid = $1',
-      [partnerUuid]
-    );
-    const u = partnerUser.rows[0] || {};
-
-    // 내 insta도 상대에게 broadcast해줄 수 있게 WS 전송
-    const meUser = await pool.query(
-      'SELECT nickname, instagram FROM users WHERE uuid = $1',
-      [uuid]
-    );
+    // 양쪽 모두 입력 — 즉시 상호 공개 + ws broadcast (양쪽 페이지에 즉시 반영)
     broadcastToRoom(code, {
       type: 'insta_mutual',
       a_uuid: uuid,
       b_uuid: partnerUuid,
-      a: { nickname: meUser.rows[0]?.nickname || '', instagram: meUser.rows[0]?.instagram || '' },
-      b: { nickname: u.nickname || '', instagram: u.instagram || '' },
+      a: { nickname: myMember.rows[0]?.nickname || '', instagram: myInsta },
+      b: { nickname: partnerMember.rows[0]?.nickname || '', instagram: partnerInsta },
     });
+
+    const u = { nickname: partnerMember.rows[0]?.nickname || '', instagram: partnerInsta };
 
     return res.json({
       mutual: true,
