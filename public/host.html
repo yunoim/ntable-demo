@@ -1374,6 +1374,7 @@
     }
     .mobile-share-row button:hover { background: rgba(212,168,67,0.2); }
     .mobile-share-row button:active { transform: scale(0.97); }
+    .mobile-share-row button[hidden] { display: none !important; }
     .mobile-share-row .mobile-end {
       background: rgba(220,53,69,0.12);
       border-color: rgba(220,53,69,0.4);
@@ -2231,16 +2232,19 @@ function bindEvents() {
   (async () => {
     try {
       const r = await fetch('/api/share-config');
-      if (!r.ok) return;
-      const cfg = await r.json();
-      if (cfg.kakaoJsKey && window.Kakao && !Kakao.isInitialized()) {
-        Kakao.init(cfg.kakaoJsKey);
+      const cfg = r.ok ? await r.json() : {};
+      console.log('[host] share-config', { hasKey: !!cfg.kakaoJsKey, kakaoLoaded: !!window.Kakao });
+      if (cfg.kakaoJsKey && window.Kakao) {
+        if (!Kakao.isInitialized()) Kakao.init(cfg.kakaoJsKey);
         const mb = document.getElementById('mobile-share-kakao');
         if (mb) mb.hidden = false;
         const sb = document.getElementById('sidebar-kakao-btn');
         if (sb) sb.hidden = false;
+        console.log('[host] kakao buttons revealed');
+      } else {
+        console.warn('[host] kakao not initialized — KAKAO_JS_KEY env or SDK load 확인');
       }
-    } catch (e) { /* graceful fallback */ }
+    } catch (e) { console.warn('[host] share-config fail', e); }
   })();
 
   document.getElementById('approve-all-btn').addEventListener('click', approveAll);
