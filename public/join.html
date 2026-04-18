@@ -397,8 +397,8 @@ function renderStep() {
     case 'region':
       body = `
         <div class="step-num">${stepNum} · 지역</div>
-        <h2 class="step-title">어디 사세요?</h2>
-        <p class="step-sub">건너뛰어도 OK.</p>
+        <h2 class="step-title">주로 활동하는 지역</h2>
+        <p class="step-sub">근처에 사는 분과 인연이 생길 수도. 건너뛰어도 OK.</p>
         <div class="field">
           <div class="chip-row">${REGIONS.map(v => `<button type="button" class="chip${data.region===v?' selected':''}" data-group="region" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
         </div>
@@ -412,8 +412,8 @@ function renderStep() {
     case 'industry':
       body = `
         <div class="step-num">${stepNum} · 업종</div>
-        <h2 class="step-title">어떤 일 하세요?</h2>
-        <p class="step-sub">건너뛰어도 OK.</p>
+        <h2 class="step-title">주로 어떤 분야</h2>
+        <p class="step-sub">대화 거리가 생겨요. 건너뛰어도 OK.</p>
         <div class="field">
           <div class="chip-row">${INDUSTRIES.map(v => `<button type="button" class="chip${data.industry===v?' selected':''}" data-group="industry" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
         </div>

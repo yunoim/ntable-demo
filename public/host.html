@@ -1851,8 +1851,13 @@ async function fetchUserProfile(uuid) {
   // 방별 익명 — room_members 우선 (이 방의 닉/프로필 스냅샷)
   try {
     const res = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(uuid)}`);
-    if (res.ok) return await res.json();
-  } catch (_) {}
+    console.log('[host] fetchUserProfile member API', uuid, res.status);
+    if (res.ok) {
+      const data = await res.json();
+      console.log('[host] member data', data);
+      return data;
+    }
+  } catch (e) { console.warn('[host] member API fail', e); }
   // legacy fallback
   try {
     const res = await api(`/api/me?uuid=${uuid}`);
@@ -1935,6 +1940,7 @@ function renderProfiles() {
   const carousel = document.getElementById('profile-carousel');
   const noMsg = document.getElementById('no-approved');
   carousel.innerHTML = '';
+  console.log('[host] renderProfiles approvedUsers:', state.approvedUsers, 'displayFields:', state.displayFields, 'birthYearFormat:', state.birthYearFormat);
   if (!state.approvedUsers.length) {
     noMsg.style.display = 'block';
     return;
@@ -2167,8 +2173,13 @@ function updatePrimaryButton() {
       btn.style.display = 'inline-flex';
       break;
     case 'ending':
-      btn.textContent = '💘 매칭 발표';
-      btn.style.display = 'inline-flex';
+      // 1:1 모임은 매칭 발표 버튼 숨김 (탐구 결과만 발표)
+      if (state.oneOnOne) {
+        btn.style.display = 'none';
+      } else {
+        btn.textContent = '💘 매칭 발표';
+        btn.style.display = 'inline-flex';
+      }
       closeBtn.style.display = 'inline-flex';
       break;
   }

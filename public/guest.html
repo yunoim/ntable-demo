@@ -1057,6 +1057,21 @@
     backdrop-filter: blur(12px);
     flex-shrink: 0;
   }
+  .qc-banner {
+    background: rgba(212,168,67,0.16);
+    border-bottom: 1px solid rgba(212,168,67,0.45);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    animation: qcBannerIn 0.3s ease;
+  }
+  @keyframes qcBannerIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+  .qc-banner .qc-icon { font-size: 18px; flex-shrink: 0; }
+  .qc-banner .qc-text { flex: 1; font-size: 13.5px; color: #ffffff; line-height: 1.45; font-weight: 500; }
+  .qc-banner .qc-close { background: none; border: none; color: #c0c0c0; font-size: 20px; cursor: pointer; padding: 0 4px; flex-shrink: 0; line-height: 1; }
+  .qc-banner .qc-close:hover { color: #ffffff; }
   .chat-input {
     flex: 1;
     background: var(--surface);
@@ -1482,6 +1497,11 @@
     <span class="conn-status" id="connDot"></span>
   </div>
   <div class="free-status-bar">익명 채팅 — 상대방에게는 닉네임이 표시되지 않아요</div>
+  <div id="qcBanner" class="qc-banner" hidden>
+    <div class="qc-icon">📌</div>
+    <div class="qc-text" id="qcBannerText"></div>
+    <button type="button" class="qc-close" onclick="closeQuestionBanner()" aria-label="닫기">×</button>
+  </div>
   <div class="chat-area" id="chatArea"></div>
   <div class="chat-input-bar">
     <input class="chat-input" id="chatInput" type="text" placeholder="메시지 입력..." maxlength="200" aria-label="채팅 메시지"
@@ -2565,6 +2585,18 @@ function showNudge(msg) {
 // ─── QUESTION CARD POPUP ──────────────────────────
 let qCardTimer = null;
 function showQuestionCard(text) {
+  // 자유대화(free) 화면에서는 상단 banner 로 고정 표시 (호스트 직접 닫기 전까지)
+  const isFree = STATE.currentState === 'free';
+  if (isFree) {
+    const banner = document.getElementById('qcBanner');
+    const txt = document.getElementById('qcBannerText');
+    if (banner && txt) {
+      txt.textContent = text;
+      banner.hidden = false;
+    }
+    return;
+  }
+  // 그 외 화면(탐구·소개 등)은 기존 큰 모달 5초 표시
   document.getElementById('questionCardText').textContent = text;
   const overlay = document.getElementById('questionCardOverlay');
   overlay.classList.add('show');
@@ -2584,6 +2616,11 @@ function showQuestionCard(text) {
 function closeQuestionCard() {
   document.getElementById('questionCardOverlay').classList.remove('show');
   if (qCardTimer) { clearTimeout(qCardTimer); qCardTimer = null; }
+}
+
+function closeQuestionBanner() {
+  const banner = document.getElementById('qcBanner');
+  if (banner) banner.hidden = true;
 }
 
 // ─── CLOSING ──────────────────────────────────────
