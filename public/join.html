@@ -294,9 +294,9 @@ async function init() {
       return;
     }
 
-    // 모든 방 3단계 통합 — 닉네임 → 통합 프로필(모두 선택) → 확인
-    // 호스트 display_fields는 통합 페이지 안 row 노출 결정
-    STEPS = ['nick', 'profile', 'confirm'];
+    // 호스트 = 'display' step 추가 (display_fields/birth_year_format 결정 → server PATCH)
+    // couples는 성별·출생연도만 (지역/업종/MBTI/관심사 스킵)
+    rebuildSteps();
 
     await prefillFromCache();
     renderProgress();
@@ -304,6 +304,25 @@ async function init() {
   } catch (e) {
     renderErr('서버 연결 실패');
   }
+}
+
+function rebuildSteps() {
+  const isHost = !!ROOM.isHost;
+  const isCouples = ROOM.pack_id === 'couples';
+  const df = Array.isArray(ROOM.display_fields)
+    ? ROOM.display_fields
+    : ['birth_year','region','industry','interest'];
+  const steps = ['nick'];
+  if (isHost) steps.push('display');
+  steps.push('basic');
+  if (!isCouples) {
+    if (df.includes('region')) steps.push('region');
+    if (df.includes('industry')) steps.push('industry');
+    steps.push('mbti');
+    if (df.includes('interest')) steps.push('interest');
+  }
+  steps.push('confirm');
+  STEPS = steps;
 }
 
 async function prefillFromCache() {
@@ -373,12 +392,44 @@ function renderStep() {
         </div>
       `;
       break;
-    case 'profile': {
+    case 'display': {
+      // 호스트 전용 — display_fields + birth_year_format 결정 → server PATCH
       const isCouples = ROOM.pack_id === 'couples';
       const df = Array.isArray(ROOM.display_fields)
         ? ROOM.display_fields
         : ['birth_year','region','industry','interest'];
-      // 출생연도 default 1990 (35세 정도) — null이면 기본값 표시
+      const fmt = ROOM.birth_year_format || (isCouples ? 'exact' : 'decade_half');
+      body = `
+        <div class="step-num">${stepNum} · 표시 설정 <span style="opacity:0.6;font-weight:400;">(호스트)</span></div>
+        <h2 class="step-title">카드에 어떤 정보를 보일지 정하세요</h2>
+        <p class="step-sub">게스트들에게도 같은 방식으로 적용됩니다.</p>
+        <div class="field">
+          <div class="field-label">참가자 카드에 표시할 정보</div>
+          <div class="chip-row">
+            <label class="chip df-check${df.includes('birth_year')?' selected':''}"><input type="checkbox" id="df_birth_year" data-df="birth_year"${df.includes('birth_year')?' checked':''} style="display:none;"> 출생연도</label>
+            <label class="chip df-check${df.includes('region')?' selected':''}"><input type="checkbox" id="df_region" data-df="region"${df.includes('region')?' checked':''} style="display:none;"> 지역</label>
+            <label class="chip df-check${df.includes('industry')?' selected':''}"><input type="checkbox" id="df_industry" data-df="industry"${df.includes('industry')?' checked':''} style="display:none;"> 업종</label>
+            <label class="chip df-check${df.includes('interest')?' selected':''}"><input type="checkbox" id="df_interest" data-df="interest"${df.includes('interest')?' checked':''} style="display:none;"> 관심사</label>
+          </div>
+          <div class="hint">체크한 항목만 다른 참가자 카드에 노출됩니다.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">출생연도 표시 방식</div>
+          <div class="chip-row">
+            <button type="button" class="chip${fmt==='decade'?' selected':''}" data-group="bfmt" data-value="decade">30대 (가장 익명)</button>
+            <button type="button" class="chip${fmt==='decade_half'?' selected':''}" data-group="bfmt" data-value="decade_half">30초·중·후</button>
+            <button type="button" class="chip${fmt==='exact'?' selected':''}" data-group="bfmt" data-value="exact">정확한 연도</button>
+          </div>
+          ${isCouples ? '<div class="hint">둘이서는 권장값이 "정확한 연도"입니다.</div>' : '<div class="hint">권장: 30초·중·후 (익명성 유지하면서 또래 식별)</div>'}
+        </div>
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="saveDisplayAndNext()">다음</button>
+        </div>
+      `;
+      break;
+    }
+    case 'basic': {
       const defaultYear = data.birth_year || 1990;
       const yearOpts = (() => {
         const cur = new Date().getFullYear();
@@ -393,18 +444,10 @@ function renderStep() {
         : ROOM.birth_year_format === 'decade'
           ? '카드에 "30대" 형태로 표시'
           : '카드에 정확한 연도가 표시됩니다';
-
-      const regionPicked = data.region || '';
-      const isSeoulPicked = regionPicked.startsWith('서울');
-      const seoulGu = isSeoulPicked ? regionPicked.replace(/^서울\s*/, '').trim() : '';
-      const showGu = ROOM.region_detail && (regionPicked === '서울' || isSeoulPicked);
-      const interestSet = new Set((data.interest || '').split(',').map(s => s.trim()).filter(Boolean));
-
       body = `
-        <div class="step-num">${stepNum} · 프로필 <span style="opacity:0.6;font-weight:400;">(모두 선택)</span></div>
+        <div class="step-num">${stepNum} · 기본 정보 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">간단히 알려주세요</h2>
-        <p class="step-sub">매칭·카드 표시에 쓰여요. ${isCouples ? '둘이서는 핵심만.' : '한 번에 다 골라도 OK.'}</p>
-
+        <p class="step-sub">매칭·표시에 쓰여요.</p>
         <div class="field">
           <div class="field-label">성별</div>
           <div class="chip-row">
@@ -413,43 +456,83 @@ function renderStep() {
             <button type="button" class="chip${data.gender==='unspecified'?' selected':''}" data-group="gender" data-value="unspecified">선택 안 함</button>
           </div>
         </div>
-
         <div class="field">
           <div class="field-label">출생연도 <span style="opacity:0.5;font-size:11px;">기본 1990</span></div>
           <select id="birthYearInput" class="year-select">${yearOpts}</select>
           <div class="hint">${fmtHint}</div>
         </div>
-
-        ${!isCouples && df.includes('region') ? `
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+        </div>
+      `;
+      break;
+    }
+    case 'region': {
+      const regionPicked = data.region || '';
+      const isSeoulPicked = regionPicked.startsWith('서울');
+      const seoulGu = isSeoulPicked ? regionPicked.replace(/^서울\s*/, '').trim() : '';
+      const showGu = ROOM.region_detail && (regionPicked === '서울' || isSeoulPicked);
+      body = `
+        <div class="step-num">${stepNum} · 지역 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
+        <h2 class="step-title">주로 활동하는 지역</h2>
+        <p class="step-sub">근처에 사는 분과 인연이 생길 수도.</p>
         <div class="field">
-          <div class="field-label">주로 활동하는 지역</div>
           <div class="chip-row">${REGIONS.map(v => {
             const sel = regionPicked === v || (v === '서울' && isSeoulPicked);
             return `<button type="button" class="chip${sel?' selected':''}" data-group="region" data-value="${escHtml(v)}">${escHtml(v)}</button>`;
           }).join('')}</div>
-          ${showGu ? `<div class="field-label" style="font-size:13px;color:#e8b84b;margin-top:14px;">서울 어디?</div>
-          <div class="chip-row">${SEOUL_GU.map(g => `<button type="button" class="chip${seoulGu===g?' selected':''}" data-group="seoul-gu" data-value="${escHtml(g)}">${escHtml(g)}</button>`).join('')}</div>` : ''}
-        </div>` : ''}
-
-        ${!isCouples && df.includes('industry') ? `
+        </div>
+        ${showGu ? `
         <div class="field">
-          <div class="field-label">주로 어떤 분야</div>
+          <div class="field-label" style="font-size:13px;color:#e8b84b;">서울 어디?</div>
+          <div class="chip-row">${SEOUL_GU.map(g => `<button type="button" class="chip${seoulGu===g?' selected':''}" data-group="seoul-gu" data-value="${escHtml(g)}">${escHtml(g)}</button>`).join('')}</div>
+        </div>` : ''}
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+        </div>
+      `;
+      break;
+    }
+    case 'industry':
+      body = `
+        <div class="step-num">${stepNum} · 업종 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
+        <h2 class="step-title">주로 어떤 분야</h2>
+        <p class="step-sub">대화 거리가 생겨요.</p>
+        <div class="field">
           <div class="chip-row">${INDUSTRIES.map(v => `<button type="button" class="chip${data.industry===v?' selected':''}" data-group="industry" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
-        </div>` : ''}
-
-        ${!isCouples ? `
+        </div>
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+        </div>
+      `;
+      break;
+    case 'mbti':
+      body = `
+        <div class="step-num">${stepNum} · MBTI <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
+        <h2 class="step-title">MBTI는요?</h2>
+        <p class="step-sub">매칭 정확도가 올라가요.</p>
         <div class="field">
-          <div class="field-label">MBTI</div>
           <div class="chip-row mbti">${MBTIS.map(v => `<button type="button" class="chip${data.mbti===v?' selected':''}" data-group="mbti" data-value="${v}">${v}</button>`).join('')}</div>
-        </div>` : ''}
-
-        ${!isCouples && df.includes('interest') ? `
+        </div>
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+        </div>
+      `;
+      break;
+    case 'interest': {
+      const interestSet = new Set((data.interest || '').split(',').map(s => s.trim()).filter(Boolean));
+      body = `
+        <div class="step-num">${stepNum} · 관심사 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
+        <h2 class="step-title">뭘 좋아하세요?</h2>
+        <p class="step-sub">여러 개 가능. 직접 입력도 OK.</p>
         <div class="field">
-          <div class="field-label">관심사 <span style="opacity:0.5;font-size:11px;">여러 개 가능</span></div>
           <div class="chip-row">${INTERESTS.map(v => `<button type="button" class="chip${interestSet.has(v)?' selected':''}" data-group="interest" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
           <input type="text" id="interestInput" maxlength="60" placeholder="또는 직접 입력 (콤마로 여러 개)" value="${escHtml(data.interest || '')}" style="margin-top:14px;">
-        </div>` : ''}
-
+        </div>
         <div class="actions">
           ${prevBtn}
           <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
@@ -512,6 +595,16 @@ function bindStep(key) {
 }
 
 document.addEventListener('click', (e) => {
+  // df-check 라벨 (display 스텝 체크박스 chip) — selected 토글
+  const dfChip = e.target.closest('.chip.df-check');
+  if (dfChip) {
+    const cb = dfChip.querySelector('input[type="checkbox"]');
+    if (cb) {
+      // label 내장 checkbox라 native click이 toggle. 직접 검색은 클릭이 발생한 후
+      setTimeout(() => dfChip.classList.toggle('selected', cb.checked), 0);
+    }
+    return;
+  }
   const chip = e.target.closest('.chip');
   if (!chip) return;
   const group = chip.dataset.group;
@@ -596,8 +689,28 @@ document.addEventListener('input', (e) => {
 });
 
 function nextStep() {
-  // profile step 떠날 때 birth_year default 1990 보장
-  if (STEPS[CURRENT] === 'profile') ensureBirthDefault();
+  // basic step 떠날 때 birth_year default 1990 보장
+  if (STEPS[CURRENT] === 'basic') ensureBirthDefault();
+  CURRENT = Math.min(CURRENT + 1, STEPS.length - 1);
+  renderStep();
+}
+
+// 호스트 'display' step — 표시 설정 변경 → server PATCH → STEPS 재구성
+async function saveDisplayAndNext() {
+  const newDf = ['birth_year','region','industry','interest']
+    .filter(k => document.getElementById('df_' + k)?.checked);
+  const fmtChip = document.querySelector('.chip[data-group="bfmt"].selected');
+  const newFmt = fmtChip ? fmtChip.dataset.value : (ROOM.birth_year_format || 'decade_half');
+  try {
+    await fetch(`/api/rooms/${ROOM_CODE}/display`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid: UUID, display_fields: newDf, birth_year_format: newFmt }),
+    });
+  } catch (_) {}
+  ROOM.display_fields = newDf;
+  ROOM.birth_year_format = newFmt;
+  rebuildSteps();
   CURRENT = Math.min(CURRENT + 1, STEPS.length - 1);
   renderStep();
 }

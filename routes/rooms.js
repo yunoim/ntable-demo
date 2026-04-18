@@ -490,4 +490,30 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// PATCH /api/rooms/:code/display — 호스트가 join wizard 'display' step에서 결정
+// body: { uuid, display_fields, birth_year_format }
+router.patch('/rooms/:code/display', async (req, res) => {
+  const { code } = req.params;
+  const { uuid } = req.body;
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  const room = await pool.query('SELECT id, host_uuid FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  if (room.rows[0].host_uuid !== uuid) return res.status(403).json({ error: 'host only' });
+  const ALLOWED_FIELDS = ['birth_year', 'region', 'industry', 'interest'];
+  let display_fields = Array.isArray(req.body.display_fields)
+    ? req.body.display_fields.filter(f => ALLOWED_FIELDS.includes(f))
+    : null;
+  const birth_year_format = ['exact', 'decade_half', 'decade'].includes(req.body.birth_year_format)
+    ? req.body.birth_year_format : null;
+  if (!display_fields && !birth_year_format) return res.status(400).json({ error: 'nothing to update' });
+  const updates = [];
+  const params = [];
+  let i = 1;
+  if (display_fields) { updates.push(`display_fields = $${i++}`); params.push(JSON.stringify(display_fields)); }
+  if (birth_year_format) { updates.push(`birth_year_format = $${i++}`); params.push(birth_year_format); }
+  params.push(code);
+  await pool.query(`UPDATE rooms SET ${updates.join(', ')} WHERE room_code = $${i}`, params);
+  res.json({ ok: true });
+});
+
 module.exports = router;
