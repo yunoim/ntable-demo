@@ -493,7 +493,7 @@
     <div class="top-nav">
       <span class="user-nick" id="topNavUser"></span>
       <div style="display:flex; gap:8px;">
-        <button type="button" class="logout-btn" onclick="logout()" title="저장된 닉/프로필 캐시를 모두 지웁니다">정보 초기화</button>
+        <button type="button" class="logout-btn" onclick="logout()" title="이 기기에 저장된 닉네임·프로필 캐시를 지웁니다 (확인 모달 있음)">입력 캐시 지우기</button>
       </div>
     </div>
     <div class="logo">ntable</div>
@@ -508,7 +508,7 @@
         <button type="button" class="couples-hero-btn" id="quickCouplesBtn">둘이서 시작하기 →</button>
       </div>
 
-      <div class="group-section-header">아니면 여럿이서</div>
+      <div class="group-section-header">그룹·다인원 팩</div>
 
       <!-- 추천 팩 4개 -->
       <div class="pack-grid" id="packGrid">
@@ -533,7 +533,7 @@
             <input type="range" id="qcountSlider" class="qcount-slider" min="1" max="15" value="2" step="1" aria-label="탐구 문항 수 (1~15)" />
             <span class="qcount-value"><span id="qcountValue">2</span>문항</span>
           </div>
-          <div class="qcount-hint">짧은 아이스브레이크는 1~3, 깊이 대화하려면 많이</div>
+          <div class="qcount-hint">짧은 아이스브레이크 1~3문항 · 본격 탐구 10~15문항</div>
         </div>
 
         <div class="field-group">
@@ -550,17 +550,18 @@
         <div class="field-group" id="birthYearFormatGroup">
           <label>출생연도 표시 방식</label>
           <div class="display-fields-row">
-            <label class="df-chip"><input type="radio" name="birthFmt" value="exact" checked> 정확한 연도 (1990)</label>
+            <label class="df-chip"><input type="radio" name="birthFmt" value="decade" checked> 30대 (가장 익명)</label>
             <label class="df-chip"><input type="radio" name="birthFmt" value="decade_half"> 30초·중·후</label>
-            <label class="df-chip"><input type="radio" name="birthFmt" value="decade"> 30대 (10대 단위)</label>
+            <label class="df-chip"><input type="radio" name="birthFmt" value="exact"> 정확한 연도 (1990)</label>
           </div>
+          <div class="qcount-hint">기본은 익명성 보호. 친한 모임에서는 더 구체적으로 변경 가능.</div>
         </div>
 
         <div class="field-group">
           <label>호스트 역할</label>
           <div class="display-fields-row">
             <label class="df-chip"><input type="radio" name="hostRole" value="participant" checked> 🙋 참여자로 참가 (투표·매칭 포함)</label>
-            <label class="df-chip"><input type="radio" name="hostRole" value="host_only"> 🎤 진행만 (집계·발표 담당)</label>
+            <label class="df-chip"><input type="radio" name="hostRole" value="host_only"> 🎛️ 진행만 (집계·발표 담당)</label>
           </div>
         </div>
 
@@ -579,7 +580,7 @@
             <label class="df-chip"><input type="radio" name="photoEnabled" value="true" checked> 📷 허용</label>
             <label class="df-chip"><input type="radio" name="photoEnabled" value="false"> 🚫 비허용</label>
           </div>
-          <div class="qcount-hint">허용 시 참가자가 본인 사진을 카드에 올릴 수 있어요. (서버 미저장)</div>
+          <div class="qcount-hint">허용 시 참가자가 본인 사진을 카드에 올릴 수 있어요. (브라우저에만 저장 · 새로고침하면 사라짐)</div>
         </div>
 
         <div class="field-group">
@@ -624,7 +625,7 @@
           <span class="pack-icon">${escHtml(p.icon || '📦')}</span>
           <span class="pack-title">${escHtml(p.title)}</span>
         </div>
-        <div class="pack-desc">${escHtml(p.description || '')}</div>
+        <div class="pack-desc" title="${escHtml(p.description || '')}">${escHtml(p.description || '')}</div>
         <div class="pack-meta">${escHtml(p.recommended || '')} · 탐구 ${p.question_count}문항</div>
       `;
       card.addEventListener('click', () => selectPack(p.id));
@@ -732,7 +733,7 @@
       if (navUser) navUser.textContent = authedName ? `${authedName}` : (pref ? `@${pref}` : '');
       // logout 버튼 라벨 동적 (OAuth 로그인 시 "로그아웃")
       const logoutBtn = document.querySelector('.logout-btn');
-      if (logoutBtn) logoutBtn.textContent = authedName ? '로그아웃' : '정보 초기화';
+      if (logoutBtn) logoutBtn.textContent = authedName ? '로그아웃' : '입력 캐시 지우기';
       loadPacks();
     }
 
