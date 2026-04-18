@@ -106,6 +106,14 @@ async function initDB() {
       if (e.code !== '42701') throw e;
     }
 
+    // 자유대화 구성 (호스트가 방 생성 시 결정)
+    // - free_chat_timer_minutes: 0 = 타이머 없음 / N분 = N분 카운트다운
+    // - free_chat_chat_enabled: 익명채팅 입력창 노출 여부
+    // - free_chat_topic_card_enabled: 주제카드 분배 가능 여부
+    try { await client.query(`ALTER TABLE rooms ADD COLUMN free_chat_timer_minutes INTEGER DEFAULT 15`); } catch (e) { if (e.code !== '42701') throw e; }
+    try { await client.query(`ALTER TABLE rooms ADD COLUMN free_chat_chat_enabled BOOLEAN DEFAULT TRUE`); } catch (e) { if (e.code !== '42701') throw e; }
+    try { await client.query(`ALTER TABLE rooms ADD COLUMN free_chat_topic_card_enabled BOOLEAN DEFAULT TRUE`); } catch (e) { if (e.code !== '42701') throw e; }
+
     // users.nickname — 방별 익명 구조로 전환되며 더 이상 unique·required 아님
     // (호환성 위해 컬럼 자체는 유지)
     try { await client.query(`ALTER TABLE users ALTER COLUMN nickname DROP NOT NULL`); } catch (_) {}

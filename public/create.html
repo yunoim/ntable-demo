@@ -632,7 +632,7 @@
             <label class="df-chip"><input type="checkbox" id="adv_fc_chat"> 💬 익명채팅</label>
             <label class="df-chip"><input type="checkbox" id="adv_fc_topic" checked> 🃏 주제카드</label>
           </div>
-          <div class="qcount-hint">v1: 카드별 default 사용 · 상세 적용은 다음 라운드 예정</div>
+          <div class="qcount-hint">타이머 체크 시 15분 default · 미체크 시 자유대화 타이머 없음</div>
         </div>
 
         <div class="field-group">
@@ -716,6 +716,7 @@
           birth_year_format: 'exact',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,
+          free_chat_timer_minutes: 0, free_chat_chat_enabled: false, free_chat_topic_card_enabled: false,
         },
       },
       {
@@ -728,6 +729,7 @@
           birth_year_format: 'decade_half',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,
+          free_chat_timer_minutes: 10, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
         },
       },
       {
@@ -740,6 +742,7 @@
           birth_year_format: 'decade_half',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,
+          free_chat_timer_minutes: 15, free_chat_chat_enabled: true, free_chat_topic_card_enabled: false,
         },
       },
       {
@@ -752,6 +755,7 @@
           birth_year_format: 'decade_half',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,
+          free_chat_timer_minutes: 20, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
         },
       },
       {
@@ -764,6 +768,7 @@
           birth_year_format: 'decade_half',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,
+          free_chat_timer_minutes: 15, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
         },
       },
     ];
@@ -842,6 +847,14 @@
       advQVal.textContent = advQ.value;
       markDirty('question_count', parseInt(advQ.value, 10));
     });
+
+    // 자유대화 구성 chip
+    const advFcTimer = document.getElementById('adv_fc_timer');
+    const advFcChat = document.getElementById('adv_fc_chat');
+    const advFcTopic = document.getElementById('adv_fc_topic');
+    advFcTimer.addEventListener('change', () => markDirty('free_chat_timer_minutes', advFcTimer.checked ? 15 : 0));
+    advFcChat.addEventListener('change', () => markDirty('free_chat_chat_enabled', advFcChat.checked));
+    advFcTopic.addEventListener('change', () => markDirty('free_chat_topic_card_enabled', advFcTopic.checked));
 
     // 카드 표시 정보 (체크박스)
     document.querySelectorAll('input[data-adv-field]').forEach(cb => {
