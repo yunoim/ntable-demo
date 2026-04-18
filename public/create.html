@@ -269,6 +269,117 @@
     }
     .tagline-hero strong { color: var(--gold); font-weight: 700; }
 
+    /* 히어로 — 둘이서만 1-tap 경로 */
+    .couples-hero {
+      position: relative;
+      background: linear-gradient(135deg, rgba(212,168,67,0.18), rgba(212,168,67,0.06));
+      border: 1px solid var(--gold);
+      border-radius: 18px;
+      padding: 22px 22px 20px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .couples-hero::before {
+      content: '';
+      position: absolute;
+      top: -40%; right: -20%;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(240,202,96,0.25), transparent 70%);
+      pointer-events: none;
+    }
+    .couples-hero-eyebrow {
+      display: inline-block;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      background: rgba(10,15,30,0.4);
+      border: 1px solid var(--gold-border);
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .couples-hero h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 6px;
+      line-height: 1.3;
+      position: relative;
+    }
+    .couples-hero p {
+      font-size: 13px;
+      color: var(--white-dim);
+      margin-bottom: 14px;
+      line-height: 1.6;
+      position: relative;
+    }
+    .couples-hero-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      border-radius: 11px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(212,168,67,0.35);
+      position: relative;
+    }
+    .couples-hero-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,168,67,0.5); }
+    .couples-hero-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* 섹션 헤더 */
+    .group-section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0 14px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .group-section-header::before,
+    .group-section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* 전체 팩 보기 토글 */
+    .pack-expand-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--gold-border);
+      color: var(--gold-light);
+      border-radius: 10px;
+      padding: 11px;
+      font-family: inherit;
+      font-size: 12.5px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    .pack-expand-btn:hover { background: var(--gold-dim-2); }
+    #allPackGrid { margin-top: 10px; }
+    #allPackGrid[hidden] { display: none; }
+
+    /* 선택 완료 후 펼쳐지는 설정 영역 */
+    #packSetup {
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+    }
+    #packSetup[hidden] { display: none; }
+
     /* 질문 팩 선택 */
     .pack-grid {
       display: grid;
@@ -398,40 +509,47 @@
     <div class="welcome" id="welcomeMsg">로딩 중...</div>
 
     <div class="card">
-      <div class="tagline-hero">
-        누구나 <strong>5분 안에</strong> 모임을 열 수 있어요
+      <!-- 히어로: 2인 전용 1-tap 시작 -->
+      <div class="couples-hero" id="couplesHero">
+        <span class="couples-hero-eyebrow">💞 둘이서만</span>
+        <h3>지금 마주앉은 사람과</h3>
+        <p>2인 전용 팩으로 1분 안에 바로 시작. 친구·썸·연인·1:1 멘토링 뭐든.</p>
+        <button type="button" class="couples-hero-btn" id="quickCouplesBtn">둘이서 시작하기 →</button>
       </div>
-      <h2 class="section-title">새 모임 만들기</h2>
-      <div class="section-sub">모임을 열면 QR코드와 입장 링크가 자동 생성돼요.</div>
 
-      <div class="field-group">
-        <label>질문 팩<span class="required-mark">*</span></label>
-        <div class="pack-grid" id="packGrid">
-          <div class="pack-loading">팩 불러오는 중...</div>
+      <div class="group-section-header">아니면 여럿이서</div>
+
+      <!-- 추천 팩 4개 -->
+      <div class="pack-grid" id="packGrid">
+        <div class="pack-loading">팩 불러오는 중...</div>
+      </div>
+
+      <!-- 전체 팩 보기 -->
+      <button type="button" class="pack-expand-btn" id="expandPackBtn" hidden>전체 11개 팩 보기 ▼</button>
+      <div class="pack-grid" id="allPackGrid" hidden></div>
+
+      <!-- 팩 선택 후 노출되는 설정 영역 -->
+      <div id="packSetup" hidden>
+        <div class="field-group">
+          <label>모임 제목</label>
+          <input type="text" id="titleInput" maxlength="100" aria-label="모임 제목" />
+          <div class="char-count"><span id="charCount">0</span> / 100</div>
         </div>
-        <div class="qcount-hint" style="margin-top:10px;">선택한 팩의 질문과 자유대화 주제가 방에 복사됩니다. 생성 후 호스트가 수정할 수 있어요.</div>
-      </div>
 
-      <div class="field-group">
-        <label>모임 제목<span class="required-mark">*</span></label>
-        <input type="text" id="titleInput" placeholder="예: 6월 네트워킹 모임" maxlength="100" aria-label="모임 제목" />
-        <div class="char-count"><span id="charCount">0</span> / 100</div>
-      </div>
-
-      <div class="field-group">
-        <label>탐구 문항 수<span class="required-mark">*</span></label>
-        <div class="qcount-row">
-          <input type="range" id="qcountSlider" class="qcount-slider" min="1" max="15" value="10" step="1" aria-label="탐구 문항 수 (1~15)" />
-          <span class="qcount-value"><span id="qcountValue">10</span>문항</span>
+        <div class="field-group">
+          <label>탐구 문항 수</label>
+          <div class="qcount-row">
+            <input type="range" id="qcountSlider" class="qcount-slider" min="1" max="15" value="10" step="1" aria-label="탐구 문항 수 (1~15)" />
+            <span class="qcount-value"><span id="qcountValue">10</span>문항</span>
+          </div>
+          <div class="qcount-hint">짧은 아이스브레이크는 1~3, 깊이 대화하려면 많이</div>
         </div>
-        <div class="qcount-hint">1~15문항 사이에서 선택 · 짧은 아이스브레이크는 1~3, 깊이 대화하려면 많이</div>
+
+        <button type="button" class="submit-btn" id="createBtn" onclick="createRoom()" disabled>
+          모임 만들기
+        </button>
       </div>
 
-      <div class="divider"></div>
-
-      <button type="button" class="submit-btn" id="createBtn" onclick="createRoom()" disabled>
-        모임 만들기
-      </button>
       <div class="error-msg" id="errorMsg"></div>
     </div>
   </div>
@@ -447,38 +565,64 @@
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    // 추천 팩 (히어로 제외, 여러명용 상단 4개)
+    const FEATURED_PACK_IDS = ['icebreaker', 'friends-reunion', 'dating', 'teambuilding'];
+
+    function renderPackCard(p) {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'pack-card';
+      card.dataset.packId = p.id;
+      card.innerHTML = `
+        <div class="pack-head">
+          <span class="pack-icon">${escHtml(p.icon || '📦')}</span>
+          <span class="pack-title">${escHtml(p.title)}</span>
+        </div>
+        <div class="pack-desc">${escHtml(p.description || '')}</div>
+        <div class="pack-meta">${escHtml(p.recommended || '')} · 탐구 ${p.question_count}문항</div>
+      `;
+      card.addEventListener('click', () => selectPack(p.id));
+      return card;
+    }
+
     async function loadPacks() {
-      const grid = document.getElementById('packGrid');
+      const featuredGrid = document.getElementById('packGrid');
+      const allGrid = document.getElementById('allPackGrid');
+      const expandBtn = document.getElementById('expandPackBtn');
       try {
         const res = await fetch('/api/packs');
         const data = await res.json();
         packs = Array.isArray(data.packs) ? data.packs : [];
         if (!packs.length) {
-          grid.innerHTML = '<div class="pack-loading">사용 가능한 팩이 없어요</div>';
+          featuredGrid.innerHTML = '<div class="pack-loading">사용 가능한 팩이 없어요</div>';
           return;
         }
-        grid.innerHTML = '';
-        packs.forEach(p => {
-          const card = document.createElement('button');
-          card.type = 'button';
-          card.className = 'pack-card';
-          card.dataset.packId = p.id;
-          card.innerHTML = `
-            <div class="pack-head">
-              <span class="pack-icon">${escHtml(p.icon || '📦')}</span>
-              <span class="pack-title">${escHtml(p.title)}</span>
-            </div>
-            <div class="pack-desc">${escHtml(p.description || '')}</div>
-            <div class="pack-meta">${escHtml(p.recommended || '')} · 탐구 ${p.question_count}문항 · 주제 ${p.topic_count}개</div>
-          `;
-          card.addEventListener('click', () => selectPack(p.id));
-          grid.appendChild(card);
-        });
-        // 기본 선택 — icebreaker 있으면 그것, 없으면 첫 번째
-        const defaultPack = packs.find(p => p.id === 'icebreaker') || packs[0];
-        if (defaultPack) selectPack(defaultPack.id);
+
+        // 히어로에 쓰는 couples 는 목록에서 제외
+        const multi = packs.filter(p => p.id !== 'couples');
+
+        // 추천 팩 (정의된 순서대로)
+        const featured = FEATURED_PACK_IDS
+          .map(id => multi.find(p => p.id === id))
+          .filter(Boolean);
+        // 나머지는 전체 보기에
+        const rest = multi.filter(p => !FEATURED_PACK_IDS.includes(p.id));
+
+        featuredGrid.innerHTML = '';
+        featured.forEach(p => featuredGrid.appendChild(renderPackCard(p)));
+
+        if (rest.length) {
+          allGrid.innerHTML = '';
+          rest.forEach(p => allGrid.appendChild(renderPackCard(p)));
+          expandBtn.hidden = false;
+          expandBtn.addEventListener('click', () => {
+            const wasHidden = allGrid.hidden;
+            allGrid.hidden = !wasHidden;
+            expandBtn.textContent = wasHidden ? '접기 ▲' : `전체 ${multi.length}개 팩 보기 ▼`;
+          });
+        }
       } catch (err) {
-        grid.innerHTML = '<div class="pack-loading">팩을 불러오지 못했어요</div>';
+        featuredGrid.innerHTML = '<div class="pack-loading">팩을 불러오지 못했어요</div>';
       }
     }
 
@@ -487,15 +631,62 @@
       document.querySelectorAll('.pack-card').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.packId === packId);
       });
-      // 추천 문항 수로 슬라이더 초기값 맞추기 (팩 question_count 있으면)
+      // 설정 영역 펼치기
+      document.getElementById('packSetup').hidden = false;
+      // 추천 문항 수·기본 제목 세팅
       const pack = packs.find(p => p.id === packId);
-      if (pack && pack.question_count) {
+      if (pack) {
         const target = Math.min(Math.max(pack.question_count > 10 ? 10 : pack.question_count, 1), 15);
         qcountSlider.value = target;
         qcountValue.textContent = target;
+        // 자동 제목: "{팩 이름} · MM.DD"
+        const d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        if (!titleInput.value.trim()) {
+          titleInput.value = `${pack.title} · ${mm}.${dd}`;
+          charCount.textContent = titleInput.value.length;
+        }
       }
+      // 설정 영역으로 스크롤
+      setTimeout(() => {
+        document.getElementById('packSetup').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
       checkReady();
     }
+
+    // 히어로 "둘이서 시작하기" — 1-tap 방 생성
+    async function quickStartCouples() {
+      const btn = document.getElementById('quickCouplesBtn');
+      btn.disabled = true;
+      btn.textContent = '생성 중...';
+      const errMsg = document.getElementById('errorMsg');
+      errMsg.textContent = '';
+      try {
+        const d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const res = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uuid,
+            title: `둘이서 · ${mm}.${dd}`,
+            host_role: DEFAULT_HOST_ROLE,
+            question_count: 10,
+            pack_id: 'couples',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '방 생성 실패');
+        window.location.href = `/room/${data.room_code}/host`;
+      } catch (err) {
+        errMsg.textContent = err.message;
+        btn.disabled = false;
+        btn.textContent = '둘이서 시작하기 →';
+      }
+    }
+    document.getElementById('quickCouplesBtn').addEventListener('click', quickStartCouples);
 
     async function init() {
       uuid = localStorage.getItem('demo_uuid');
