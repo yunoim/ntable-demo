@@ -126,6 +126,7 @@ router.get('/auth/kakao/callback', async (req, res) => {
     return res.redirect('/?auth_error=state');
   }
   try {
+    console.log('[user-auth kakao] callback start, redirect_uri=', kakaoRedirect());
     const tokenRes = await fetch(KAKAO_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -136,11 +137,20 @@ router.get('/auth/kakao/callback', async (req, res) => {
         code,
       }),
     });
-    if (!tokenRes.ok) throw new Error('token_exchange_failed');
+    if (!tokenRes.ok) {
+      const errBody = await tokenRes.text().catch(() => '');
+      console.error('[user-auth kakao] token exchange failed', tokenRes.status, errBody);
+      throw new Error('token_exchange:' + tokenRes.status);
+    }
     const tok = await tokenRes.json();
     const uiRes = await fetch(KAKAO_USERINFO_URL, { headers: { Authorization: `Bearer ${tok.access_token}` } });
-    if (!uiRes.ok) throw new Error('userinfo_failed');
+    if (!uiRes.ok) {
+      const errBody = await uiRes.text().catch(() => '');
+      console.error('[user-auth kakao] userinfo failed', uiRes.status, errBody);
+      throw new Error('userinfo:' + uiRes.status);
+    }
     const ui = await uiRes.json();
+    console.log('[user-auth kakao] userinfo received', { id: ui.id, hasAccount: !!ui.kakao_account });
     const sub = String(ui.id || '');
     if (!sub) throw new Error('no_kakao_id');
     const account = ui.kakao_account || {};
@@ -155,8 +165,8 @@ router.get('/auth/kakao/callback', async (req, res) => {
     });
     res.redirect(`/?auth_token=${token}`);
   } catch (err) {
-    console.error('[user-auth kakao]', err);
-    res.redirect('/?auth_error=server');
+    console.error('[user-auth kakao] FATAL', err.message, err.stack);
+    res.redirect('/?auth_error=' + encodeURIComponent(err.message || 'server'));
   }
 });
 
