@@ -855,7 +855,7 @@
     }
 
     function logout() {
-      if (!confirm('로그아웃할까요? 저장된 닉네임/프로필도 모두 지워집니다.')) return;
+      if (!confirm('이 기기에 저장된 닉네임·프로필 캐시를 모두 지울까요?\n다음 모임 입장 시 처음부터 입력하게 됩니다.')) return;
       try {
         localStorage.removeItem('demo_uuid');
         localStorage.removeItem('preferred_nickname');
