@@ -176,32 +176,66 @@ router.get('/rooms/:code/preview', async (req, res) => {
 });
 
 // GET /api/rooms/:code/members
-// host_role === 'host_only' 인 호스트는 응답에서 제외 (게스트 화면 표시·투표 대상에서 빠짐)
+// host_role === 'host_only' 인 호스트는 응답에서 제외
+// ?viewer=<uuid> 로 viewer ≠ member 인 항목은 hide_* 마스킹 (호스트는 마스킹 X — 운영 필요)
 router.get('/rooms/:code/members', async (req, res) => {
   const { code } = req.params;
+  const viewer = req.query.viewer;
   const room = await pool.query(
     'SELECT id, host_uuid, host_role FROM rooms WHERE room_code = $1',
     [code]
   );
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const hostUuid = room.rows[0].host_uuid;
+  const isHostViewer = viewer && hostUuid && viewer === hostUuid;
 
   const wsModule = require('./ws');
-  let clients = wsModule.getRoomClients(code); // [uuid, ...]
-
-  // 진행만(host_only) 호스트는 멤버 목록에서 제외
-  if (room.rows[0].host_role === 'host_only' && room.rows[0].host_uuid) {
-    clients = clients.filter(u => u !== room.rows[0].host_uuid);
+  let clients = wsModule.getRoomClients(code);
+  if (room.rows[0].host_role === 'host_only' && hostUuid) {
+    clients = clients.filter(u => u !== hostUuid);
   }
-
   if (clients.length === 0) return res.json([]);
 
-  const placeholders = clients.map((_, i) => `$${i + 1}`).join(',');
-  const users = await pool.query(
-    `SELECT uuid, nickname, gender, birth_year, region, industry, mbti, interest
-     FROM users WHERE uuid IN (${placeholders})`,
-    clients
+  // room_members 우선 (방별 익명 + hide 정보), 없으면 users fallback
+  const placeholders = clients.map((_, i) => `$${i + 2}`).join(',');
+  const members = await pool.query(
+    `SELECT uuid, nickname, gender, birth_year, region, industry, mbti, interest,
+            hide_birth_year, hide_region, hide_industry, hide_interest
+       FROM room_members
+      WHERE room_id = $1 AND uuid IN (${placeholders})`,
+    [room.rows[0].id, ...clients]
   );
-  res.json(users.rows);
+  const memberMap = new Map(members.rows.map(m => [m.uuid, m]));
+  // legacy fallback for clients not in room_members
+  const missing = clients.filter(u => !memberMap.has(u));
+  if (missing.length) {
+    const ph2 = missing.map((_, i) => `$${i + 1}`).join(',');
+    const users = await pool.query(
+      `SELECT uuid, nickname, gender, birth_year, region, industry, mbti, interest
+         FROM users WHERE uuid IN (${ph2})`,
+      missing
+    );
+    users.rows.forEach(u => memberMap.set(u.uuid, u));
+  }
+  // viewer 마스킹 (호스트가 viewer면 마스킹 X — 운영용)
+  const out = clients.map(u => {
+    const m = memberMap.get(u);
+    if (!m) return null;
+    const row = { ...m };
+    if (!isHostViewer && viewer && viewer !== u) {
+      if (row.hide_birth_year) row.birth_year = null;
+      if (row.hide_region) row.region = null;
+      if (row.hide_industry) row.industry = null;
+      if (row.hide_interest) row.interest = null;
+    }
+    // 클라이언트로는 hide 플래그 노출 안 함 (정보 누출 방지)
+    delete row.hide_birth_year;
+    delete row.hide_region;
+    delete row.hide_industry;
+    delete row.hide_interest;
+    return row;
+  }).filter(Boolean);
+  res.json(out);
 });
 
 // POST /api/rooms/:code/approve
@@ -235,12 +269,13 @@ router.post('/rooms/:code/approve', async (req, res) => {
 });
 
 // GET /api/rooms/:code/members/:uuid — 특정 멤버 프로필 조회 (방별 익명 — room_members 우선)
-// ?viewer=<uuid> 로 viewer가 다른 사람이면 hide_* 필드 마스킹 (카드 비공개)
+// ?viewer=<uuid> 로 viewer ≠ target이면 hide_* 필드 마스킹. 호스트 viewer는 마스킹 X (운영 필요).
 router.get('/rooms/:code/members/:uuid', async (req, res) => {
   const { code, uuid } = req.params;
   const viewer = req.query.viewer;
-  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  const room = await pool.query('SELECT id, host_uuid FROM rooms WHERE room_code = $1', [code]);
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const isHostViewer = viewer && room.rows[0].host_uuid && viewer === room.rows[0].host_uuid;
   const m = await pool.query(
     `SELECT uuid, nickname, gender, birth_year, region, industry, mbti, interest, instagram,
             hide_birth_year, hide_region, hide_industry, hide_interest
@@ -256,13 +291,20 @@ router.get('/rooms/:code/members/:uuid', async (req, res) => {
     if (u.rows.length === 0) return res.status(404).json({ error: 'not found' });
     return res.json(u.rows[0]);
   }
-  const row = m.rows[0];
-  // viewer가 본인이 아니면 hide 적용 (본인 보기는 본인 정보 그대로 + hide flag 같이)
-  if (viewer && viewer !== uuid) {
+  const row = { ...m.rows[0] };
+  // 본인이 아니고 호스트도 아닌 viewer가 보면 hide 적용
+  if (viewer && viewer !== uuid && !isHostViewer) {
     if (row.hide_birth_year) row.birth_year = null;
     if (row.hide_region) row.region = null;
     if (row.hide_industry) row.industry = null;
     if (row.hide_interest) row.interest = null;
+  }
+  // hide 플래그는 본인 응답일 때만 클라이언트로 노출 (확인 화면 🔒 마크용)
+  if (viewer !== uuid) {
+    delete row.hide_birth_year;
+    delete row.hide_region;
+    delete row.hide_industry;
+    delete row.hide_interest;
   }
   res.json(row);
 });

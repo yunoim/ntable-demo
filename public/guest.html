@@ -2328,7 +2328,7 @@ function renderMyProfile() {
 // ─── INTRO ────────────────────────────────────────
 async function loadIntroData() {
   try {
-    const res = await fetch(`/api/rooms/${STATE.roomCode}/members`);
+    const res = await fetch(`/api/rooms/${STATE.roomCode}/members?viewer=${encodeURIComponent(STATE.uuid)}`);
     console.log('[guest] loadIntroData members API', res.status);
     if (!res.ok) return;
     STATE.members = await res.json();
@@ -2725,7 +2725,7 @@ function closeQuestionBanner() {
 async function loadClosingData() {
   if (STATE.members.length === 0) {
     try {
-      const res = await fetch(`/api/rooms/${STATE.roomCode}/members`);
+      const res = await fetch(`/api/rooms/${STATE.roomCode}/members?viewer=${encodeURIComponent(STATE.uuid)}`);
       if (res.ok) STATE.members = await res.json();
     } catch(_) {}
   }
