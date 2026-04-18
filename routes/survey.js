@@ -234,21 +234,49 @@ router.get('/result', async (req, res) => {
       }
     }
 
-    // 매칭 상대와의 공통 답변 수
+    // 매칭 상대와의 공통 답변 수 + 대표 픽 (최대 2개)
     let match_common = 0;
     let match_total_answered = 0;
+    let match_common_picks = [];
     if (match_uuid) {
       const partnerRes = await pool.query(
         'SELECT votes_json FROM member_results WHERE uuid = $1 AND room_id = $2',
         [match_uuid, room_id]
       );
       const partnerVotes = (partnerRes.rows[0] && partnerRes.rows[0].votes_json) || {};
+
+      // 질문 텍스트 lookup
+      const qRes = await pool.query(
+        'SELECT questions_json, question_count FROM rooms WHERE id = $1',
+        [room_id]
+      );
+      const allQs = (qRes.rows[0] && qRes.rows[0].questions_json) || [];
+      const qcount = Number.isFinite(qRes.rows[0]?.question_count) ? qRes.rows[0].question_count : allQs.length;
+      const qById = new Map();
+      for (const q of allQs.slice(0, qcount)) qById.set(String(q.id), q);
+
+      const matchedPicks = [];
       for (const [qid, ans] of Object.entries(myVotes)) {
         if (partnerVotes[qid] != null) {
           match_total_answered += 1;
-          if (partnerVotes[qid] === ans) match_common += 1;
+          if (partnerVotes[qid] === ans) {
+            match_common += 1;
+            const q = qById.get(String(qid));
+            if (q) {
+              const opts = q.options || [];
+              const idx = ans === 'A' ? 0 : 1;
+              const choiceText = String(opts[idx] || '').replace(/^[AB]\.\s*/, '');
+              matchedPicks.push({
+                question: q.question || '',
+                choice: choiceText,
+                letter: ans,
+              });
+            }
+          }
         }
       }
+      // 최대 2개만 노출
+      match_common_picks = matchedPicks.slice(0, 2);
     }
 
     // 참가자 수
@@ -293,7 +321,7 @@ router.get('/result', async (req, res) => {
       avg_satisfaction: hostAgg.rows[0].avg_satisfaction ? Number(hostAgg.rows[0].avg_satisfaction.toFixed(2)) : null,
     };
 
-    res.json({ match_nickname, match_uuid, fi_count, match_common, match_total_answered, participants, question_highlights, host_summary });
+    res.json({ match_nickname, match_uuid, fi_count, match_common, match_total_answered, match_common_picks, participants, question_highlights, host_summary });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });

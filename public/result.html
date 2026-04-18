@@ -347,6 +347,38 @@
     letter-spacing: 0.02em;
   }
   .match-common-chip strong { color: var(--gold-light); font-weight: 700; }
+  .match-picks {
+    position: relative;
+    margin-top: 12px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .match-pick {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(212,168,67,0.18);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .match-pick-q {
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-bottom: 3px;
+    letter-spacing: 0.02em;
+  }
+  .match-pick-a {
+    color: var(--white-dim);
+    font-weight: 500;
+  }
+  .match-pick-a::before {
+    content: '✓';
+    color: var(--gold-light);
+    margin-right: 6px;
+    font-weight: 700;
+  }
   .fi-badge {
     display: inline-flex;
     align-items: center;
@@ -709,6 +741,15 @@
         const commonChip = totalAns > 0
           ? `<div class="match-common-chip">✦ ${totalAns}문항 중 <strong>${common}개</strong> 같은 선택</div>`
           : '';
+        const picks = Array.isArray(data.match_common_picks) ? data.match_common_picks : [];
+        const picksHtml = picks.length > 0
+          ? `<div class="match-picks">${picks.map(p => `
+              <div class="match-pick">
+                <div class="match-pick-q">${escMatch(p.question)}</div>
+                <div class="match-pick-a">${escMatch(p.choice)}</div>
+              </div>
+            `).join('')}</div>`
+          : '';
         matchEl.innerHTML = `
           <div class="match-frame">
             <div class="match-eyebrow">오늘의 인연</div>
@@ -716,6 +757,7 @@
             <div class="match-name">${escMatch(data.match_nickname)}</div>
             <div class="match-sub">서로의 선택이 가장 많이 닿았어요</div>
             ${commonChip}
+            ${picksHtml}
             ${data.fi_count ? `<div class="fi-badge">❤️ ${data.fi_count}명이 나에게 관심 표시</div>` : ''}
           </div>
         `;
