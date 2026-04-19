@@ -36,8 +36,8 @@
   style.textContent = `
     .nt-auth-pill {
       position: fixed;
-      top: calc(8px + env(safe-area-inset-top));
-      right: 12px;
+      top: calc(15px + env(safe-area-inset-top));
+      right: 16px;
       z-index: 9999;
       display: flex; flex-direction: column; align-items: flex-end;
       gap: 1px;

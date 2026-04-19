@@ -61,27 +61,27 @@
       justify-content: center;
       align-items: flex-start;
       padding: 0 0 60px 0;
-      padding-top: calc(56px + env(safe-area-inset-top));
+      padding-top: calc(82px + env(safe-area-inset-top));
       -webkit-font-smoothing: antialiased;
       position: relative;
       overflow-x: hidden;
     }
 
-    /* 공통 헤더 (login.html과 동일) — fixed */
+    /* 공통 헤더 — ntable.kr 랜딩 nav-inner 기준 62px 높이로 통일 */
     .app-header {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: calc(62px + env(safe-area-inset-top));
+      padding: env(safe-area-inset-top) 24px 0;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 18px;
-      padding-top: calc(12px + env(safe-area-inset-top));
       background: rgba(14,22,40,0.88);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(212,168,67,0.2);
+      border-bottom: 1px solid rgba(212,168,67,0.45);
     }
     .h-brand {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 18px; font-weight: 600;
-      color: #d4a843; letter-spacing: 0.14em;
+      font-size: 22px; font-weight: 600;
+      color: #d4a843; letter-spacing: 0.08em;
       text-decoration: none;
     }
     /* 로그인 토글·아코디언 UI 제거 (2026-04-20) — 공통 /auth-header.js pill 로 대체됨 */
