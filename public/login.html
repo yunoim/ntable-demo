@@ -49,27 +49,38 @@
     color: #d4a843; letter-spacing: 0.08em;
     text-decoration: none;
   }
+  /* login-col = create 페이지의 auth-header pill 과 동일한 래퍼 (padding·border·backdrop 포함) */
   .login-col {
     display: flex; flex-direction: column;
     align-items: flex-end;
     gap: 2px;
+    padding: 8px 14px 7px;
+    background: rgba(14,22,40,0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(212,168,67,0.35);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
   }
   .login-connected-mini {
     font-size: 10.5px;
     color: #7ee8a2;
     letter-spacing: 0.02em;
-    padding-right: 10px;
+    padding-right: 4px;
+    line-height: 1.2;
+    font-weight: 500;
   }
-  /* 헤더 우상단 토글 — 기억하기/로그아웃 통합 제어 */
+  /* 헤더 우상단 토글 — create 페이지 auth-header pill 과 동일 치수 */
   .login-toggle {
-    display: flex; align-items: center; gap: 10px;
+    display: inline-flex; align-items: center; gap: 10px;
     font-size: 11.5px; color: #c0c0c0;
     cursor: pointer; background: none; border: none;
-    padding: 6px 10px; border-radius: 8px;
+    padding: 0;
     font-family: inherit;
-    transition: color 0.2s, background 0.2s;
+    line-height: 1.2;
+    transition: color 0.2s;
   }
-  .login-toggle:hover { color: #e8b84b; background: rgba(212,168,67,0.06); }
+  .login-toggle:hover { color: #e8b84b; }
   .login-toggle .switch {
     width: 30px; height: 16px;
     background: rgba(255,255,255,0.15);
