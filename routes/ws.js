@@ -175,18 +175,7 @@ function init(server) {
         if (!rooms[room_code].introCache) rooms[room_code].introCache = new Map();
       }
       rooms[room_code].clients.set(uuid, ws);
-
-      // 신규 입장자에게 기존 캐시(사진·소개) sync — 새로 들어온 사람도 다른 참가자 카드를 즉시 볼 수 있도록
-      try {
-        for (const [pUuid, pPhoto] of rooms[room_code].photoCache.entries()) {
-          if (pUuid === uuid) continue; // 본인 사진은 자기 localStorage에서 복원
-          ws.send(JSON.stringify({ type: 'photo_update', uuid: pUuid, photo: pPhoto }));
-        }
-        for (const [iUuid, iIntro] of rooms[room_code].introCache.entries()) {
-          if (iUuid === uuid) continue;
-          ws.send(JSON.stringify({ type: 'intro_update', uuid: iUuid, intro: iIntro }));
-        }
-      } catch (_) {}
+      // 사진/소개 sync는 클라이언트의 'request_photos' 메시지에 응답하는 방식으로 처리 (onmessage 준비 후 트리거)
 
       // 호스트 재접속 → grace timer 취소
       if (uuid === hostUuid && rooms[room_code].hostGraceTimer) {
@@ -264,7 +253,21 @@ function init(server) {
               photo,
             }, uuid);
           } else if (msg.type === 'request_photos') {
-            // 새 입장자가 기존 참가자에게 사진 재공유 요청
+            // 신규 입장자에게 캐시된 사진/소개 직접 전송 (수신자 onmessage 준비 후 트리거)
+            const room = rooms[room_code];
+            if (room && room.photoCache) {
+              for (const [pUuid, pPhoto] of room.photoCache.entries()) {
+                if (pUuid === uuid) continue;
+                try { ws.send(JSON.stringify({ type: 'photo_update', uuid: pUuid, photo: pPhoto })); } catch (_) {}
+              }
+            }
+            if (room && room.introCache) {
+              for (const [iUuid, iIntro] of room.introCache.entries()) {
+                if (iUuid === uuid) continue;
+                try { ws.send(JSON.stringify({ type: 'intro_update', uuid: iUuid, intro: iIntro })); } catch (_) {}
+              }
+            }
+            // 캐시에 없는 경우 대비 — 기존 사용자에게 재공유 요청도 broadcast
             broadcastToRoom(room_code, {
               type: 'photo_request',
               requester_uuid: uuid,
