@@ -972,7 +972,9 @@
   #profile-carousel::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.2); border-radius: 3px; }
   .profile-card {
     position: relative;
+    width: 260px;
     min-width: 260px;
+    max-width: 260px;
     background: var(--surface);
     border: 1px solid var(--gold-border);
     border-radius: var(--radius-lg);
@@ -980,6 +982,15 @@
     scroll-snap-align: start;
     flex-shrink: 0;
     transition: transform 0.25s, border-color 0.25s;
+  }
+  .profile-card .tags {
+    flex-wrap: wrap;
+    word-break: break-word;
+  }
+  .profile-card .tag-chip {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
   .profile-card:hover { transform: translateY(-3px); border-color: rgba(212,168,67,0.45); }
   .profile-host-badge {

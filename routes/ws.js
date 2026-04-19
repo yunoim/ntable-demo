@@ -164,13 +164,29 @@ function init(server) {
           hostGraceTimer: null,
           hostDisconnectedAt: null,
           photoBanned: new Set(),
+          photoCache: new Map(), // uuid → dataURL (메모리 휘발, 방 close 시 GC)
+          introCache: new Map(), // uuid → 한줄 자기소개 (동일)
         };
       } else {
         rooms[room_code].hostUuid = hostUuid;
         if (!rooms[room_code].photoBanned) rooms[room_code].photoBanned = new Set();
         if (!rooms[room_code].observers) rooms[room_code].observers = new Set();
+        if (!rooms[room_code].photoCache) rooms[room_code].photoCache = new Map();
+        if (!rooms[room_code].introCache) rooms[room_code].introCache = new Map();
       }
       rooms[room_code].clients.set(uuid, ws);
+
+      // 신규 입장자에게 기존 캐시(사진·소개) sync — 새로 들어온 사람도 다른 참가자 카드를 즉시 볼 수 있도록
+      try {
+        for (const [pUuid, pPhoto] of rooms[room_code].photoCache.entries()) {
+          if (pUuid === uuid) continue; // 본인 사진은 자기 localStorage에서 복원
+          ws.send(JSON.stringify({ type: 'photo_update', uuid: pUuid, photo: pPhoto }));
+        }
+        for (const [iUuid, iIntro] of rooms[room_code].introCache.entries()) {
+          if (iUuid === uuid) continue;
+          ws.send(JSON.stringify({ type: 'intro_update', uuid: iUuid, intro: iIntro }));
+        }
+      } catch (_) {}
 
       // 호스트 재접속 → grace timer 취소
       if (uuid === hostUuid && rooms[room_code].hostGraceTimer) {
@@ -224,11 +240,10 @@ function init(server) {
               console.error('waiting_too_long handler error:', e.message);
             }
           } else if (msg.type === 'photo_update') {
-            // 클라이언트 base64 사진 broadcast (서버 메모리·DB 저장 X — relay only)
+            // 클라이언트 base64 사진 broadcast + 방별 메모리 캐시 (방 close 시 GC, DB 미사용)
             const photo = String(msg.photo || '');
             if (photo.length > 250000) return; // ~180KB 안전 한계
             if (photo && !photo.startsWith('data:image/')) return;
-            // 호스트가 차단한 uuid는 빈값(removal) 외엔 무시
             const room = rooms[room_code];
             if (photo && room && room.photoBanned && room.photoBanned.has(uuid)) {
               // 차단된 사용자는 본인에게만 차단 알림
@@ -237,6 +252,11 @@ function init(server) {
                 reason: 'host_banned',
               }, null, uuid);
               return;
+            }
+            // 캐시 갱신 (신규 입장자 sync용)
+            if (room) {
+              if (photo) room.photoCache.set(uuid, photo);
+              else room.photoCache.delete(uuid);
             }
             broadcastToRoom(room_code, {
               type: 'photo_update',
@@ -256,6 +276,7 @@ function init(server) {
             const target = String(msg.target_uuid || '');
             if (!target) return;
             room.photoBanned.add(target);
+            room.photoCache.delete(target); // 캐시도 정리
             broadcastToRoom(room_code, {
               type: 'photo_update',
               uuid: target,
@@ -291,8 +312,13 @@ function init(server) {
               banned: [...(room.photoBanned || [])],
             }, null, room.hostUuid);
           } else if (msg.type === 'intro_update') {
-            // 한줄 자기소개 broadcast (서버 미저장 — relay only)
+            // 한줄 자기소개 broadcast + 방별 메모리 캐시 (방 close 시 GC)
             const intro = String(msg.intro || '').slice(0, 80).trim();
+            const room = rooms[room_code];
+            if (room) {
+              if (intro) room.introCache.set(uuid, intro);
+              else room.introCache.delete(uuid);
+            }
             broadcastToRoom(room_code, {
               type: 'intro_update',
               uuid,
