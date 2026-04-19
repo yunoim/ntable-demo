@@ -231,6 +231,75 @@ router.post('/auth/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/auth/link-device — OAuth 로그인된 사용자가 device의 demo_uuid를 user.uuid로 묶음
+// body: { old_uuid }, headers: x-user-token
+// 효과: rooms.host_uuid · room_members.uuid · member_results.uuid 전체를 user.uuid로 마이그레이션
+router.post('/auth/link-device', async (req, res) => {
+  const token = req.headers['x-user-token'];
+  if (!token) return res.status(401).json({ error: 'no_token' });
+  const { old_uuid } = req.body || {};
+  if (!old_uuid) return res.status(400).json({ error: 'old_uuid required' });
+  try {
+    const sess = await pool.query(
+      'SELECT user_uuid FROM user_sessions WHERE token = $1 AND expires_at > NOW()',
+      [token]
+    );
+    if (sess.rows.length === 0) return res.status(401).json({ error: 'invalid_token' });
+    const user_uuid = sess.rows[0].user_uuid;
+    if (user_uuid === old_uuid) return res.json({ ok: true, user_uuid, migrated: false });
+
+    // rooms.host_uuid 마이그레이션
+    const roomsUpd = await pool.query(
+      'UPDATE rooms SET host_uuid = $1 WHERE host_uuid = $2',
+      [user_uuid, old_uuid]
+    );
+    // room_members.uuid 마이그레이션 — 충돌 가능 (같은 방에 양쪽 uuid로 join한 경우): 그 행은 skip
+    const conflictRows = await pool.query(
+      `SELECT rm1.room_id FROM room_members rm1
+        WHERE rm1.uuid = $1
+          AND EXISTS (SELECT 1 FROM room_members rm2 WHERE rm2.room_id = rm1.room_id AND rm2.uuid = $2)`,
+      [old_uuid, user_uuid]
+    );
+    const conflictRoomIds = conflictRows.rows.map(r => r.room_id);
+    if (conflictRoomIds.length > 0) {
+      await pool.query(
+        `UPDATE room_members SET uuid = $1
+          WHERE uuid = $2 AND room_id NOT IN (${conflictRoomIds.map((_, i) => '$' + (i + 3)).join(',')})`,
+        [user_uuid, old_uuid, ...conflictRoomIds]
+      );
+    } else {
+      await pool.query('UPDATE room_members SET uuid = $1 WHERE uuid = $2', [user_uuid, old_uuid]);
+    }
+    // member_results.uuid 마이그레이션 — 동일 충돌 방어
+    const mrConflict = await pool.query(
+      `SELECT mr1.room_id FROM member_results mr1
+        WHERE mr1.uuid = $1
+          AND EXISTS (SELECT 1 FROM member_results mr2 WHERE mr2.room_id = mr1.room_id AND mr2.uuid = $2)`,
+      [old_uuid, user_uuid]
+    );
+    const mrConflictIds = mrConflict.rows.map(r => r.room_id);
+    if (mrConflictIds.length > 0) {
+      await pool.query(
+        `UPDATE member_results SET uuid = $1
+          WHERE uuid = $2 AND room_id NOT IN (${mrConflictIds.map((_, i) => '$' + (i + 3)).join(',')})`,
+        [user_uuid, old_uuid, ...mrConflictIds]
+      );
+    } else {
+      await pool.query('UPDATE member_results SET uuid = $1 WHERE uuid = $2', [user_uuid, old_uuid]);
+    }
+    res.json({
+      ok: true,
+      user_uuid,
+      migrated: true,
+      rooms_updated: roomsUpd.rowCount,
+      conflicts_skipped: conflictRoomIds.length + mrConflictIds.length,
+    });
+  } catch (err) {
+    console.error('[user-auth link-device]', err);
+    res.status(500).json({ error: 'db' });
+  }
+});
+
 // PUT /api/auth/profile — 방 입장 시 입력한 profile 을 user 에도 저장 (다음 모임 prefill 용)
 router.put('/auth/profile', async (req, res) => {
   const token = req.headers['x-user-token'];

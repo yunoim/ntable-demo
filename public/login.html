@@ -240,8 +240,8 @@ document.getElementById('openRoomBtn').addEventListener('click', () => {
 
 ensureUuid();
 
-// OAuth 콜백 토큰 처리
-(() => {
+// OAuth 콜백 토큰 처리 + device uuid를 user.uuid로 마이그레이션
+(async () => {
   const url = new URL(location.href);
   const tok = url.searchParams.get('auth_token');
   if (tok) {
@@ -249,6 +249,24 @@ ensureUuid();
       localStorage.setItem('user_token', tok);
       localStorage.setItem('login_remember', 'true');
     } catch (_) {}
+    // device uuid 마이그레이션 — 기존 demo_uuid로 호스트한 모임을 OAuth user.uuid로 묶음
+    try {
+      const oldUuid = localStorage.getItem('demo_uuid');
+      if (oldUuid) {
+        const r = await fetch('/api/auth/link-device', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-user-token': tok },
+          body: JSON.stringify({ old_uuid: oldUuid }),
+        });
+        if (r.ok) {
+          const data = await r.json();
+          if (data.user_uuid && data.user_uuid !== oldUuid) {
+            try { localStorage.setItem('demo_uuid', data.user_uuid); } catch (_) {}
+            console.log('[login] device uuid linked:', oldUuid, '→', data.user_uuid, 'rooms:', data.rooms_updated);
+          }
+        }
+      }
+    } catch (e) { console.warn('[login] link-device fail', e); }
     history.replaceState(null, '', '/');
   }
   const err = url.searchParams.get('auth_error');
