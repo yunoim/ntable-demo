@@ -402,6 +402,15 @@
   }
   .host-stats .stat-icon { font-size: 13px; flex-shrink: 0; }
   .host-stats strong { color: var(--gold-light); font-weight: 700; }
+  .stat-login-hint {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(212,168,67,0.18);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .stat-login-hint a { color: var(--gold-light); text-decoration: underline; cursor: pointer; }
   #copy-url-btn {
     margin-top: 12px;
     width: 100%;
@@ -1523,11 +1532,13 @@
     <button type="button" id="sidebar-tv-btn" class="sidebar-tv-btn" onclick="openTVModal()" hidden>📺 TV 연결</button>
     <button type="button" id="sidebar-end-btn" class="sidebar-end-btn" onclick="closeRoom()" hidden>🛑 모임 종료</button>
   </div>
-  <!-- 운영 지표 위젯 — 누적 플랫폼 통계 + 현재 모임 매칭/인스타 -->
+  <!-- 운영 지표 위젯 — 이 호스트의 누적 -->
   <div id="host-stats" class="host-stats">
-    <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text">누적 <strong id="stat-cum-people">—</strong>명 · <strong id="stat-cum-rooms">—</strong>개 모임</span></div>
-    <div class="stat-line" id="stat-match-line" hidden><span class="stat-icon">💘</span><span class="stat-text">오늘 <strong id="stat-match-count">0</strong>쌍 매칭</span></div>
-    <div class="stat-line" id="stat-insta-line" hidden><span class="stat-icon">💌</span><span class="stat-text">오늘 <strong id="stat-insta-count">0</strong>커플 인스타</span></div>
+    <div class="stat-line"><span class="stat-icon">🏠</span><span class="stat-text">누적 <strong id="stat-cum-rooms">—</strong>개 모임</span></div>
+    <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text">참석 <strong id="stat-cum-people">—</strong>명</span></div>
+    <div class="stat-line"><span class="stat-icon">💘</span><span class="stat-text">매칭 <strong id="stat-cum-matched">—</strong>명</span></div>
+    <div class="stat-line"><span class="stat-icon">💌</span><span class="stat-text">인스타 교환 <strong id="stat-cum-insta">—</strong>건</span></div>
+    <div id="stat-login-hint" class="stat-login-hint" hidden>다른 기기에서도 누적 유지하려면 <a href="#" id="stat-login-link">로그인</a></div>
   </div>
   <div id="waiting-section">
     <!-- 자동 입장 (2026-04-19) — 승인 절차 폐지. 참가자는 즉시 입장. 호스트는 강퇴 권한 유지. -->
@@ -2093,6 +2104,8 @@ function handleWSMessage(msg) {
       state.matchJson = msg.match_json;
       renderMatchResult(msg.match_json);
       renderHostStats();
+      // 매칭 저장 후 누적 통계 즉시 갱신 (서버 cache 15s 고려해 약간 delay)
+      setTimeout(() => { if (typeof loadHostCumulativeStats === 'function') loadHostCumulativeStats(); }, 1500);
       break;
     case 'chat':
       appendChatMsg(msg);
@@ -2114,6 +2127,7 @@ function handleWSMessage(msg) {
       state.instaRevealCount = (state.instaRevealCount || 0) + 1;
       if (typeof toast === 'function') toast(`💌 인스타 공개 매칭 +1 (총 ${state.instaRevealCount}쌍)`);
       renderHostStats();
+      setTimeout(() => { if (typeof loadHostCumulativeStats === 'function') loadHostCumulativeStats(); }, 1500);
       break;
     case 'photo_banlist':
       // 호스트 전용 — 차단 목록 sync
@@ -2193,46 +2207,48 @@ function renderWaitingList() {
   }
 }
 
+// 호스트 누적 통계 (이 호스트가 진행한 모든 모임 합산)
+// host_uuid는 device localStorage uuid 기준 — OAuth 미연동 시 device 변경하면 통계 초기화됨
 function renderHostStats() {
-  // 매칭 결과 쌍 수 (현재 모임)
-  const matchLine = document.getElementById('stat-match-line');
-  if (matchLine) {
-    const pairs = (state.matchJson && Array.isArray(state.matchJson.pairs)) ? state.matchJson.pairs.length : 0;
-    if (pairs > 0) {
-      document.getElementById('stat-match-count').textContent = pairs;
-      matchLine.hidden = false;
-    } else {
-      matchLine.hidden = true;
-    }
-  }
-
-  // 인스타 mutual 공개 카운트 (현재 모임)
-  const instaLine = document.getElementById('stat-insta-line');
-  if (instaLine) {
-    const n = state.instaRevealCount || 0;
-    if (n > 0) {
-      document.getElementById('stat-insta-count').textContent = n;
-      instaLine.hidden = false;
-    } else {
-      instaLine.hidden = true;
-    }
-  }
+  // 현재 모임 매칭/인스타는 누적에 자연 반영되므로 별도 라인 없음
 }
 
-// 누적 플랫폼 통계 (전체 모임 통틀어) — 모임 입장 시 + 5분 주기 갱신
-async function loadCumulativeStats() {
+async function loadHostCumulativeStats() {
+  if (!state.uuid) return;
   try {
-    const r = await fetch('/api/stats');
+    const r = await fetch(`/api/host-stats/${encodeURIComponent(state.uuid)}`);
     if (!r.ok) return;
     const s = await r.json();
-    const peopleEl = document.getElementById('stat-cum-people');
-    const roomsEl = document.getElementById('stat-cum-rooms');
-    if (peopleEl) peopleEl.textContent = (s.unique_people || 0).toLocaleString();
-    if (roomsEl) roomsEl.textContent = (s.total_rooms || 0).toLocaleString();
+    const setNum = (id, v) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = (v || 0).toLocaleString();
+    };
+    setNum('stat-cum-rooms', s.total_rooms);
+    setNum('stat-cum-people', s.total_participants);
+    setNum('stat-cum-matched', s.total_matched_people);
+    setNum('stat-cum-insta', s.total_insta_exchanges);
   } catch (_) {}
+
+  // OAuth 로그인 미연동 시 hint 노출 — device 단위라 잃을 수 있음
+  let isAuthed = false;
+  try {
+    const tok = localStorage.getItem('user_token');
+    if (tok) {
+      const me = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
+      if (me.ok) {
+        const data = await me.json();
+        isAuthed = !!data.authed;
+      }
+    }
+  } catch (_) {}
+  const hint = document.getElementById('stat-login-hint');
+  if (hint) hint.hidden = isAuthed;
+  const link = document.getElementById('stat-login-link');
+  if (link) link.onclick = (e) => { e.preventDefault(); if (typeof openMyInfo === 'function') openMyInfo(); };
 }
-loadCumulativeStats();
-setInterval(loadCumulativeStats, 5 * 60 * 1000);
+loadHostCumulativeStats();
+// 모임 진행 중 매칭/인스타 발생 후 다시 갱신되도록 5분 주기 + 매칭 발표 직후 1회
+setInterval(loadHostCumulativeStats, 5 * 60 * 1000);
 
 function renderApprovedList() {
   const list = document.getElementById('approved-list');

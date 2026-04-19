@@ -535,6 +535,90 @@ router.get('/rooms/:code/qr', async (req, res) => {
   }
 });
 
+// GET /api/host-stats/:host_uuid — 특정 호스트의 누적 운영 통계
+router.get('/host-stats/:host_uuid', async (req, res) => {
+  const { host_uuid } = req.params;
+  if (!host_uuid) return res.status(400).json({ error: 'host_uuid required' });
+  res.set('Cache-Control', 'public, max-age=15');
+  try {
+    // 누적 모임 (의미 있는 것: 2명+ 참여)
+    const roomsRow = await pool.query(
+      `SELECT COUNT(*)::int AS cnt FROM rooms r
+        WHERE r.host_uuid = $1
+          AND (SELECT COUNT(*) FROM room_members rm WHERE rm.room_id = r.id) >= 2`,
+      [host_uuid]
+    );
+    // 누적 참여자 — 이 호스트의 모든 모임 unique uuid
+    const participantsRow = await pool.query(
+      `SELECT COUNT(DISTINCT rm.uuid)::int AS cnt
+         FROM room_members rm
+         JOIN rooms r ON r.id = rm.room_id
+        WHERE r.host_uuid = $1`,
+      [host_uuid]
+    );
+    // 매칭 + 인스타 교환 — match_json mutual pair 분석
+    const matchRows = await pool.query(
+      `SELECT mr.uuid, mr.match_json, r.id AS room_id
+         FROM member_results mr
+         JOIN rooms r ON r.id = mr.room_id
+        WHERE r.host_uuid = $1 AND mr.match_json IS NOT NULL`,
+      [host_uuid]
+    );
+    // room별 unique mutual pair set
+    const roomPairs = new Map();
+    for (const row of matchRows.rows) {
+      const pairs = (row.match_json && Array.isArray(row.match_json.pairs)) ? row.match_json.pairs : [];
+      if (!roomPairs.has(row.room_id)) roomPairs.set(row.room_id, new Set());
+      const set = roomPairs.get(row.room_id);
+      for (const p of pairs) {
+        if (p.type !== 'mutual') continue;
+        const a = p.a && p.a.uuid;
+        const b = p.b && p.b.uuid;
+        if (!a || !b) continue;
+        set.add([a, b].sort().join('|'));
+      }
+    }
+    let totalMutualPairs = 0;
+    const matchedUuids = new Set();
+    for (const [, set] of roomPairs) {
+      totalMutualPairs += set.size;
+      for (const key of set) {
+        const [a, b] = key.split('|');
+        matchedUuids.add(a);
+        matchedUuids.add(b);
+      }
+    }
+    // 인스타 교환 = 양쪽 모두 instagram 입력한 mutual pair 수
+    const instaRows = await pool.query(
+      `SELECT rm.room_id, rm.uuid FROM room_members rm
+         JOIN rooms r ON r.id = rm.room_id
+        WHERE r.host_uuid = $1 AND rm.instagram IS NOT NULL AND rm.instagram != ''`,
+      [host_uuid]
+    );
+    const hasInsta = new Set();
+    for (const row of instaRows.rows) hasInsta.add(row.room_id + '|' + row.uuid);
+    let totalInstaExchanges = 0;
+    for (const [room_id, set] of roomPairs) {
+      for (const key of set) {
+        const [a, b] = key.split('|');
+        if (hasInsta.has(room_id + '|' + a) && hasInsta.has(room_id + '|' + b)) {
+          totalInstaExchanges++;
+        }
+      }
+    }
+    res.json({
+      total_rooms: roomsRow.rows[0].cnt,
+      total_participants: participantsRow.rows[0].cnt,
+      total_matched_people: matchedUuids.size,
+      total_mutual_pairs: totalMutualPairs,
+      total_insta_exchanges: totalInstaExchanges,
+    });
+  } catch (err) {
+    console.error('host-stats error:', err);
+    res.status(500).json({ error: 'db' });
+  }
+});
+
 // GET /api/stats — 랜딩 등 공개 페이지용 집계
 // live: 현재 열려있는 방 + 활성 참가자 / cumulative: 누적 모임·참여자 (room_members 합산)
 router.get('/stats', async (req, res) => {
