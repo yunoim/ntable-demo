@@ -2033,6 +2033,15 @@ async function handleWSMessage(msg) {
       if (msg.uuid === STATE.uuid) break;
       if (msg.photo) STATE.photos[msg.uuid] = msg.photo;
       else delete STATE.photos[msg.uuid];
+      // 결과 페이지에서 매칭 상대 사진 노출용 — localStorage 캐시 (방·uuid 단위)
+      try {
+        const cacheKey = `ntable_photo_cache_${STATE.roomCode}`;
+        const raw = localStorage.getItem(cacheKey);
+        const map = raw ? JSON.parse(raw) : {};
+        if (msg.photo) map[msg.uuid] = msg.photo;
+        else delete map[msg.uuid];
+        localStorage.setItem(cacheKey, JSON.stringify(map));
+      } catch (_) {}
       if (STATE.members && STATE.members.length) renderCarousel();
       break;
 

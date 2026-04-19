@@ -379,6 +379,29 @@
     margin-top: 14px;
     text-align: center;
   }
+  .room-meeting-at {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--gold-light);
+    text-align: center;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  .host-stats {
+    margin: 14px 18px 6px;
+    padding: 10px 12px;
+    background: rgba(212,168,67,0.05);
+    border: 1px solid rgba(212,168,67,0.18);
+    border-radius: 10px;
+    font-size: 11.5px;
+    color: var(--white-dim);
+    line-height: 1.65;
+  }
+  .host-stats .stat-line {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .host-stats .stat-icon { font-size: 13px; flex-shrink: 0; }
+  .host-stats strong { color: var(--gold-light); font-weight: 700; }
   #copy-url-btn {
     margin-top: 12px;
     width: 100%;
@@ -1481,12 +1504,20 @@
   <div id="qr-wrap">
     <img id="qr-img" src="" alt="모임 입장 QR 코드 — 탭하면 크게 보기" onclick="openQRModal()" />
     <div id="room-code">—</div>
+    <div id="room-meeting-at" class="room-meeting-at" hidden></div>
     <!-- 사이드바 액션 버튼들은 상단 [📋 호스트 도구] 드롭다운으로 이전됨. 코드 보존(hidden) — 호환·접근성. -->
     <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기" hidden>🔍 QR 크게 보기</button>
     <button type="button" id="copy-url-btn" hidden>입장 링크 복사</button>
     <button type="button" id="sidebar-kakao-btn" class="sidebar-kakao-btn" onclick="kakaoShare()" hidden>💛 카카오톡으로 초대</button>
     <button type="button" id="sidebar-tv-btn" class="sidebar-tv-btn" onclick="openTVModal()" hidden>📺 TV 연결</button>
     <button type="button" id="sidebar-end-btn" class="sidebar-end-btn" onclick="closeRoom()" hidden>🛑 모임 종료</button>
+  </div>
+  <!-- 운영 지표 위젯 — 라이브 KPI -->
+  <div id="host-stats" class="host-stats">
+    <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text"><strong id="stat-participants">0</strong>명 참여 · 📷 <strong id="stat-photos">0</strong></span></div>
+    <div class="stat-line" id="stat-vote-line" hidden><span class="stat-icon">🗳</span><span class="stat-text">투표 <strong id="stat-vote-progress">0%</strong></span></div>
+    <div class="stat-line" id="stat-match-line" hidden><span class="stat-icon">💘</span><span class="stat-text"><strong id="stat-match-count">0</strong>쌍 매칭</span></div>
+    <div class="stat-line" id="stat-insta-line" hidden><span class="stat-icon">💌</span><span class="stat-text"><strong id="stat-insta-count">0</strong>커플 인스타 공개</span></div>
   </div>
   <div id="waiting-section">
     <!-- 자동 입장 (2026-04-19) — 승인 절차 폐지. 참가자는 즉시 입장. 호스트는 강퇴 권한 유지. -->
@@ -1707,6 +1738,11 @@
     <!-- 탐구 문항 수는 ⚙ 설정(콘텐츠) 모달에서 관리 — 단일 source of truth (2026-04-19) -->
 
     <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;color:var(--gold);letter-spacing:0.1em;margin-bottom:8px;">📅 모임 시각 <span style="opacity:0.6;font-weight:400;text-transform:none;letter-spacing:normal;margin-left:6px;">선택 — QR·카카오 공유에 노출</span></label>
+      <input type="datetime-local" id="rs_meeting_at" style="width:100%;padding:9px 12px;background:rgba(0,0,0,0.25);border:1px solid var(--gold-border);border-radius:8px;color:#fff;font-family:inherit;font-size:13px;">
+    </div>
+
+    <div style="margin-bottom:20px;">
       <label style="display:block;font-size:11px;color:var(--gold);letter-spacing:0.1em;margin-bottom:8px;">자유대화 구성</label>
       <div style="display:flex;flex-wrap:wrap;gap:8px;" id="rs_fc_chips">
         <label class="rs-fc-chip"><input type="checkbox" id="rs_fc_timer"> ⏱ 타이머 15분</label>
@@ -1839,6 +1875,13 @@ function init() {
   }
 
   document.getElementById('room-code').textContent = state.roomCode;
+  // 모임 시각 표시 — state.room.meeting_at
+  const mAtEl = document.getElementById('room-meeting-at');
+  if (mAtEl) {
+    const label = formatMeetingAt(state.room && state.room.meeting_at);
+    if (label) { mAtEl.textContent = '📅 ' + label; mAtEl.hidden = false; }
+    else { mAtEl.hidden = true; }
+  }
   loadRoomInfo();
   loadQR();
   loadQuestions();
@@ -2030,13 +2073,16 @@ function handleWSMessage(msg) {
     case 'vote_result':
       state.currentVotes[msg.question_id] = msg.counts;
       renderVoteBars(msg.question_id, msg.counts);
+      renderHostStats();
       break;
     case 'mvp_update':
       state.mvpList = msg.mvp_list || [];
       updateMVPList();
       break;
     case 'matching_result':
+      state.matchJson = msg.match_json;
       renderMatchResult(msg.match_json);
+      renderHostStats();
       break;
     case 'chat':
       appendChatMsg(msg);
@@ -2057,6 +2103,7 @@ function handleWSMessage(msg) {
       // 인스타 매칭 공개 — 호스트는 인스타 자체 안 보고 카운트만
       state.instaRevealCount = (state.instaRevealCount || 0) + 1;
       if (typeof toast === 'function') toast(`💌 인스타 공개 매칭 +1 (총 ${state.instaRevealCount}쌍)`);
+      renderHostStats();
       break;
     case 'photo_banlist':
       // 호스트 전용 — 차단 목록 sync
@@ -2136,11 +2183,62 @@ function renderWaitingList() {
   }
 }
 
+function renderHostStats() {
+  const partEl = document.getElementById('stat-participants');
+  const photoEl = document.getElementById('stat-photos');
+  if (partEl) partEl.textContent = state.approvedUsers.length;
+  if (photoEl) photoEl.textContent = Object.keys(state.photos || {}).length;
+
+  // 투표 진행률 — 탐구 단계일 때만
+  const voteLine = document.getElementById('stat-vote-line');
+  if (voteLine) {
+    if (state.activeTab === 'explore' && state.questions && state.questions.length) {
+      const totalQs = state.questions.length;
+      const totalVoters = state.approvedUsers.length;
+      const expected = totalQs * totalVoters;
+      let received = 0;
+      for (const counts of Object.values(state.currentVotes || {})) {
+        for (const v of Object.values(counts || {})) received += v;
+      }
+      const pct = expected ? Math.round(received * 100 / expected) : 0;
+      document.getElementById('stat-vote-progress').textContent = pct + '%';
+      voteLine.hidden = false;
+    } else {
+      voteLine.hidden = true;
+    }
+  }
+
+  // 매칭 결과 쌍 수
+  const matchLine = document.getElementById('stat-match-line');
+  if (matchLine) {
+    const pairs = (state.matchJson && Array.isArray(state.matchJson.pairs)) ? state.matchJson.pairs.length : 0;
+    if (pairs > 0) {
+      document.getElementById('stat-match-count').textContent = pairs;
+      matchLine.hidden = false;
+    } else {
+      matchLine.hidden = true;
+    }
+  }
+
+  // 인스타 mutual 공개 카운트
+  const instaLine = document.getElementById('stat-insta-line');
+  if (instaLine) {
+    const n = state.instaRevealCount || 0;
+    if (n > 0) {
+      document.getElementById('stat-insta-count').textContent = n;
+      instaLine.hidden = false;
+    } else {
+      instaLine.hidden = true;
+    }
+  }
+}
+
 function renderApprovedList() {
   const list = document.getElementById('approved-list');
   const count = document.getElementById('approved-count');
   list.innerHTML = '';
   count.textContent = state.approvedUsers.length;
+  renderHostStats();
   if (!state.approvedUsers.length) {
     list.innerHTML = '<div class="empty-msg">아직 없어요</div>';
     return;
@@ -2607,6 +2705,7 @@ function switchTab(tab) {
     btn.classList.toggle('active', t === tab);
     btn.classList.toggle('done', TAB_ORDER.indexOf(t) < TAB_ORDER.indexOf(tab));
   });
+  if (typeof renderHostStats === 'function') renderHostStats();
   document.querySelectorAll('.panel').forEach(panel => {
     panel.classList.toggle('active', panel.id === `panel-${tab}`);
   });
@@ -3013,6 +3112,24 @@ async function attachTV() {
   }
 }
 
+function formatMeetingAt(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return '';
+    const yy = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+    let hh = d.getHours();
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hh < 12 ? '오전' : '오후';
+    if (hh === 0) hh = 12;
+    else if (hh > 12) hh -= 12;
+    return `${yy}. ${mo}. ${dd}(${dow}) ${ampm} ${hh}:${mm}`;
+  } catch (_) { return ''; }
+}
+
 function kakaoShare() {
   if (!window.Kakao || !window.Kakao.isInitialized || !Kakao.isInitialized()) {
     if (typeof toast === 'function') toast('카카오 공유 준비 중…');
@@ -3020,12 +3137,16 @@ function kakaoShare() {
   }
   if (!state.roomCode) { if (typeof toast === 'function') toast('모임 코드 로딩 중…'); return; }
   const url = `${location.origin}/room/${state.roomCode}`;
+  const meetingLabel = formatMeetingAt(state.room && state.room.meeting_at);
+  const desc = meetingLabel
+    ? `📅 ${meetingLabel}\n링크를 눌러 입장하세요.`
+    : '함께할 모임에 초대받았어요. 링크를 눌러 입장하세요.';
   try {
     Kakao.Share.sendDefault({
       objectType: 'feed',
       content: {
-        title: 'ntable 모임 초대',
-        description: '함께할 모임에 초대받았어요. 링크를 눌러 입장하세요.',
+        title: state.room && state.room.title ? `ntable · ${state.room.title}` : 'ntable 모임 초대',
+        description: desc,
         imageUrl: `${location.origin}/og-image.png`,
         link: { mobileWebUrl: url, webUrl: url },
       },
@@ -3571,6 +3692,17 @@ function openRoomSettings() {
   document.getElementById('rs_fc_timer').checked = (parseInt(r.free_chat_timer_minutes, 10) || 0) > 0;
   document.getElementById('rs_fc_chat').checked = r.free_chat_chat_enabled !== false;
   document.getElementById('rs_fc_topic').checked = r.free_chat_topic_card_enabled !== false;
+  // 모임 시각 (TIMESTAMPTZ → datetime-local 형식 YYYY-MM-DDTHH:mm)
+  const mAtInput = document.getElementById('rs_meeting_at');
+  if (mAtInput) {
+    if (r.meeting_at) {
+      const d = new Date(r.meeting_at);
+      const pad = n => String(n).padStart(2, '0');
+      mAtInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } else {
+      mAtInput.value = '';
+    }
+  }
   document.getElementById('rs_insta_collect').checked = r.instagram_collect === true;
   const insState = document.getElementById('rs_insta_state');
   if (insState) insState.textContent = r.instagram_collect === true ? '현재: 허용' : '현재: 차단';
@@ -3598,9 +3730,12 @@ async function saveRoomSettings() {
   const status = document.getElementById('rs_status');
   const role = (Array.from(document.querySelectorAll('.rs-chip[data-rs-role]')).find(c => c.style.background.includes('0.25')) || {}).dataset?.rsRole || 'participant';
   const mode = (Array.from(document.querySelectorAll('.rs-chip[data-rs-mode]')).find(c => c.style.background.includes('0.25')) || {}).dataset?.rsMode || 'mobile';
+  const mAtVal = document.getElementById('rs_meeting_at')?.value || null;
+  const meeting_at = mAtVal ? new Date(mAtVal).toISOString() : null;
   const payload = {
     uuid: state.uuid,
     // question_count는 ⚙ 설정에서 별도 저장 — 여기서 보내지 않음
+    meeting_at,
     free_chat_timer_minutes: document.getElementById('rs_fc_timer').checked ? 15 : 0,
     free_chat_chat_enabled: document.getElementById('rs_fc_chat').checked,
     free_chat_topic_card_enabled: document.getElementById('rs_fc_topic').checked,
@@ -3616,6 +3751,13 @@ async function saveRoomSettings() {
     });
     if (!r.ok) throw new Error('save failed');
     Object.assign(state.room, payload);
+    // 사이드바 모임 시각 즉시 갱신
+    const mAtEl = document.getElementById('room-meeting-at');
+    if (mAtEl) {
+      const label = formatMeetingAt(state.room && state.room.meeting_at);
+      if (label) { mAtEl.textContent = '📅 ' + label; mAtEl.hidden = false; }
+      else { mAtEl.hidden = true; }
+    }
     status.style.color = 'var(--success)';
     status.textContent = '저장됨 ✓';
     setTimeout(() => { closeRoomSettings(); }, 600);

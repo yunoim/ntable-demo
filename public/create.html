@@ -410,6 +410,42 @@
       text-transform: uppercase; font-weight: 600;
       margin: 24px 0 12px;
     }
+    .meeting-time-row {
+      margin: 18px 0 4px;
+      padding: 14px 14px 12px;
+      background: rgba(212,168,67,0.05);
+      border: 1px solid rgba(212,168,67,0.18);
+      border-radius: 12px;
+    }
+    .meeting-time-label {
+      display: block;
+      font-size: 12.5px;
+      color: var(--gold-light);
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .meeting-time-label .opt-hint { color: var(--text-muted); font-size: 11px; font-weight: 400; margin-left: 4px; }
+    .meeting-time-input {
+      width: 100%;
+      padding: 9px 12px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--gold-border);
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .meeting-time-input::-webkit-calendar-picker-indicator {
+      filter: invert(1) brightness(0.85);
+      cursor: pointer;
+    }
+    .meeting-time-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
     .confirm-features {
       list-style: none; padding: 0; margin: 0;
       display: flex; flex-direction: column; gap: 8px;
@@ -687,6 +723,13 @@
       <div class="confirm-section-head">이런 순서로 진행돼요</div>
       <ul class="confirm-features" id="confirmFeatures"></ul>
 
+      <!-- 모임 시각 (선택) -->
+      <div class="meeting-time-row">
+        <label for="meetingAtInput" class="meeting-time-label">📅 모임 시각 <span class="opt-hint">선택</span></label>
+        <input type="datetime-local" id="meetingAtInput" class="meeting-time-input" />
+        <div class="meeting-time-hint">QR·카카오 공유 메시지에 표시돼요. 비워두면 노출 안 됨.</div>
+      </div>
+
       <!-- ⚙ 상세 설정 — 전면 제거 (2026-04-19 spec)
            - 카드 표시 정보·출생연도 표시·지역 세부·사진 업로드 → join wizard 2/8로 이동
            - 탐구 문항 수·자유대화·호스트 역할·화면 형태 → 호스트 대시보드 차후 구현
@@ -948,11 +991,14 @@
       const title = `${kit.title} · ${mm}.${dd}`;
       // dirty tracking: 사용자가 ⚙ 상세 설정에서 변경한 옵션만 override
       const merged = { ...kit.defaults, ...advancedOverrides };
+      // 모임 시각 (선택)
+      const meetingAtInput = document.getElementById('meetingAtInput');
+      const meeting_at = meetingAtInput && meetingAtInput.value ? new Date(meetingAtInput.value).toISOString() : null;
       try {
         const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid, title, pack_id: kit.id, ...merged })
+          body: JSON.stringify({ uuid, title, pack_id: kit.id, ...merged, meeting_at })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '모임 생성 실패');

@@ -61,6 +61,12 @@ router.post('/rooms', async (req, res) => {
   const insta_collect = typeof req.body.instagram_collect === 'boolean'
     ? req.body.instagram_collect
     : ['dating', 'icebreaker'].includes(pack.id);
+  // 모임 시각 — ISO 문자열로 받음. 빈 값이면 null.
+  let meeting_at = null;
+  if (req.body.meeting_at) {
+    const dt = new Date(req.body.meeting_at);
+    if (Number.isFinite(dt.getTime())) meeting_at = dt.toISOString();
+  }
   // 팩별 closing flow (호스트 override 가능)
   const validSteps = ['mvp', 'match', 'explore-result'];
   let closing_steps = Array.isArray(req.body.closing_steps)
@@ -97,8 +103,8 @@ router.post('/rooms', async (req, res) => {
   try {
     await client.query('BEGIN');
     const roomResult = await client.query(
-      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled, instagram_collect)
-       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
+      `INSERT INTO rooms (room_code, title, host_uuid, host_role, status, question_count, questions_json, free_topics_json, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled, instagram_collect, meeting_at)
+       VALUES ($1, $2, $3, $4, 'waiting', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING id`,
       [
         room_code, title, uuid, host_role, question_count,
         JSON.stringify(questionsSeed),
@@ -114,6 +120,7 @@ router.post('/rooms', async (req, res) => {
         fc_chat,
         fc_topic,
         insta_collect,
+        meeting_at,
       ]
     );
     const room_id = roomResult.rows[0].id;
@@ -123,7 +130,7 @@ router.post('/rooms', async (req, res) => {
       [room_id, JSON.stringify({ phase: 'waiting', current_tab: 'intro', question_index: 0 })]
     );
     await client.query('COMMIT');
-    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes: fc_timer, free_chat_chat_enabled: fc_chat, free_chat_topic_card_enabled: fc_topic, instagram_collect: insta_collect });
+    res.json({ room_code, title, host_role, question_count, pack_id: pack.id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes: fc_timer, free_chat_chat_enabled: fc_chat, free_chat_topic_card_enabled: fc_topic, instagram_collect: insta_collect, meeting_at });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('POST /api/rooms error:', err);
@@ -148,7 +155,7 @@ router.get('/packs', async (req, res) => {
 router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   const result = await pool.query(
-    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled, instagram_collect FROM rooms WHERE room_code = $1',
+    'SELECT room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled, instagram_collect, meeting_at FROM rooms WHERE room_code = $1',
     [code]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });
@@ -583,6 +590,14 @@ router.patch('/rooms/:code/settings', async (req, res) => {
   if (typeof req.body.instagram_collect === 'boolean') { updates.push(`instagram_collect = $${i++}`); params.push(req.body.instagram_collect); changed.instagram_collect = req.body.instagram_collect; }
   if (['host_only', 'participant'].includes(req.body.host_role)) { updates.push(`host_role = $${i++}`); params.push(req.body.host_role); changed.host_role = req.body.host_role; }
   if (['mobile', 'presenter'].includes(req.body.display_mode)) { updates.push(`display_mode = $${i++}`); params.push(req.body.display_mode); changed.display_mode = req.body.display_mode; }
+  if ('meeting_at' in req.body) {
+    let mAt = null;
+    if (req.body.meeting_at) {
+      const dt = new Date(req.body.meeting_at);
+      if (Number.isFinite(dt.getTime())) mAt = dt.toISOString();
+    }
+    updates.push(`meeting_at = $${i++}`); params.push(mAt); changed.meeting_at = mAt;
+  }
   if (updates.length === 0) return res.status(400).json({ error: 'nothing to update' });
   params.push(code);
   await pool.query(`UPDATE rooms SET ${updates.join(', ')} WHERE room_code = $${i}`, params);

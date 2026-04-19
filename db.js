@@ -118,6 +118,9 @@ async function initDB() {
     // create 시 dating·icebreaker 팩만 default true.
     try { await client.query(`ALTER TABLE rooms ADD COLUMN instagram_collect BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
 
+    // 모임 시각 — 호스트가 create.html에서 입력 (선택). QR/카카오 공유 텍스트에 노출.
+    try { await client.query(`ALTER TABLE rooms ADD COLUMN meeting_at TIMESTAMPTZ`); } catch (e) { if (e.code !== '42701') throw e; }
+
     // interest 길이 확장 — 기존 VARCHAR(30)는 6개+ 멀티 선택 시 초과 (운동, 독서, 음식, 등산, 사진, 공연 + 직접 입력)
     try { await client.query(`ALTER TABLE users ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
     try { await client.query(`ALTER TABLE room_members ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
