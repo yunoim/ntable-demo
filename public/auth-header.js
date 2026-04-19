@@ -31,58 +31,61 @@
   if (!me) return;
 
   // CSS 주입 (scoped prefix `nt-auth-` 로 충돌 방지)
+  // 상단바(보통 48~56px)에 쏙 들어가도록 높이를 빡빡하게 조율
   const style = document.createElement('style');
   style.textContent = `
     .nt-auth-pill {
       position: fixed;
-      top: calc(10px + env(safe-area-inset-top));
+      top: calc(8px + env(safe-area-inset-top));
       right: 12px;
       z-index: 9999;
       display: flex; flex-direction: column; align-items: flex-end;
-      gap: 3px;
-      padding: 8px 14px 7px;
+      gap: 1px;
+      padding: 4px 10px 3px;
       background: rgba(14,22,40,0.92);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(212,168,67,0.35);
-      border-radius: 18px;
+      border-radius: 14px;
       font-family: 'DM Sans','Noto Sans KR',sans-serif;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
       pointer-events: auto;
     }
     .nt-auth-toggle {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 11px; color: #7ee8a2;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 10px; color: #7ee8a2;
       cursor: pointer; background: none; border: none;
       padding: 0;
       font-family: inherit;
-      line-height: 1.2;
+      line-height: 1.1;
       transition: color 0.2s;
     }
     .nt-auth-toggle:hover { color: #a8f5c1; }
     .nt-auth-toggle .sw {
-      width: 26px; height: 14px;
+      width: 22px; height: 12px;
       background: rgba(126,232,162,0.45);
       border-radius: 999px; position: relative;
       transition: background 0.2s;
       flex-shrink: 0;
     }
     .nt-auth-toggle .sw::after {
-      content: ''; position: absolute; top: 2px; left: 14px;
-      width: 10px; height: 10px;
+      content: ''; position: absolute; top: 2px; left: 12px;
+      width: 8px; height: 8px;
       background: #7ee8a2; border-radius: 50%;
       transition: left 0.2s, background 0.2s;
     }
     .nt-auth-mini {
-      font-size: 10px; color: #7ee8a2;
+      font-size: 8.5px;
+      color: #7ee8a2;
       letter-spacing: 0.02em;
-      padding-right: 4px;
-      line-height: 1.2;
+      padding-right: 2px;
+      line-height: 1.1;
+      font-weight: 500;
     }
     @media (max-width: 420px) {
-      .nt-auth-pill { padding: 7px 12px 6px; border-radius: 16px; }
-      .nt-auth-toggle { font-size: 10.5px; }
-      .nt-auth-mini { font-size: 9.5px; }
+      .nt-auth-pill { padding: 3px 9px 3px; border-radius: 12px; }
+      .nt-auth-toggle { font-size: 9.5px; }
+      .nt-auth-mini { font-size: 8px; }
     }
   `;
   document.head.appendChild(style);
