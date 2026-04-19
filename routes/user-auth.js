@@ -47,11 +47,24 @@ router.get('/auth/status', (req, res) => {
   res.json({ google: googleConfigured(), kakao: kakaoConfigured() });
 });
 
+// 안전한 redirect 경로만 허용 — open redirect 방어
+function safeRedirect(raw) {
+  if (!raw) return '/';
+  if (typeof raw !== 'string') return '/';
+  // 동일 origin pathname만 허용 (// · http(s):// · 데이터스킴 차단)
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
+  // 쿼리·해시 포함 가능한 길이 제한
+  if (raw.length > 200) return '/';
+  return raw;
+}
+
 // ─── Google ──────────────────────────────────────────────────────────────────
 router.get('/auth/google', (req, res) => {
   if (!googleConfigured()) return res.status(503).send('Google OAuth 미설정');
   const state = crypto.randomBytes(16).toString('hex');
+  const redirectTo = safeRedirect(req.query.redirect);
   res.cookie('user_oauth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 10 * 60 * 1000 });
+  res.cookie('user_oauth_redirect', redirectTo, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 10 * 60 * 1000 });
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: googleRedirect(),
@@ -67,12 +80,16 @@ router.get('/auth/google', (req, res) => {
 router.get('/auth/google/callback', async (req, res) => {
   if (!googleConfigured()) return res.status(503).send('Google OAuth 미설정');
   const { code, state, error: gError } = req.query;
-  const cookieState = (req.headers.cookie || '').split(';').map(s => s.trim())
-    .find(c => c.startsWith('user_oauth_state='))?.split('=')[1];
+  const cookies = (req.headers.cookie || '').split(';').map(s => s.trim());
+  const cookieState = cookies.find(c => c.startsWith('user_oauth_state='))?.split('=')[1];
+  const redirectCookie = cookies.find(c => c.startsWith('user_oauth_redirect='))?.split('=')[1];
+  const finalRedirect = safeRedirect(redirectCookie ? decodeURIComponent(redirectCookie) : '/');
   res.clearCookie('user_oauth_state');
-  if (gError) return res.redirect('/?auth_error=' + encodeURIComponent(gError));
+  res.clearCookie('user_oauth_redirect');
+  const sep = finalRedirect.includes('?') ? '&' : '?';
+  if (gError) return res.redirect(finalRedirect + sep + 'auth_error=' + encodeURIComponent(gError));
   if (!code || !state || !cookieState || state !== cookieState) {
-    return res.redirect('/?auth_error=state');
+    return res.redirect(finalRedirect + sep + 'auth_error=state');
   }
   try {
     const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
@@ -88,16 +105,16 @@ router.get('/auth/google/callback', async (req, res) => {
     const uiRes = await fetch(GOOGLE_USERINFO_URL, { headers: { Authorization: `Bearer ${tok.access_token}` } });
     if (!uiRes.ok) throw new Error('userinfo_failed');
     const ui = await uiRes.json();
-    if (!ui.email || !ui.email_verified) return res.redirect('/?auth_error=email_unverified');
+    if (!ui.email || !ui.email_verified) return res.redirect(finalRedirect + sep + 'auth_error=email_unverified');
     const token = await upsertUserAndIssueSession({
       provider: 'google', sub: ui.sub, email: ui.email, name: ui.name, picture: ui.picture,
       ip: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
       user_agent: (req.headers['user-agent'] || '').slice(0, 500),
     });
-    res.redirect(`/?auth_token=${token}`);
+    res.redirect(finalRedirect + sep + 'auth_token=' + token);
   } catch (err) {
     console.error('[user-auth google]', err);
-    res.redirect('/?auth_error=server');
+    res.redirect(finalRedirect + sep + 'auth_error=server');
   }
 });
 
@@ -105,7 +122,9 @@ router.get('/auth/google/callback', async (req, res) => {
 router.get('/auth/kakao', (req, res) => {
   if (!kakaoConfigured()) return res.status(503).send('Kakao OAuth 미설정');
   const state = crypto.randomBytes(16).toString('hex');
+  const redirectTo = safeRedirect(req.query.redirect);
   res.cookie('user_oauth_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 10 * 60 * 1000 });
+  res.cookie('user_oauth_redirect', redirectTo, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 10 * 60 * 1000 });
   const params = new URLSearchParams({
     client_id: process.env.KAKAO_REST_API_KEY,
     redirect_uri: kakaoRedirect(),
@@ -118,12 +137,16 @@ router.get('/auth/kakao', (req, res) => {
 router.get('/auth/kakao/callback', async (req, res) => {
   if (!kakaoConfigured()) return res.status(503).send('Kakao OAuth 미설정');
   const { code, state, error: kError } = req.query;
-  const cookieState = (req.headers.cookie || '').split(';').map(s => s.trim())
-    .find(c => c.startsWith('user_oauth_state='))?.split('=')[1];
+  const cookies = (req.headers.cookie || '').split(';').map(s => s.trim());
+  const cookieState = cookies.find(c => c.startsWith('user_oauth_state='))?.split('=')[1];
+  const redirectCookie = cookies.find(c => c.startsWith('user_oauth_redirect='))?.split('=')[1];
+  const finalRedirect = safeRedirect(redirectCookie ? decodeURIComponent(redirectCookie) : '/');
   res.clearCookie('user_oauth_state');
-  if (kError) return res.redirect('/?auth_error=' + encodeURIComponent(kError));
+  res.clearCookie('user_oauth_redirect');
+  const sep = finalRedirect.includes('?') ? '&' : '?';
+  if (kError) return res.redirect(finalRedirect + sep + 'auth_error=' + encodeURIComponent(kError));
   if (!code || !state || !cookieState || state !== cookieState) {
-    return res.redirect('/?auth_error=state');
+    return res.redirect(finalRedirect + sep + 'auth_error=state');
   }
   try {
     console.log('[user-auth kakao] callback start, redirect_uri=', kakaoRedirect());
@@ -167,10 +190,10 @@ router.get('/auth/kakao/callback', async (req, res) => {
       ip: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
       user_agent: (req.headers['user-agent'] || '').slice(0, 500),
     });
-    res.redirect(`/?auth_token=${token}`);
+    res.redirect(finalRedirect + sep + 'auth_token=' + token);
   } catch (err) {
     console.error('[user-auth kakao] FATAL', err.message, err.stack);
-    res.redirect('/?auth_error=' + encodeURIComponent(err.message || 'server'));
+    res.redirect(finalRedirect + sep + 'auth_error=' + encodeURIComponent(err.message || 'server'));
   }
 });
 

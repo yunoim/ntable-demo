@@ -1883,6 +1883,33 @@ const state = {
 const TAB_TO_PHASE = { intro: 'intro', explore: 'explore', free: 'free', ending: 'closing' };
 const TAB_ORDER = ['intro', 'explore', 'free', 'ending'];
 
+// OAuth 콜백 처리 — host.html에서 ?auth_token= 도착 시 token 저장 + device uuid 마이그레이션 후 새로고침
+(async () => {
+  const url = new URL(location.href);
+  const tok = url.searchParams.get('auth_token');
+  if (!tok) return;
+  try { localStorage.setItem('user_token', tok); localStorage.setItem('login_remember', 'true'); } catch (_) {}
+  try {
+    const oldUuid = localStorage.getItem('demo_uuid');
+    if (oldUuid) {
+      const r = await fetch('/api/auth/link-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-token': tok },
+        body: JSON.stringify({ old_uuid: oldUuid }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        if (data.user_uuid && data.user_uuid !== oldUuid) {
+          try { localStorage.setItem('demo_uuid', data.user_uuid); } catch (_) {}
+        }
+      }
+    }
+  } catch (_) {}
+  // 쿼리 정리 후 reload (state.uuid 새 값 반영)
+  url.searchParams.delete('auth_token');
+  location.replace(url.pathname + (url.search ? url.search : ''));
+})();
+
 // ── INIT ──────────────────────────────────────────
 function init() {
   const parts = location.pathname.split('/');
@@ -3484,10 +3511,11 @@ async function renderMiAccount() {
       <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.55;">다른 기기에서도 자동 완성돼요. 토글 OFF 시 연동 해제.</div>
     `;
   } else {
+    const back = encodeURIComponent(location.pathname + location.search);
     body.innerHTML = `
       <div style="display:flex;gap:8px;">
-        <a href="/api/auth/google" style="flex:1;text-align:center;padding:10px;background:#fff;color:#222;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">Google로 로그인</a>
-        <a href="/api/auth/kakao" style="flex:1;text-align:center;padding:10px;background:#FEE500;color:#191919;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">카카오로 로그인</a>
+        <a href="/api/auth/google?redirect=${back}" style="flex:1;text-align:center;padding:10px;background:#fff;color:#222;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">Google로 로그인</a>
+        <a href="/api/auth/kakao?redirect=${back}" style="flex:1;text-align:center;padding:10px;background:#FEE500;color:#191919;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">카카오로 로그인</a>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.55;">로그인하면 모든 기기에서 자동 완성돼요.</div>
     `;
