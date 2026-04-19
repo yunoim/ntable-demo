@@ -1576,22 +1576,15 @@
       <span id="user-nick"></span>
       <span id="oauth-badge" class="oauth-badge" hidden></span>
       <div style="position:relative;display:inline-block;">
-        <button type="button" id="open-host-tools-btn" title="초대·연결·종료" style="background:rgba(212,168,67,0.12);border:1px solid var(--gold-border);color:var(--gold-light);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;">📋 호스트 도구 ▾</button>
-        <div id="host-tools-menu" hidden style="position:absolute;top:calc(100% + 6px);right:0;background:#141d35;border:1px solid var(--gold-border);border-radius:10px;padding:6px;min-width:200px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-          <button type="button" onclick="openQRModal();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">🔍 QR 크게 보기</button>
-          <button type="button" onclick="document.getElementById('copy-url-btn').click();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">🔗 입장 링크 복사</button>
-          <button type="button" id="host-tools-kakao" hidden onclick="kakaoShare();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">💛 카카오톡으로 초대</button>
-          <button type="button" onclick="openTVModal();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">📺 TV 연결</button>
-          <div style="height:1px;background:linear-gradient(to right, transparent, rgba(220,53,69,0.4), transparent);margin:8px 0;"></div>
-          <button type="button" onclick="closeRoom();closeHostTools()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:rgba(220,53,69,0.06);border:none;color:#ff8a8a;font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;font-weight:600;">🛑 모임 끝내기</button>
-        </div>
-      </div>
-      <div style="position:relative;display:inline-block;">
-        <button type="button" id="open-more-btn" title="설정·운영·내 정보" style="background:rgba(212,168,67,0.12);border:1px solid var(--gold-border);color:var(--gold-light);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;">⋮ 더보기</button>
+        <button type="button" id="open-more-btn" title="설정·운영·내 정보·TV·종료" style="background:rgba(212,168,67,0.12);border:1px solid var(--gold-border);color:var(--gold-light);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;">⋮ 더보기</button>
         <div id="more-menu" hidden style="position:absolute;top:calc(100% + 6px);right:0;background:#141d35;border:1px solid var(--gold-border);border-radius:10px;padding:6px;min-width:180px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-          <button type="button" id="open-settings-btn" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">⚙ 설정 (콘텐츠)</button>
+          <button type="button" id="open-settings-btn" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">⚙ 콘텐츠 수정</button>
           <button type="button" id="open-room-settings-btn" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">🎛 운영</button>
           <button type="button" id="open-my-info-btn" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">👤 내 정보</button>
+          <div style="height:1px;background:rgba(212,168,67,0.18);margin:6px 0;"></div>
+          <button type="button" onclick="openTVModal();closeMore()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:none;border:none;color:var(--white-dim);font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;">📺 TV 연결</button>
+          <div style="height:1px;background:linear-gradient(to right, transparent, rgba(220,53,69,0.4), transparent);margin:8px 0;"></div>
+          <button type="button" onclick="closeRoom();closeMore()" style="display:block;width:100%;text-align:left;padding:10px 12px;background:rgba(220,53,69,0.06);border:none;color:#ff8a8a;font-family:inherit;font-size:13px;cursor:pointer;border-radius:6px;font-weight:600;">🛑 모임 끝내기</button>
         </div>
       </div>
       <button type="button" onclick="logout()" hidden>정보 초기화</button>
@@ -1807,7 +1800,7 @@
   <div class="settings-backdrop" onclick="closeSettings()"></div>
   <div class="settings-card">
     <button type="button" class="settings-close" onclick="closeSettings()" aria-label="설정 닫기">×</button>
-    <h3 id="settings-title">모임 설정</h3>
+    <h3 id="settings-title">콘텐츠 수정</h3>
     <div class="settings-sub">모임 시작 전에만 편집할 수 있어요.</div>
 
     <!-- 내 참여 여부는 ⚙ 운영 모달의 '호스트 역할' 으로 일원화 (2026-04-19) -->
@@ -3657,31 +3650,16 @@ async function clearDeviceCacheFromModal() {
 }
 document.getElementById('open-my-info-btn')?.addEventListener('click', openMyInfo);
 
-// 호스트 도구 드롭다운 toggle
-const hostToolsBtn = document.getElementById('open-host-tools-btn');
-const hostToolsMenu = document.getElementById('host-tools-menu');
-function closeHostTools() { if (hostToolsMenu) hostToolsMenu.hidden = true; }
-hostToolsBtn?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  hostToolsMenu.hidden = !hostToolsMenu.hidden;
-  // 다른 메뉴 닫기
-  const mm = document.getElementById('more-menu');
-  if (mm) mm.hidden = true;
-});
-document.addEventListener('click', (e) => {
-  if (hostToolsMenu && !hostToolsMenu.hidden && !e.target.closest('#host-tools-menu') && !e.target.closest('#open-host-tools-btn')) {
-    hostToolsMenu.hidden = true;
-  }
-});
+// 호스트 도구 드롭다운 폐기 — 모든 항목을 ⋮ 더보기로 통합 (2026-04-19)
+function closeHostTools() { /* legacy noop — 호환성 유지용 */ }
 
-// ⋮ 더보기 드롭다운 toggle (설정·운영·내 정보 통합)
+// ⋮ 더보기 드롭다운 toggle (콘텐츠 수정·운영·내 정보·TV·종료 통합)
 const moreBtn = document.getElementById('open-more-btn');
 const moreMenu = document.getElementById('more-menu');
 function closeMore() { if (moreMenu) moreMenu.hidden = true; }
 moreBtn?.addEventListener('click', (e) => {
   e.stopPropagation();
   moreMenu.hidden = !moreMenu.hidden;
-  if (hostToolsMenu) hostToolsMenu.hidden = true;
 });
 document.addEventListener('click', (e) => {
   if (moreMenu && !moreMenu.hidden && !e.target.closest('#more-menu') && !e.target.closest('#open-more-btn')) {
@@ -3692,20 +3670,6 @@ document.addEventListener('click', (e) => {
 moreMenu?.addEventListener('click', (e) => {
   if (e.target.tagName === 'BUTTON') closeMore();
 });
-// KAKAO_JS_KEY 활성 시 host-tools 드롭다운 카카오 노출 (share-config 결과 직접 활용)
-const _kakaoHTCheck = setInterval(async () => {
-  try {
-    const r = await fetch('/api/share-config');
-    if (!r.ok) return;
-    const cfg = await r.json();
-    if (cfg.kakaoJsKey) {
-      const ht = document.getElementById('host-tools-kakao');
-      if (ht) ht.hidden = false;
-      clearInterval(_kakaoHTCheck);
-    }
-  } catch (_) {}
-}, 1000);
-setTimeout(() => clearInterval(_kakaoHTCheck), 10000);
 
 // 운영 옵션 모달 (탐구 문항·자유대화·역할·화면)
 function openRoomSettings() {
