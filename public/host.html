@@ -1523,12 +1523,11 @@
     <button type="button" id="sidebar-tv-btn" class="sidebar-tv-btn" onclick="openTVModal()" hidden>📺 TV 연결</button>
     <button type="button" id="sidebar-end-btn" class="sidebar-end-btn" onclick="closeRoom()" hidden>🛑 모임 종료</button>
   </div>
-  <!-- 운영 지표 위젯 — 라이브 KPI -->
+  <!-- 운영 지표 위젯 — 누적 플랫폼 통계 + 현재 모임 매칭/인스타 -->
   <div id="host-stats" class="host-stats">
-    <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text"><strong id="stat-participants">0</strong>명 참여 · 📷 <strong id="stat-photos">0</strong></span></div>
-    <div class="stat-line" id="stat-vote-line" hidden><span class="stat-icon">🗳</span><span class="stat-text">투표 <strong id="stat-vote-progress">0%</strong></span></div>
-    <div class="stat-line" id="stat-match-line" hidden><span class="stat-icon">💘</span><span class="stat-text"><strong id="stat-match-count">0</strong>쌍 매칭</span></div>
-    <div class="stat-line" id="stat-insta-line" hidden><span class="stat-icon">💌</span><span class="stat-text"><strong id="stat-insta-count">0</strong>커플 인스타 공개</span></div>
+    <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text">누적 <strong id="stat-cum-people">—</strong>명 · <strong id="stat-cum-rooms">—</strong>개 모임</span></div>
+    <div class="stat-line" id="stat-match-line" hidden><span class="stat-icon">💘</span><span class="stat-text">오늘 <strong id="stat-match-count">0</strong>쌍 매칭</span></div>
+    <div class="stat-line" id="stat-insta-line" hidden><span class="stat-icon">💌</span><span class="stat-text">오늘 <strong id="stat-insta-count">0</strong>커플 인스타</span></div>
   </div>
   <div id="waiting-section">
     <!-- 자동 입장 (2026-04-19) — 승인 절차 폐지. 참가자는 즉시 입장. 호스트는 강퇴 권한 유지. -->
@@ -2195,31 +2194,7 @@ function renderWaitingList() {
 }
 
 function renderHostStats() {
-  const partEl = document.getElementById('stat-participants');
-  const photoEl = document.getElementById('stat-photos');
-  if (partEl) partEl.textContent = state.approvedUsers.length;
-  if (photoEl) photoEl.textContent = Object.keys(state.photos || {}).length;
-
-  // 투표 진행률 — 탐구 단계일 때만
-  const voteLine = document.getElementById('stat-vote-line');
-  if (voteLine) {
-    if (state.activeTab === 'explore' && state.questions && state.questions.length) {
-      const totalQs = state.questions.length;
-      const totalVoters = state.approvedUsers.length;
-      const expected = totalQs * totalVoters;
-      let received = 0;
-      for (const counts of Object.values(state.currentVotes || {})) {
-        for (const v of Object.values(counts || {})) received += v;
-      }
-      const pct = expected ? Math.round(received * 100 / expected) : 0;
-      document.getElementById('stat-vote-progress').textContent = pct + '%';
-      voteLine.hidden = false;
-    } else {
-      voteLine.hidden = true;
-    }
-  }
-
-  // 매칭 결과 쌍 수
+  // 매칭 결과 쌍 수 (현재 모임)
   const matchLine = document.getElementById('stat-match-line');
   if (matchLine) {
     const pairs = (state.matchJson && Array.isArray(state.matchJson.pairs)) ? state.matchJson.pairs.length : 0;
@@ -2231,7 +2206,7 @@ function renderHostStats() {
     }
   }
 
-  // 인스타 mutual 공개 카운트
+  // 인스타 mutual 공개 카운트 (현재 모임)
   const instaLine = document.getElementById('stat-insta-line');
   if (instaLine) {
     const n = state.instaRevealCount || 0;
@@ -2243,6 +2218,21 @@ function renderHostStats() {
     }
   }
 }
+
+// 누적 플랫폼 통계 (전체 모임 통틀어) — 모임 입장 시 + 5분 주기 갱신
+async function loadCumulativeStats() {
+  try {
+    const r = await fetch('/api/stats');
+    if (!r.ok) return;
+    const s = await r.json();
+    const peopleEl = document.getElementById('stat-cum-people');
+    const roomsEl = document.getElementById('stat-cum-rooms');
+    if (peopleEl) peopleEl.textContent = (s.unique_people || 0).toLocaleString();
+    if (roomsEl) roomsEl.textContent = (s.total_rooms || 0).toLocaleString();
+  } catch (_) {}
+}
+loadCumulativeStats();
+setInterval(loadCumulativeStats, 5 * 60 * 1000);
 
 function renderApprovedList() {
   const list = document.getElementById('approved-list');
