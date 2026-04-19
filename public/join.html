@@ -636,24 +636,38 @@ function renderStep() {
     }
     case 'photo': {
       // 'photo' step → 'emoji' step으로 전환 (2026-04-19) — 사진 업로드 폐기, 이모지 단일화
-      const EMOJI_CHOICES = ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦄','🐸','🦉','🦋','🌸','🌷','🌙','⭐','🔥','✨','🍀','💎'];
+      // 카테고리별 이모지 (2026-04-20) — 표정·동물·운동·자연·음식·취미·상징
+      const EMOJI_CATEGORIES = [
+        { label: '표정 · 기분', emojis: ['😀','😁','😂','🤣','😊','😇','🙂','🥰','😍','🤩','😎','🤔','🧐','😌','😴','🤗','🤓','🥳','😏','🤭','😜','🤪','😬','🙃','😋','🫠','🫡','🫣'] },
+        { label: '동물', emojis: ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🐨','🐵','🐸','🐙','🦋','🦉','🐧','🐳','🦄','🐢','🦒','🐘','🦜','🐿️','🦔','🦦','🦥','🦩','🐝','🐞','🐬','🦈'] },
+        { label: '운동 · 활동', emojis: ['⚽','🏀','🏈','⚾','🎾','🏐','🎱','🏓','🏸','🥊','🏋️','🚴','🏃','⛷️','🏂','🏄','🏌️','🧘','🤸','🏊','⛹️','🤺','🧗','🚵','🏇','🥋'] },
+        { label: '자연 · 날씨', emojis: ['🌸','🌷','🌻','🌹','🌺','🌼','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌿','🌴','🌲','🌈','❄️','☁️','⚡','🌟','🌞','🌛','🌱','🍃','🍂','🪷'] },
+        { label: '음식 · 음료', emojis: ['🍎','🍕','🍔','🍣','🍜','🍰','🍫','🍷','🍺','☕','🍵','🍙','🍩','🍓','🥐','🍳','🥗','🍲','🌮','🥟','🍦','🍪','🥩','🍝','🍱','🧋','🍹','🍾'] },
+        { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎲','🧩','🎤','🎭','🎹','♟️','🎧','🖌️','🎻','🥁','🎺','🎼','📸','🎥','🕹️','📖','🎳','🎪'] },
+        { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','💜','💛','💚','💙','🖤','🤍','🧡','💖','🌟','⚡','✨','🔮','🪄','🎀','🗝️','⚓','🧿'] },
+      ];
       const curEmoji = data.emoji || '';
-      const isPreset = EMOJI_CHOICES.includes(curEmoji);
       const previewInner = curEmoji ? `<span style="font-size:72px;line-height:1;">${escHtml(curEmoji)}</span>` : '🙂';
+      const categoryBlocks = EMOJI_CATEGORIES.map((cat, idx) => `
+        <div class="emoji-cat" style="margin-top:${idx===0?'0':'14px'};">
+          <div style="font-size:11px;letter-spacing:0.14em;color:#d4a843;text-transform:uppercase;margin-bottom:8px;font-family:'DM Sans',sans-serif;font-weight:500;">${escHtml(cat.label)}</div>
+          <div class="chip-row" style="gap:5px;flex-wrap:wrap;">
+            ${cat.emojis.map(e => `<button type="button" class="chip emoji-chip${curEmoji===e?' selected':''}" data-emoji="${e}" style="font-size:22px;padding:7px 10px;">${e}</button>`).join('')}
+          </div>
+        </div>
+      `).join('');
       body = `
         <div class="step-num">${stepNum} · 나를 표현하는 이모지 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">나를 표현하는 이모지를<br>하나 입력해주세요</h2>
-        <p class="step-sub">참가자 카드와 매칭 결과에 표시돼요. 아래에서 골라도 되고 직접 입력도 OK.</p>
+        <p class="step-sub">참가자 카드와 매칭 결과에 표시돼요. 카테고리에서 골라도 되고 직접 입력도 OK.</p>
         <div class="field" style="text-align:center;">
           <div id="emojiPreview" style="width:140px;height:140px;border-radius:50%;background:rgba(212,168,67,0.12);border:2px dashed rgba(212,168,67,0.4);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${previewInner}</div>
           <input type="text" id="emojiInput" maxlength="4" value="${escHtml(curEmoji)}" placeholder="🙂 직접 입력 (예: 🦄)" style="width:100%;text-align:center;font-size:24px;padding:14px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;color:#fff;font-family:inherit;letter-spacing:0.04em;">
+          ${curEmoji ? `<button type="button" class="emoji-chip" data-emoji="" style="margin-top:10px;background:transparent;border:1px solid rgba(255,138,138,0.35);color:#ff8a8a;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">선택 지우기</button>` : ''}
         </div>
         <div class="field">
-          <div class="field-label" style="font-size:13px;color:#e8b84b;">또는 골라서</div>
-          <div class="chip-row" style="gap:6px;flex-wrap:wrap;">
-            ${EMOJI_CHOICES.map(e => `<button type="button" class="chip emoji-chip${curEmoji===e?' selected':''}" data-emoji="${e}" style="font-size:24px;padding:8px 12px;">${e}</button>`).join('')}
-            ${curEmoji ? `<button type="button" class="chip emoji-chip" data-emoji="" style="font-size:13px;padding:8px 12px;color:#ff8a8a;">지우기</button>` : ''}
-          </div>
+          <div class="field-label" style="font-size:13px;color:#e8b84b;margin-bottom:4px;">또는 카테고리에서 골라서</div>
+          ${categoryBlocks}
         </div>
         <div class="actions">
           ${prevBtn}
