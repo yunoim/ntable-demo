@@ -2548,50 +2548,63 @@ function applyFreeChatOptions() {
   if (tmCard) {
     if (timerMin > 0) {
       tmCard.hidden = false;
-      startFreeTimer(timerMin);
+      // 이미 진행 중인 timer가 있으면 재시작하지 않음 (게스트 timer reset 방지)
+      if (!_freeTimerEndsAt || _freeTimerEndsAt <= Date.now()) {
+        startFreeTimer(timerMin);
+      } else {
+        renderFreeTimerDisplay();
+      }
     } else {
       tmCard.hidden = true;
       if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
     }
   }
 }
-function startFreeTimer(minutes) {
-  if (_freeTimerInterval) clearInterval(_freeTimerInterval);
-  _freeTimerStartMs = Date.now();
-  _freeTimerTotalSec = minutes * 60;
+// 자유대화 타이머 — endsAt 기준 (server·게스트 동기화), 분 단위 표기 (초 무시, ceil)
+let _freeTimerEndsAt = 0;
+function renderFreeTimerDisplay() {
   const display = document.getElementById('free-timer-display');
   if (!display) return;
-  display.style.color = 'var(--gold-light)';
-  function tick() {
-    const elapsed = Math.floor((Date.now() - _freeTimerStartMs) / 1000);
-    const remaining = _freeTimerTotalSec - elapsed;
-    if (remaining <= 0) {
-      display.textContent = '⏰ 시간 종료';
-      display.style.color = 'var(--danger)';
-      clearInterval(_freeTimerInterval);
-      _freeTimerInterval = null;
-      return;
-    }
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    display.textContent = `${m}:${String(s).padStart(2, '0')}`;
+  if (!_freeTimerEndsAt) { display.textContent = '--분'; return; }
+  const remainingMs = _freeTimerEndsAt - Date.now();
+  if (remainingMs <= 0) {
+    display.textContent = '⏰ 시간 종료';
+    display.style.color = 'var(--danger)';
+    if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
+    return;
   }
-  tick();
-  _freeTimerInterval = setInterval(tick, 1000);
+  const minLeft = Math.ceil(remainingMs / 60000); // 초 무시 — 올림
+  display.textContent = `${minLeft}분`;
+  display.style.color = 'var(--gold-light)';
 }
 
-// 호스트가 자유대화 타이머 연장 — N분 추가
-function extendFreeTimer(minutes) {
-  const display = document.getElementById('free-timer-display');
-  if (!display) return;
-  if (_freeTimerInterval) {
-    // 진행 중 — 남은 시간에 더하기
-    _freeTimerTotalSec += minutes * 60;
-    display.style.color = 'var(--gold-light)';
+function setFreeTimerEndsAt(endsAt) {
+  _freeTimerEndsAt = endsAt || 0;
+  if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
+  if (_freeTimerEndsAt > Date.now()) {
+    renderFreeTimerDisplay();
+    _freeTimerInterval = setInterval(renderFreeTimerDisplay, 5000); // 5초마다 갱신 (분 단위라 충분)
   } else {
-    // 종료 상태 — 다시 시작
-    startFreeTimer(minutes);
-    return;
+    renderFreeTimerDisplay();
+  }
+}
+
+function startFreeTimer(minutes) {
+  const endsAt = Date.now() + minutes * 60 * 1000;
+  setFreeTimerEndsAt(endsAt);
+  // 모든 참여자(게스트)에게 broadcast — 동일 endsAt
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ type: 'timer_set', ends_at: endsAt }));
+  }
+}
+
+// 호스트가 자유대화 타이머 연장 — N분 추가 (게스트도 동일 endsAt 적용)
+function extendFreeTimer(minutes) {
+  const base = (_freeTimerEndsAt && _freeTimerEndsAt > Date.now()) ? _freeTimerEndsAt : Date.now();
+  const newEndsAt = base + minutes * 60 * 1000;
+  setFreeTimerEndsAt(newEndsAt);
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ type: 'timer_set', ends_at: newEndsAt }));
   }
   if (typeof toast === 'function') toast(`⏱ 타이머 +${minutes}분 추가`);
 }
@@ -2742,32 +2755,9 @@ function switchTab(tab) {
   updatePrimaryButton();
 }
 
-// 1:1 (총 2명 이하)이면 MVP/작대기 단계 모두 생략하고 탐구 결과만 발표
+// 1:1 모임 자동 처리 폐기 (2026-04-19) — 인원 수 무관하게 MVP/사랑의 작대기 단계 진행
 function applyOneOnOneEnding() {
-  const total = state.approvedUsers.length + (state.hostRole === 'participant' ? 1 : 0);
-  const mvpCard = document.querySelector('#panel-ending .free-card');
-  const substeps = document.getElementById('closingSubsteps');
-  if (!mvpCard) return;
-  if (total <= 2) {
-    if (substeps) substeps.style.display = 'none';
-    state.oneOnOne = true;
-    state.closingPhase = 'closing-explore-result';  // 즉시 set — switchTab 다음 분기 'closing-mvp' 덮어쓰기 방지
-    mvpCard.innerHTML = `
-      <div id="explore-result-card" style="background:transparent;">
-        <div class="card-head">💑 1:1 모임 — 탐구 결과</div>
-        <div id="explore-result-list" style="margin-top:12px;font-size:13px;color:var(--text);line-height:1.7;">불러오는 중…</div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:14px;">
-        <button type="button" class="csub-next-btn" style="flex:1;background:transparent;color:#e8b84b;border:1px solid rgba(212,168,67,0.5);" onclick="saveExploreResultImage('#explore-result-card')">📷 사진으로 저장</button>
-        <button type="button" class="csub-next-btn" style="flex:1;" onclick="closeRoom()">모임 종료</button>
-      </div>`;
-    // 탐구 결과 fetch + 게스트에게도 phase broadcast
-    if (!state.exploreResultFired) {
-      state.exploreResultFired = true;
-      loadAndRenderExploreResult();
-      updateState({ phase: 'closing-explore-result', current_tab: 'closing' });
-    }
-  }
+  // noop — closing_steps 그대로 따름
 }
 
 async function loadAndRenderExploreResult() {

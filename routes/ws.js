@@ -191,8 +191,7 @@ function init(server) {
         broadcastToRoom(room_code, { type: 'approved', uuid });
       }
 
-      // ── 입장 즉시 sync (fire-and-forget) ── 캐시된 사진/소개 + 현재 room_state push
-      // 핸들러 등록 *후* 비동기로 발송하여 클라이언트 첫 메시지가 묻히는 race 방지
+      // ── 입장 즉시 sync (fire-and-forget) ── 캐시된 사진/소개 + 현재 room_state + 타이머 push
       const sendInitialSync = async () => {
         try {
           const room0 = rooms[room_code];
@@ -204,6 +203,10 @@ function init(server) {
           for (const [iUuid, iIntro] of room0.introCache.entries()) {
             if (iUuid === uuid) continue;
             try { ws.send(JSON.stringify({ type: 'intro_update', uuid: iUuid, intro: iIntro })); } catch (_) {}
+          }
+          // 자유대화 타이머 endsAt — 진행 중이면 신규 입장자도 동일 timer
+          if (room0.freeTimerEndsAt && room0.freeTimerEndsAt > Date.now()) {
+            try { ws.send(JSON.stringify({ type: 'free_timer', ends_at: room0.freeTimerEndsAt })); } catch (_) {}
           }
           const stateRes0 = await pool.query(
             `SELECT rs.state_json FROM room_state rs JOIN rooms r ON r.id = rs.room_id WHERE r.room_code = $1`,
@@ -350,6 +353,17 @@ function init(server) {
               type: 'photo_banlist',
               banned: [...(room.photoBanned || [])],
             }, null, room.hostUuid);
+          } else if (msg.type === 'timer_set') {
+            // 호스트만 가능 — 자유대화 타이머 ends_at 설정 + 모든 client에 broadcast
+            const room = rooms[room_code];
+            if (!room || uuid !== room.hostUuid) return;
+            const endsAt = parseInt(msg.ends_at, 10);
+            if (!Number.isFinite(endsAt) || endsAt <= 0) {
+              room.freeTimerEndsAt = null;
+            } else {
+              room.freeTimerEndsAt = endsAt;
+            }
+            broadcastToRoom(room_code, { type: 'free_timer', ends_at: room.freeTimerEndsAt });
           } else if (msg.type === 'intro_update') {
             // 한줄 자기소개 broadcast + 방별 메모리 캐시 (방 close 시 GC)
             const intro = String(msg.intro || '').slice(0, 80).trim();

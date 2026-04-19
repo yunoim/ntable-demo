@@ -1840,8 +1840,9 @@ function switchScreen(state) {
   else stopGuestFreeTimer();
 }
 
-// 자유대화 옵션 적용 (모임 생성 시 결정된 free_chat_*)
+// 자유대화 옵션 적용 (모임 생성 시 결정된 free_chat_*) — 호스트 timer endsAt에 동기화
 let _guestFreeTimerInterval = null;
+let _guestFreeTimerEndsAt = 0;
 function applyGuestFreeChatOptions() {
   const r = STATE.room || {};
   const chatEnabled = r.free_chat_chat_enabled !== false;
@@ -1854,37 +1855,35 @@ function applyGuestFreeChatOptions() {
     : '자유대화 시간 — 직접 대화를 나눠보세요';
   const timerEl = document.getElementById('guestFreeTimer');
   if (timerEl) {
-    if (timerMin > 0) {
-      timerEl.hidden = false;
-      startGuestFreeTimer(timerMin);
-    } else {
-      timerEl.hidden = true;
-      stopGuestFreeTimer();
-    }
+    timerEl.hidden = !(timerMin > 0);
+    if (timerMin > 0) renderGuestTimerDisplay();
   }
 }
-function startGuestFreeTimer(minutes) {
-  stopGuestFreeTimer();
-  const startMs = Date.now();
-  const totalSec = minutes * 60;
+function setGuestFreeTimerEndsAt(endsAt) {
+  _guestFreeTimerEndsAt = endsAt || 0;
+  if (_guestFreeTimerInterval) { clearInterval(_guestFreeTimerInterval); _guestFreeTimerInterval = null; }
+  const el = document.getElementById('guestFreeTimer');
+  if (el) el.hidden = !(_guestFreeTimerEndsAt > 0);
+  if (_guestFreeTimerEndsAt > Date.now()) {
+    renderGuestTimerDisplay();
+    _guestFreeTimerInterval = setInterval(renderGuestTimerDisplay, 5000);
+  } else {
+    renderGuestTimerDisplay();
+  }
+}
+function renderGuestTimerDisplay() {
   const el = document.getElementById('guestFreeTimer');
   if (!el) return;
-  el.style.color = '#e8b84b';
-  function tick() {
-    const elapsed = Math.floor((Date.now() - startMs) / 1000);
-    const remaining = totalSec - elapsed;
-    if (remaining <= 0) {
-      el.textContent = '⏰';
-      el.style.color = '#ff8a8a';
-      stopGuestFreeTimer();
-      return;
-    }
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+  if (!_guestFreeTimerEndsAt) { el.textContent = '--분'; return; }
+  const remainingMs = _guestFreeTimerEndsAt - Date.now();
+  if (remainingMs <= 0) {
+    el.textContent = '⏰';
+    el.style.color = '#ff8a8a';
+    if (_guestFreeTimerInterval) { clearInterval(_guestFreeTimerInterval); _guestFreeTimerInterval = null; }
+    return;
   }
-  tick();
-  _guestFreeTimerInterval = setInterval(tick, 1000);
+  el.textContent = `${Math.ceil(remainingMs / 60000)}분`;
+  el.style.color = '#e8b84b';
 }
 function stopGuestFreeTimer() {
   if (_guestFreeTimerInterval) { clearInterval(_guestFreeTimerInterval); _guestFreeTimerInterval = null; }
@@ -2064,6 +2063,10 @@ async function handleWSMessage(msg) {
       break;
     }
 
+    case 'free_timer':
+      // 호스트가 자유대화 타이머를 설정/연장 — endsAt에 동기화
+      setGuestFreeTimerEndsAt(parseInt(msg.ends_at, 10) || 0);
+      break;
     case 'vote_result':
       renderVoteResult(msg.question_id, msg.counts);
       break;
@@ -2842,19 +2845,7 @@ async function loadClosingData() {
     } catch(_) {}
   }
   document.getElementById('closingRoomTag').textContent = STATE.roomCode;
-
-  // 1:1 (총 2명 이하)이면 작대기/MVP 모두 생략 — 호스트가 탐구 결과 발표 (state_update phase로 받음)
-  const isOneOnOne = STATE.members.length <= 2;
-  const content = document.querySelector('.closing-content');
-  if (isOneOnOne && content) {
-    content.innerHTML = `
-      <div class="oneonone-msg" id="oneOnOneArea">
-        <div class="oneonone-icon">💑</div>
-        <h2>1:1 모임</h2>
-        <p>호스트가 곧 탐구 결과를 발표합니다…</p>
-      </div>`;
-    return;
-  }
+  // 1:1 모임 특수 처리 폐기 (2026-04-19) — 인원 수 무관하게 MVP/사랑의작대기 항상 노출
   renderVoteList('mvpList', 'mvp');
   renderVoteList('matchList', 'match');
 }

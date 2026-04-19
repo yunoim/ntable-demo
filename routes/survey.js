@@ -151,7 +151,7 @@ router.post('/connections', async (req, res) => {
       [room_id, uuid]
     );
 
-    const cleanPicks = picks.filter(p => p && p !== uuid).slice(0, 5); // 최대 5명
+    const cleanPicks = picks.filter(p => p && p !== uuid); // 인원 제한 해제 (전원 선택 가능)
     for (const to_uuid of cleanPicks) {
       await pool.query(
         'INSERT INTO room_connections (room_id, from_uuid, to_uuid) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
