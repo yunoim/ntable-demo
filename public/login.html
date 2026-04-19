@@ -196,20 +196,23 @@
 
   <section class="quick-login" id="quickLogin" hidden>
     <div class="ql-label">빠른 입장 <span class="ql-label-opt">선택</span></div>
+    <!-- 토글은 두 상태(비로그인·로그인) 모두에서 항상 노출 — 로그인 상태에서는 OFF로 로그아웃 -->
+    <div class="ql-toggle-row">
+      <button type="button" class="login-toggle" id="loginToggle" data-on="true" aria-pressed="true">
+        <span class="toggle-label">내 정보 기억하기</span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+      <span class="ql-desc" id="qlDesc">켜면 다음 방문 시 Google/카카오로 빠르게 입장</span>
+    </div>
+    <!-- 비로그인: OAuth 버튼 -->
     <div id="accLoginGroup">
-      <div class="ql-toggle-row">
-        <button type="button" class="login-toggle" id="loginToggle" data-on="true" aria-pressed="true">
-          <span class="toggle-label">내 정보 기억하기</span>
-          <span class="switch" aria-hidden="true"></span>
-        </button>
-        <span class="ql-desc">켜면 다음 방문 시 Google/카카오로 빠르게 입장</span>
-      </div>
       <button type="button" class="ql-btn btn-google" id="googleBtn" hidden>Google로 계속</button>
       <button type="button" class="ql-btn btn-kakao" id="kakaoBtn" hidden>카카오로 계속</button>
     </div>
+    <!-- 로그인: provider 라벨 + 로그아웃 안내 -->
     <div class="acc-connected" id="accConnected" hidden>
       ✓ <span id="accProviderLabel">계정 연결됨</span>
-      <div class="acc-logout-hint">로그아웃하려면 토글을 OFF</div>
+      <div class="acc-logout-hint">로그아웃하려면 위 토글을 OFF</div>
     </div>
   </section>
 
@@ -272,12 +275,15 @@ const accProviderLabel = document.getElementById('accProviderLabel');
 let isAuthed = false;
 
 function applyConnectedView() {
+  const desc = document.getElementById('qlDesc');
   if (isAuthed) {
     accLoginGroup.hidden = true;
     accConnected.hidden = false;
+    if (desc) desc.textContent = '끄면 즉시 로그아웃';
   } else {
     accLoginGroup.hidden = false;
     accConnected.hidden = true;
+    if (desc) desc.textContent = '켜면 다음 방문 시 Google/카카오로 빠르게 입장';
   }
 }
 
