@@ -176,29 +176,6 @@ function init(server) {
       }
       rooms[room_code].clients.set(uuid, ws);
 
-      // ── 입장 즉시 sync ── 캐시된 사진/소개 + 현재 room_state 직접 push
-      // (브라우저는 onmessage 이전 도착 메시지를 버퍼링하므로 안전. request_photos backup도 유지)
-      try {
-        const room0 = rooms[room_code];
-        for (const [pUuid, pPhoto] of room0.photoCache.entries()) {
-          if (pUuid === uuid) continue;
-          ws.send(JSON.stringify({ type: 'photo_update', uuid: pUuid, photo: pPhoto }));
-        }
-        for (const [iUuid, iIntro] of room0.introCache.entries()) {
-          if (iUuid === uuid) continue;
-          ws.send(JSON.stringify({ type: 'intro_update', uuid: iUuid, intro: iIntro }));
-        }
-        const stateRes0 = await pool.query(
-          `SELECT rs.state_json
-             FROM room_state rs
-             JOIN rooms r ON r.id = rs.room_id
-            WHERE r.room_code = $1`,
-          [room_code]
-        );
-        const cur0 = stateRes0.rows[0]?.state_json;
-        if (cur0) ws.send(JSON.stringify({ type: 'state_update', state: cur0 }));
-      } catch (e) { console.error('[ws] initial sync error', e.message); }
-
       // 호스트 재접속 → grace timer 취소
       if (uuid === hostUuid && rooms[room_code].hostGraceTimer) {
         clearTimeout(rooms[room_code].hostGraceTimer);
@@ -207,14 +184,35 @@ function init(server) {
         broadcastToRoom(room_code, { type: 'host_reconnected', uuid }, uuid);
       }
 
-      // user_joined broadcast (자신 제외)
+      // user_joined broadcast (자신 제외) — 즉시 발송
       broadcastToRoom(room_code, { type: 'user_joined', uuid, nickname }, uuid);
       // 자동 입장 (2026-04-19) — 호스트 승인 절차 폐지. 참가자는 즉시 approved.
-      // 호스트는 강퇴 권한 유지. 부적절 사용자는 사후 차단.
-      // (호스트 본인은 approved broadcast 받지만 무시 — 호스트 화면에는 자기 카드 항상 표시)
       if (uuid !== hostUuid) {
         broadcastToRoom(room_code, { type: 'approved', uuid });
       }
+
+      // ── 입장 즉시 sync (fire-and-forget) ── 캐시된 사진/소개 + 현재 room_state push
+      // 핸들러 등록 *후* 비동기로 발송하여 클라이언트 첫 메시지가 묻히는 race 방지
+      const sendInitialSync = async () => {
+        try {
+          const room0 = rooms[room_code];
+          if (!room0) return;
+          for (const [pUuid, pPhoto] of room0.photoCache.entries()) {
+            if (pUuid === uuid) continue;
+            try { ws.send(JSON.stringify({ type: 'photo_update', uuid: pUuid, photo: pPhoto })); } catch (_) {}
+          }
+          for (const [iUuid, iIntro] of room0.introCache.entries()) {
+            if (iUuid === uuid) continue;
+            try { ws.send(JSON.stringify({ type: 'intro_update', uuid: iUuid, intro: iIntro })); } catch (_) {}
+          }
+          const stateRes0 = await pool.query(
+            `SELECT rs.state_json FROM room_state rs JOIN rooms r ON r.id = rs.room_id WHERE r.room_code = $1`,
+            [room_code]
+          );
+          const cur0 = stateRes0.rows[0]?.state_json;
+          if (cur0 && ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type: 'state_update', state: cur0 }));
+        } catch (e) { console.error('[ws] initial sync error', e.message); }
+      };
 
       ws.on('message', async (data) => {
         try {
@@ -425,6 +423,9 @@ function init(server) {
           contexts: { ws: { room_code, uuid } },
         });
       });
+
+      // 핸들러 등록 후 sync 발사 (fire-and-forget)
+      sendInitialSync();
 
     } catch (err) {
       console.error('WS connection error:', err);
