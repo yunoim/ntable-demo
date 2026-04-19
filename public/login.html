@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
 <link rel="stylesheet" href="/theme-lock.css">
+<script src="/oauth-redirect.js"></script>
 <title>ntable — 누구나 호스트가 되는 모임</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -240,37 +241,11 @@ document.getElementById('openRoomBtn').addEventListener('click', () => {
 
 ensureUuid();
 
-// OAuth 콜백 토큰 처리 + device uuid를 user.uuid로 마이그레이션
-(async () => {
+// OAuth 콜백 토큰 처리는 /oauth-redirect.js 가 담당 (전 페이지 공통)
+// login.html은 추가로 auth_error 쿼리 정리만 담당
+(() => {
   const url = new URL(location.href);
-  const tok = url.searchParams.get('auth_token');
-  if (tok) {
-    try {
-      localStorage.setItem('user_token', tok);
-      localStorage.setItem('login_remember', 'true');
-    } catch (_) {}
-    // device uuid 마이그레이션 — 기존 demo_uuid로 호스트한 모임을 OAuth user.uuid로 묶음
-    try {
-      const oldUuid = localStorage.getItem('demo_uuid');
-      if (oldUuid) {
-        const r = await fetch('/api/auth/link-device', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-user-token': tok },
-          body: JSON.stringify({ old_uuid: oldUuid }),
-        });
-        if (r.ok) {
-          const data = await r.json();
-          if (data.user_uuid && data.user_uuid !== oldUuid) {
-            try { localStorage.setItem('demo_uuid', data.user_uuid); } catch (_) {}
-            console.log('[login] device uuid linked:', oldUuid, '→', data.user_uuid, 'rooms:', data.rooms_updated);
-          }
-        }
-      }
-    } catch (e) { console.warn('[login] link-device fail', e); }
-    history.replaceState(null, '', '/');
-  }
-  const err = url.searchParams.get('auth_error');
-  if (err) {
+  if (url.searchParams.has('auth_error')) {
     history.replaceState(null, '', '/');
   }
 })();
@@ -387,8 +362,12 @@ loginToggle.addEventListener('click', async () => {
   }
 });
 
-document.getElementById('googleBtn').addEventListener('click', () => { location.href = '/api/auth/google'; });
-document.getElementById('kakaoBtn').addEventListener('click', () => { location.href = '/api/auth/kakao'; });
+document.getElementById('googleBtn').addEventListener('click', () => {
+  location.href = (typeof ntableOAuthHref === 'function') ? ntableOAuthHref('google') : '/api/auth/google';
+});
+document.getElementById('kakaoBtn').addEventListener('click', () => {
+  location.href = (typeof ntableOAuthHref === 'function') ? ntableOAuthHref('kakao') : '/api/auth/kakao';
+});
 
 // 참여 코드 입장
 document.getElementById('joinCodeBtn').addEventListener('click', () => {

@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0a0f1e">
   <meta name="color-scheme" content="dark">
   <link rel="stylesheet" href="/theme-lock.css">
+  <script src="/oauth-redirect.js"></script>
   <title>모임 만들기 · ntable</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1159,8 +1160,12 @@
       }
     });
 
-    document.getElementById('googleBtn').addEventListener('click', () => { location.href = '/api/auth/google'; });
-    document.getElementById('kakaoBtn').addEventListener('click', () => { location.href = '/api/auth/kakao'; });
+    document.getElementById('googleBtn').addEventListener('click', () => {
+      location.href = (typeof ntableOAuthHref === 'function') ? ntableOAuthHref('google') : '/api/auth/google';
+    });
+    document.getElementById('kakaoBtn').addEventListener('click', () => {
+      location.href = (typeof ntableOAuthHref === 'function') ? ntableOAuthHref('kakao') : '/api/auth/kakao';
+    });
 
     // packSetup 폐기 (2026-04-19) — title/qcount/options 이벤트 리스너·createRoom 모두 createRoomFromPack 으로 대체.
     // 옛 createRoom() 함수 본체와 packSetup DOM 참조 코드는 모두 제거됨. 기획 결정 후 5/7 카드로 grid 재구성 예정.
