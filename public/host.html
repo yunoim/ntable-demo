@@ -1394,26 +1394,9 @@
       border-bottom: 1px solid var(--gold-border);
       overflow: hidden;
     }
-    #sidebar:not(.expanded) #qr-wrap,
-    #sidebar:not(.expanded) #waiting-section { display: none; }
-
-    .sidebar-head {
-      padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; border-bottom: none;
-    }
-    .brand { font-size: 18px; }
-    .brand-sub { display: none; }
-
-    #mobile-sidebar-toggle {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: transparent; border: 1px solid var(--gold-border);
-      color: var(--gold-light); border-radius: 20px;
-      padding: 6px 14px; font-size: 12px; cursor: pointer;
-      font-family: inherit; font-weight: 500;
-    }
-    #mobile-sidebar-toggle .toggle-arrow { transition: transform 0.25s; font-size: 10px; }
-    #sidebar.expanded #mobile-sidebar-toggle .toggle-arrow { transform: rotate(180deg); }
+    /* 모바일 사이드바 헤더 통째로 제거 (2026-04-19) — brand·toggle·share row 모두 미노출 */
+    .sidebar-head { display: none !important; }
+    /* 모바일 sidebar는 항상 펼친 상태로 노출 (#sidebar.expanded 의존 폐기) */
 
     #qr-wrap { padding: 14px 16px 16px; }
     #qr-img { max-width: 200px; }
@@ -1463,12 +1446,11 @@
     .btn-gold { min-width: 0; }
   }
 
-  /* mobile share row — sidebar-head 안에서만 모바일 노출 */
-  .mobile-share-row { display: none; }
+  /* mobile share row — sidebar-head 통째로 숨김 처리되어 사용 안 됨 (2026-04-19) */
+  .mobile-share-row { display: none !important; }
   @media (max-width: 768px) {
-    .sidebar-head { flex-wrap: wrap; }
     .mobile-share-row {
-      display: flex;
+      display: none !important;
       width: 100%;
       gap: 8px;
       margin-top: 10px;
@@ -1507,20 +1489,9 @@
 
 <!-- SIDEBAR -->
 <aside id="sidebar">
-  <div class="sidebar-head">
-    <div>
-      <div class="brand">ntable</div>
-    </div>
-    <button type="button" id="mobile-sidebar-toggle" onclick="toggleSidebar()" aria-label="호스트 도구 펼치기/접기">
-      <span>호스트 도구</span>
-      <span class="toggle-arrow">⌄</span>
-    </button>
-    <div class="mobile-share-row">
-      <button type="button" id="mobile-share-copy" aria-label="입장 링크 복사">📋 링크</button>
-      <button type="button" id="mobile-share-qr" aria-label="QR 크게 보기">🔍 QR</button>
-      <button type="button" id="mobile-share-kakao" aria-label="카카오로 초대" hidden>💛 카카오</button>
-      <button type="button" id="mobile-end-btn" class="mobile-end" aria-label="모임 종료" onclick="closeRoom()">🛑 종료</button>
-    </div>
+  <!-- sidebar-head 폐기 (2026-04-19) — brand·toggle·share row 제거. 사이드바는 QR부터 시작 -->
+  <div class="sidebar-head" hidden>
+    <div><div class="brand">ntable</div></div>
   </div>
   <div id="qr-wrap">
     <img id="qr-img" src="" alt="모임 입장 QR 코드 — 탭하면 크게 보기" onclick="openQRModal()" />
@@ -2055,8 +2026,7 @@ function handleWSMessage(msg) {
       if (!state.waitingUsers.find(u => u.uuid === msg.uuid)) {
         state.waitingUsers.push({ uuid: msg.uuid, nickname: msg.nickname });
         renderWaitingList();
-        // 새 대기자 발생 → 모바일에서 sidebar 자동 펼침 (호스트가 즉시 인지)
-        document.getElementById('sidebar')?.classList.add('expanded');
+        // 모바일 sidebar는 항상 펼친 상태 — auto-expand 불필요
         toast(`👋 ${msg.nickname || '새 참가자'} 입장`);
       }
       break;
@@ -2108,8 +2078,6 @@ function handleWSMessage(msg) {
       break;
     case 'waiting_too_long':
       toast(`⏳ ${msg.nickname}님이 ${msg.minutes}분째 대기 중 — 승인을 확인해주세요`);
-      // 사이드바 자동 펼침 (모바일 드로어 대응)
-      document.getElementById('sidebar')?.classList.add('expanded');
       break;
     case 'photo_update':
       // 참가자 사진 수신 (서버는 relay만 — 호스트 메모리 STATE에만 보관)
@@ -2626,12 +2594,7 @@ function bindEvents() {
     });
   });
 
-  // 모바일 share row — sidebar-head 안 항상 노출
-  document.getElementById('mobile-share-copy')?.addEventListener('click', () => {
-    document.getElementById('copy-url-btn')?.click();
-  });
-  document.getElementById('mobile-share-qr')?.addEventListener('click', openQRModal);
-  document.getElementById('mobile-share-kakao')?.addEventListener('click', kakaoShare);
+  // 모바일 share row 핸들러 폐기 (sidebar-head 자체가 hidden)
 
   // 카카오 SDK 초기화 (키 없으면 카카오 버튼 hidden 유지)
   (async () => {
@@ -2641,9 +2604,7 @@ function bindEvents() {
       console.log('[host] share-config', { hasKey: !!cfg.kakaoJsKey, kakaoLoaded: !!window.Kakao });
       if (cfg.kakaoJsKey && window.Kakao) {
         if (!Kakao.isInitialized()) Kakao.init(cfg.kakaoJsKey);
-        const mb = document.getElementById('mobile-share-kakao');
-        if (mb) mb.hidden = false;
-        // sidebar-kakao-btn 노출 폐지 — 호스트 도구 드롭다운에만 유지
+        // mobile-share-kakao·sidebar-kakao 모두 폐지 — QR 모달 안에서만 카카오 버튼 노출
         const qm = document.getElementById('qr-modal-kakao');
         if (qm) qm.hidden = false;
         console.log('[host] kakao buttons revealed');
