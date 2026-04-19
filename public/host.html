@@ -899,20 +899,7 @@
     color: var(--text-muted);
   }
   #user-nick { color: var(--gold-light); }
-  .oauth-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    padding: 3px 9px;
-    border: 1px solid var(--gold-border, rgba(212,168,67,0.35));
-    border-radius: 999px;
-    color: var(--gold-light);
-    background: rgba(212,168,67,0.08);
-    letter-spacing: 0.04em;
-    font-weight: 500;
-  }
-  .oauth-badge[hidden] { display: none; }
+  /* .oauth-badge 삭제 (2026-04-20) — 공통 /auth-header.js pill 로 대체 */
   #user-menu button {
     background: transparent;
     border: 1px solid rgba(212,168,67,0.2);
@@ -1555,7 +1542,6 @@
     </div>
     <div id="user-menu">
       <span id="user-nick"></span>
-      <span id="oauth-badge" class="oauth-badge" hidden></span>
       <div style="position:relative;display:inline-block;">
         <button type="button" id="open-more-btn" title="설정·운영·내 정보·TV·종료" style="background:rgba(212,168,67,0.12);border:1px solid var(--gold-border);color:var(--gold-light);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;">⋮ 더보기</button>
         <div id="more-menu" hidden style="position:absolute;top:calc(100% + 6px);right:0;background:#141d35;border:1px solid var(--gold-border);border-radius:10px;padding:6px;min-width:180px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
@@ -1896,28 +1882,9 @@ function init() {
   loadQR();
   loadQuestions();
   loadFreeTopics();
-  loadOAuthBadge();
   connectWS();
   bindEvents();
   updatePrimaryButton();
-}
-
-async function loadOAuthBadge() {
-  try {
-    const tok = localStorage.getItem('user_token');
-    if (!tok) return;
-    const r = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
-    if (!r.ok) return;
-    const me = await r.json();
-    if (!me.authed) return;
-    const provider = me.google ? 'Google' : me.kakao ? 'Kakao' : '';
-    if (!provider) return;
-    const badge = document.getElementById('oauth-badge');
-    if (!badge) return;
-    badge.textContent = `🔐 ${provider}`;
-    badge.title = me.email || me.name || provider + ' 로그인됨';
-    badge.hidden = false;
-  } catch (_) {}
 }
 
 async function loadRoomInfo() {

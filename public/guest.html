@@ -716,20 +716,7 @@
     padding: 2px 4px;
   }
   .profile-edit-link:hover { color: var(--gold); }
-  .oauth-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    padding: 3px 9px;
-    border: 1px solid var(--gold-border, rgba(212,168,67,0.35));
-    border-radius: 999px;
-    color: var(--gold-light);
-    background: rgba(212,168,67,0.08);
-    letter-spacing: 0.04em;
-    font-weight: 500;
-  }
-  .oauth-badge[hidden] { display: none; }
+  /* .oauth-badge 삭제 (2026-04-20) — 공통 /auth-header.js pill 로 대체 */
 
   #profileEditModal {
     position: fixed; inset: 0;
@@ -1402,7 +1389,7 @@
 
   <div class="my-profile-card" id="myProfileCard">
     <div class="card-title-row">
-      <span class="card-title">내 프로필 <span id="oauth-badge" class="oauth-badge" hidden style="margin-left:6px;"></span></span>
+      <span class="card-title">내 프로필</span>
       <button type="button" class="profile-edit-link" onclick="openProfileEdit()" aria-label="프로필 수정">수정 ✎</button>
     </div>
     <div class="profile-row">
@@ -1723,7 +1710,6 @@ const STATE = {
     }
     STATE.myProfile = { uuid: STATE.uuid, nickname: me.nickname, ...me };
     renderMyProfile();
-    loadOAuthBadge();
 
     // 호스트 현재 화면으로 catch-up — 재접속·중간 입장 모두 즉시 동기화
     const cur = room.current_state;
@@ -2406,24 +2392,6 @@ async function saveProfileEdit() {
   } catch {
     statusEl.textContent = '저장에 실패했어요. 다시 시도해주세요.';
   }
-}
-
-async function loadOAuthBadge() {
-  try {
-    const tok = localStorage.getItem('user_token');
-    if (!tok) return;
-    const r = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
-    if (!r.ok) return;
-    const me = await r.json();
-    if (!me.authed) return;
-    const provider = me.google ? 'Google' : me.kakao ? 'Kakao' : '';
-    if (!provider) return;
-    const badge = document.getElementById('oauth-badge');
-    if (!badge) return;
-    badge.textContent = `🔐 ${provider}`;
-    badge.title = me.email || me.name || provider + ' 로그인됨';
-    badge.hidden = false;
-  } catch (_) {}
 }
 
 // ─── MY PROFILE ───────────────────────────────────
