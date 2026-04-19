@@ -197,9 +197,10 @@ router.get('/result', async (req, res) => {
     const myVotes = mr.votes_json || {};
 
     // 베스트 매칭 = 본인과 votes 일치율 1위 (전체 참여자 중)
-    // 사랑의 작대기 mutual은 별도 — 인스타 공개 등에 사용 (match_json.pairs)
+    // 추가로 top 3 호환도 순위도 함께 반환 (결과 페이지 "또 잘 맞았던 사람들" 섹션용)
     let match_nickname = null;
     let match_uuid = null;
+    let top_matches = []; // [{uuid, nickname, score, common, same}, ...] sorted desc
     {
       const allVotesRes = await pool.query(
         `SELECT mr.uuid, mr.votes_json, COALESCE(rm.nickname, u.nickname) AS nickname
@@ -209,11 +210,9 @@ router.get('/result', async (req, res) => {
           WHERE mr.room_id = $1 AND mr.uuid != $2`,
         [room_id, uuid]
       );
-      let bestScore = -1;
-      let bestRow = null;
+      const scored = [];
       for (const row of allVotesRes.rows) {
         const v = row.votes_json || {};
-        // 일치율 = 둘 다 답한 문항 중 같은 답 비율 (0개면 0)
         let same = 0; let common = 0;
         for (const [qid, ans] of Object.entries(myVotes)) {
           if (v[qid] != null) {
@@ -222,13 +221,18 @@ router.get('/result', async (req, res) => {
           }
         }
         if (common === 0) continue;
-        const score = same / common;
-        if (score > bestScore) { bestScore = score; bestRow = row; }
+        scored.push({ uuid: row.uuid, nickname: row.nickname, score: same / common, common, same });
       }
-      if (bestRow) {
-        match_uuid = bestRow.uuid;
-        match_nickname = bestRow.nickname;
-      }
+      scored.sort((a, b) => b.score - a.score);
+      if (scored[0]) { match_uuid = scored[0].uuid; match_nickname = scored[0].nickname; }
+      // top 3 (베스트 포함) — 동률은 같이 노출
+      top_matches = scored.slice(0, 3).map(s => ({
+        uuid: s.uuid,
+        nickname: s.nickname,
+        same: s.same,
+        common: s.common,
+        pct: Math.round(s.score * 100),
+      }));
     }
 
     // 매칭 상대와의 공통 답변 수 + 대표 픽 (최대 2개)
@@ -318,7 +322,7 @@ router.get('/result', async (req, res) => {
       avg_satisfaction: hostAgg.rows[0].avg_satisfaction ? Number(hostAgg.rows[0].avg_satisfaction.toFixed(2)) : null,
     };
 
-    res.json({ match_nickname, match_uuid, fi_count, match_common, match_total_answered, match_common_picks, participants, question_highlights, host_summary });
+    res.json({ match_nickname, match_uuid, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });
