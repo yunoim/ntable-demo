@@ -477,6 +477,27 @@ router.post('/rooms/:code/insta-reveal', async (req, res) => {
       b: { nickname: partnerMember.rows[0]?.nickname || '', instagram: partnerInsta },
     });
 
+    // OAuth 연동된 양쪽에 이메일 알림 (SMTP 미설정 시 silent skip)
+    try {
+      const mailer = require('../lib/mailer');
+      const emails = await pool.query('SELECT uuid, email FROM users WHERE uuid = ANY($1) AND email IS NOT NULL', [[uuid, partnerUuid]]);
+      for (const row of emails.rows) {
+        const isMe = row.uuid === uuid;
+        const partnerNick = isMe ? (partnerMember.rows[0]?.nickname || '상대') : (myMember.rows[0]?.nickname || '상대');
+        const partnerIg = isMe ? partnerInsta : myInsta;
+        const resultUrl = `https://app.ntable.kr/result?room=${code}&uuid=${row.uuid}`;
+        mailer.send({
+          to: row.email,
+          subject: `💌 [ntable] ${partnerNick}님과 매칭됐어요`,
+          text: `오늘 모임에서 ${partnerNick}님과 서로 매칭되어 인스타가 공개됐어요.\n\n@${partnerIg}\nhttps://instagram.com/${encodeURIComponent(partnerIg)}\n\n결과 페이지: ${resultUrl}`,
+          html: `<p>오늘 모임에서 <strong>${partnerNick}</strong>님과 서로 매칭되어 인스타가 공개됐어요.</p>` +
+                `<p style="font-size:18px;"><a href="https://instagram.com/${encodeURIComponent(partnerIg)}">@${partnerIg}</a></p>` +
+                `<p><a href="${resultUrl}">결과 페이지에서 자세히 보기</a></p>` +
+                `<p style="color:#888;font-size:12px;">— ntable</p>`,
+        }).catch(() => {});
+      }
+    } catch (e) { console.warn('[insta-reveal] mail dispatch error', e.message); }
+
     const u = { nickname: partnerMember.rows[0]?.nickname || '', instagram: partnerInsta };
 
     return res.json({
