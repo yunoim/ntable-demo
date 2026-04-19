@@ -653,7 +653,7 @@ function renderStep() {
       const subText = ROOM.isHost
         ? '호스트로 모임을 시작해요. 게스트들에게는 이렇게 보입니다.'
         : '아래 정보로 다른 참가자에게 보입니다.';
-      const submitLabel = ROOM.isHost ? 'QR·참여코드 받기' : '입장하기';
+      const submitLabel = ROOM.isHost ? '모임 만들고 게스트 초대하기' : '입장하기';
       const genderLabel = data.gender === 'male' ? '남성' : data.gender === 'female' ? '여성' : data.gender === 'unspecified' ? '선택 안 함' : '';
       body = `
         <div class="step-num">${stepNum} · 확인</div>
