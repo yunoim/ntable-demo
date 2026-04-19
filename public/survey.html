@@ -345,6 +345,27 @@
     text-align: center;
     margin-bottom: 20px;
   }
+  .ineligible-actions {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin-top: 14px;
+  }
+  .ineligible-actions a {
+    padding: 10px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--gold-border);
+    color: var(--gold-light);
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .ineligible-actions a.primary {
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    border-color: transparent;
+  }
+  .ineligible-actions a:hover { transform: translateY(-1px); }
 
   /* ── Focus visible (A11y) ── */
   button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
@@ -495,10 +516,30 @@
       const data = await r.json();
       if (!data.eligible) {
         let msg = '후기 제출 불가';
-        if (data.reason === 'NOT_PARTICIPANT') msg = '이 모임에 참여한 기록이 없어 후기를 남길 수 없어요.';
-        else if (data.reason === 'ALREADY_SUBMITTED') msg = '이미 후기를 제출했어요. 결과 페이지로 이동할까요?';
-        else if (data.reason === 'ROOM_NOT_FOUND') msg = '해당 모임을 찾을 수 없어요.';
-        ineligibleBanner.textContent = msg;
+        let actions = '';
+        if (data.reason === 'NOT_PARTICIPANT') {
+          msg = '이 모임에 참여한 기록이 없어 후기를 남길 수 없어요.';
+          actions = `<div class="ineligible-actions">
+            <a href="/" class="primary">홈으로</a>
+            <a href="/room/${encodeURIComponent(room_code)}/join">이 모임 참여하기</a>
+          </div>`;
+        } else if (data.reason === 'ALREADY_SUBMITTED') {
+          msg = '이미 후기를 제출했어요. 잠시 후 결과 페이지로 이동합니다.';
+          actions = `<div class="ineligible-actions">
+            <a href="/result?room=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}" class="primary">결과 보기</a>
+            <a href="/">홈으로</a>
+          </div>`;
+        } else if (data.reason === 'ROOM_NOT_FOUND') {
+          msg = '해당 모임을 찾을 수 없어요.';
+          actions = `<div class="ineligible-actions">
+            <a href="/" class="primary">홈으로</a>
+          </div>`;
+        } else {
+          actions = `<div class="ineligible-actions">
+            <a href="/" class="primary">홈으로</a>
+          </div>`;
+        }
+        ineligibleBanner.innerHTML = '<div>' + msg + '</div>' + actions;
         ineligibleBanner.hidden = false;
         if (data.reason === 'ALREADY_SUBMITTED') {
           setTimeout(goResult, 1500);
@@ -516,7 +557,8 @@
       loadParticipants();
       return true;
     } catch {
-      ineligibleBanner.textContent = '일시적인 오류입니다. 잠시 후 다시 시도해주세요.';
+      ineligibleBanner.innerHTML = '<div>일시적인 오류입니다. 잠시 후 다시 시도해주세요.</div>'
+        + '<div class="ineligible-actions"><a href="/" class="primary">홈으로</a></div>';
       ineligibleBanner.hidden = false;
       return false;
     }
