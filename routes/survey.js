@@ -196,42 +196,38 @@ router.get('/result', async (req, res) => {
     const fi_count = mr.fi_count || 0;
     const myVotes = mr.votes_json || {};
 
-    // 베스트 매칭 상대 찾기 — match_json.pairs에서 내 uuid 기준 상대 탐색
-    // 구조: { pairs: [{ type, a: {uuid, nickname}, b: {uuid, nickname} }], mvp: {...} }
-    // mutual 우선, 없으면 recommended
+    // 베스트 매칭 = 본인과 votes 일치율 1위 (전체 참여자 중)
+    // 사랑의 작대기 mutual은 별도 — 인스타 공개 등에 사용 (match_json.pairs)
     let match_nickname = null;
     let match_uuid = null;
-    const pairs = match_json.pairs || [];
-
-    // 1순위: mutual 매칭
-    for (const pair of pairs) {
-      if (pair.type === 'mutual') {
-        if (pair.a?.uuid === uuid) {
-          match_nickname = pair.b?.nickname || null;
-          match_uuid = pair.b?.uuid || null;
-          break;
-        } else if (pair.b?.uuid === uuid) {
-          match_nickname = pair.a?.nickname || null;
-          match_uuid = pair.a?.uuid || null;
-          break;
-        }
-      }
-    }
-
-    // 2순위: recommended (mutual 없을 때)
-    if (!match_uuid) {
-      for (const pair of pairs) {
-        if (pair.type === 'recommended') {
-          if (pair.a?.uuid === uuid) {
-            match_nickname = pair.b?.nickname || null;
-            match_uuid = pair.b?.uuid || null;
-            break;
-          } else if (pair.b?.uuid === uuid) {
-            match_nickname = pair.a?.nickname || null;
-            match_uuid = pair.a?.uuid || null;
-            break;
+    {
+      const allVotesRes = await pool.query(
+        `SELECT mr.uuid, mr.votes_json, COALESCE(rm.nickname, u.nickname) AS nickname
+           FROM member_results mr
+           LEFT JOIN room_members rm ON rm.room_id = mr.room_id AND rm.uuid = mr.uuid
+           LEFT JOIN users u ON u.uuid = mr.uuid
+          WHERE mr.room_id = $1 AND mr.uuid != $2`,
+        [room_id, uuid]
+      );
+      let bestScore = -1;
+      let bestRow = null;
+      for (const row of allVotesRes.rows) {
+        const v = row.votes_json || {};
+        // 일치율 = 둘 다 답한 문항 중 같은 답 비율 (0개면 0)
+        let same = 0; let common = 0;
+        for (const [qid, ans] of Object.entries(myVotes)) {
+          if (v[qid] != null) {
+            common += 1;
+            if (v[qid] === ans) same += 1;
           }
         }
+        if (common === 0) continue;
+        const score = same / common;
+        if (score > bestScore) { bestScore = score; bestRow = row; }
+      }
+      if (bestRow) {
+        match_uuid = bestRow.uuid;
+        match_nickname = bestRow.nickname;
       }
     }
 
