@@ -634,6 +634,11 @@
       border-color: var(--gold, #d4a843);
       color: var(--gold-light, #e8b84b);
     }
+
+    /* TV·프레젠테이션 진입 — 모바일(≤768px) 에선 숨김. 큰 화면 기기(노트북·TV) 전용 */
+    @media (max-width: 768px) {
+      #tvEntry { display: none !important; }
+    }
   </style>
   <script src="/sentry-init.js" data-page="create" defer></script>
 </head>

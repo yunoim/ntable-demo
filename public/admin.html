@@ -167,6 +167,10 @@
   .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { text-align: left; padding: 12px 14px; background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: var(--surface-3); color: var(--text); }
+  th.sortable.active { color: var(--gold); }
+  th.sortable .sort-indicator { font-size: 10px; margin-left: 4px; opacity: 0.9; }
   td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
@@ -788,15 +792,48 @@ function renderMatchSuccess(data) {
 let roomsFilter = '';
 let roomsCurrent = [];          // 현재 탭에 렌더된 방 리스트 (bulk용)
 const roomsSelected = new Set(); // 체크된 room_code
+let roomsSortKey = 'created_at'; // 'title'|'host'|'participants'|'status'|'created_at'
+let roomsSortDir = 'desc';       // 'asc'|'desc'
 
 async function loadRooms() {
   try {
     const data = await api(`/api/panel/rooms${roomsFilter ? `?status=${roomsFilter}` : ''}`);
+    sortRoomsInPlace(data);
     roomsCurrent = data;
     roomsSelected.clear();
     renderRoomsTable(data, 'roomsTable', true);
     updateBulkBar();
   } catch (e) { errToast(e.message); }
+}
+
+function sortRoomsInPlace(arr) {
+  const mul = roomsSortDir === 'asc' ? 1 : -1;
+  const statusOrder = { waiting: 0, open: 1, closed: 2 };
+  arr.sort((a, b) => {
+    let va, vb;
+    switch (roomsSortKey) {
+      case 'title':        va = (a.title || '').toLowerCase(); vb = (b.title || '').toLowerCase(); break;
+      case 'host':         va = (a.host_nickname || '').toLowerCase(); vb = (b.host_nickname || '').toLowerCase(); break;
+      case 'participants': va = a.participants || 0; vb = b.participants || 0; break;
+      case 'status':       va = statusOrder[a.status] ?? 99; vb = statusOrder[b.status] ?? 99; break;
+      case 'created_at':
+      default:             va = a.created_at || ''; vb = b.created_at || ''; break;
+    }
+    if (va < vb) return -1 * mul;
+    if (va > vb) return  1 * mul;
+    return 0;
+  });
+}
+
+function onSortRooms(key) {
+  if (roomsSortKey === key) {
+    roomsSortDir = roomsSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    roomsSortKey = key;
+    roomsSortDir = 'desc';
+  }
+  sortRoomsInPlace(roomsCurrent);
+  renderRoomsTable(roomsCurrent, 'roomsTable', true);
 }
 function filterRooms(s) {
   roomsFilter = s;
@@ -807,11 +844,19 @@ function filterRooms(s) {
 function renderRoomsTable(rooms, containerId, withActions) {
   const c = document.getElementById(containerId);
   if (!rooms.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>아직 열린 모임이 없어요<span class="empty-hint">호스트가 모임을 만들면 여기에 표시됩니다.</span></div>'; return; }
+  const sortArrow = key => (withActions && roomsSortKey === key)
+    ? `<span class="sort-indicator">${roomsSortDir === 'asc' ? '▲' : '▼'}</span>` : '';
+  const sortClass = key => withActions ? `class="sortable${roomsSortKey === key ? ' active' : ''}" onclick="onSortRooms('${key}')"` : '';
   c.innerHTML = `
     <table>
       <thead><tr>
         ${withActions ? '<th style="width:32px;"><input type="checkbox" id="roomsSelectAll" aria-label="전체 선택" onclick="toggleSelectAllRooms(this.checked)"></th>' : ''}
-        <th>CODE</th><th>제목</th><th>호스트</th><th>참가</th><th>상태</th><th>생성</th>
+        <th>CODE</th>
+        <th ${sortClass('title')}>제목${sortArrow('title')}</th>
+        <th ${sortClass('host')}>호스트${sortArrow('host')}</th>
+        <th ${sortClass('participants')}>참가${sortArrow('participants')}</th>
+        <th ${sortClass('status')}>상태${sortArrow('status')}</th>
+        <th ${sortClass('created_at')}>생성${sortArrow('created_at')}</th>
         ${withActions ? '<th></th>' : ''}
       </tr></thead>
       <tbody>
@@ -832,6 +877,15 @@ function renderRoomsTable(rooms, containerId, withActions) {
         </tr>`).join('')}
       </tbody>
     </table>`;
+
+  // 정렬 등으로 테이블 DOM 이 재생성됐을 때 체크 상태 복원
+  if (withActions) {
+    c.querySelectorAll('.room-check').forEach(cb => {
+      cb.checked = roomsSelected.has(cb.dataset.code);
+    });
+    syncSelectAllCheckbox();
+    updateBulkBar();
+  }
 }
 
 function onRoomCheck(el) {

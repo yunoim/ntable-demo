@@ -7,6 +7,16 @@ const router = express.Router();
 const { pool } = require('../db');
 const adminAuth = require('./admin-auth');
 
+// 관리자 뷰/통계에서 "유효한 방"으로 간주할 조건
+// 제외: (closed AND 참가 ≤ 1) · (waiting AND 24h 초과 AND 참가 ≤ 1)
+// 포함: open 전부 / 참가 ≥ 2 모든 방 / waiting 중 24h 이내
+// 주의: 쿼리의 rooms alias 가 `r` 이어야 함.
+const EFFECTIVE_ROOM_CLAUSE = `(
+  r.status = 'open'
+  OR (r.status = 'waiting' AND r.created_at >= NOW() - INTERVAL '24 hours')
+  OR (SELECT COUNT(*)::int FROM member_results mr WHERE mr.room_id = r.id) >= 2
+)`;
+
 // 인증 미들웨어 — OAuth 세션 토큰 검증
 async function requireAdmin(req, res, next) {
   const token = req.headers['x-admin-token'] || req.query.token;
@@ -24,7 +34,7 @@ router.get('/panel/stats', requireAdmin, async (req, res) => {
   try {
     const [users, rooms, surveys, memberResults] = await Promise.all([
       pool.query('SELECT COUNT(*)::int AS cnt FROM users'),
-      pool.query(`SELECT status, COUNT(*)::int AS cnt FROM rooms GROUP BY status`),
+      pool.query(`SELECT r.status, COUNT(*)::int AS cnt FROM rooms r WHERE ${EFFECTIVE_ROOM_CLAUSE} GROUP BY r.status`),
       pool.query(`SELECT
           COUNT(*)::int AS cnt,
           AVG(satisfaction)::float AS avg_sat,
@@ -72,9 +82,10 @@ router.get('/panel/rooms', requireAdmin, async (req, res) => {
              (SELECT COUNT(*)::int FROM member_results mr WHERE mr.room_id = r.id) AS participants
         FROM rooms r
         LEFT JOIN room_members rm ON rm.room_id = r.id AND rm.uuid = r.host_uuid
-        LEFT JOIN users u ON u.uuid = r.host_uuid`;
+        LEFT JOIN users u ON u.uuid = r.host_uuid
+       WHERE ${EFFECTIVE_ROOM_CLAUSE}`;
     const args = [];
-    if (status) { sql += ` WHERE r.status = $1`; args.push(status); }
+    if (status) { sql += ` AND r.status = $1`; args.push(status); }
     sql += ` ORDER BY r.created_at DESC LIMIT ${limit}`;
     const { rows } = await pool.query(sql, args);
     res.json(rows);
@@ -310,9 +321,9 @@ router.get('/panel/live-snapshot', requireAdmin, async (req, res) => {
       participants += members.length;
       rooms.push({ room_code: code, members: members.length });
     }
-    // 오늘 0시 이후 생성된 방 수
+    // 오늘 0시 이후 생성된 방 수 (유효 방 기준)
     const today = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM rooms WHERE created_at >= CURRENT_DATE`
+      `SELECT COUNT(*)::int AS cnt FROM rooms r WHERE r.created_at >= CURRENT_DATE AND ${EFFECTIVE_ROOM_CLAUSE}`
     );
     res.json({
       active_rooms: codes.length,
@@ -327,16 +338,17 @@ router.get('/panel/live-snapshot', requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/panel/packs-usage — 팩별 방 생성 분포
+// GET /api/panel/packs-usage — 팩별 방 생성 분포 (유효 방 기준)
 router.get('/panel/packs-usage', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT COALESCE(pack_id, '(unknown)') AS pack_id,
+      `SELECT COALESCE(r.pack_id, '(unknown)') AS pack_id,
               COUNT(*)::int AS rooms,
-              COUNT(*) FILTER (WHERE status = 'closed')::int AS closed,
-              COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days')::int AS last_7d
-         FROM rooms
-        GROUP BY pack_id
+              COUNT(*) FILTER (WHERE r.status = 'closed')::int AS closed,
+              COUNT(*) FILTER (WHERE r.created_at >= CURRENT_DATE - INTERVAL '7 days')::int AS last_7d
+         FROM rooms r
+        WHERE ${EFFECTIVE_ROOM_CLAUSE}
+        GROUP BY r.pack_id
         ORDER BY rooms DESC`
     );
     res.json(rows);
@@ -406,7 +418,7 @@ router.get('/panel/hosts-leaderboard', requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/panel/match-success — 매칭 성공률 (match_json.pairs 의 mutual 비율)
+// GET /api/panel/match-success — 매칭 성공률 (유효 방만: 참가 ≥ 2)
 router.get('/panel/match-success', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -422,6 +434,7 @@ router.get('/panel/match-success', requireAdmin, async (req, res) => {
          FROM rooms r
         WHERE r.status = 'closed'
           AND r.created_at >= NOW() - INTERVAL '30 days'
+          AND ${EFFECTIVE_ROOM_CLAUSE}
         ORDER BY r.created_at DESC
         LIMIT 50`
     );
@@ -458,14 +471,14 @@ router.get('/panel/growth', requireAdmin, async (req, res) => {
         )
         SELECT p.k,
           (SELECT COUNT(*)::int FROM users             WHERE created_at >= p.from_d AND created_at < p.to_d) AS users,
-          (SELECT COUNT(*)::int FROM rooms             WHERE created_at >= p.from_d AND created_at < p.to_d) AS rooms,
+          (SELECT COUNT(*)::int FROM rooms r           WHERE r.created_at >= p.from_d AND r.created_at < p.to_d AND ${EFFECTIVE_ROOM_CLAUSE}) AS rooms,
           (SELECT COUNT(*)::int FROM survey_responses  WHERE created_at >= p.from_d AND created_at < p.to_d) AS surveys
         FROM periods p
       `),
       pool.query(`
         SELECT d.day::date AS date,
           (SELECT COUNT(*)::int FROM users            WHERE created_at::date = d.day) AS users,
-          (SELECT COUNT(*)::int FROM rooms            WHERE created_at::date = d.day) AS rooms,
+          (SELECT COUNT(*)::int FROM rooms r          WHERE r.created_at::date = d.day AND ${EFFECTIVE_ROOM_CLAUSE}) AS rooms,
           (SELECT COUNT(*)::int FROM survey_responses WHERE created_at::date = d.day) AS surveys
         FROM generate_series(CURRENT_DATE - ($1::int - 1), CURRENT_DATE, interval '1 day') AS d(day)
         ORDER BY d.day ASC
