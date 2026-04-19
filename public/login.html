@@ -43,15 +43,47 @@
     font-size: 18px; font-weight: 600;
     color: #d4a843; letter-spacing: 0.14em;
   }
-  .login-toggle {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 11.5px; color: #c0c0c0;
-    cursor: pointer; background: none; border: none;
-    padding: 6px 10px; border-radius: 8px;
-    font-family: inherit;
-    transition: color 0.2s, background 0.2s;
+  /* 빠른 입장 섹션 — CTA 아래 */
+  .quick-login {
+    margin-top: 20px;
+    padding: 18px 16px;
+    background: rgba(212,168,67,0.04);
+    border: 1px solid rgba(212,168,67,0.22);
+    border-radius: 14px;
+    text-align: left;
   }
-  .login-toggle:hover { color: #e8b84b; background: rgba(212,168,67,0.06); }
+  .ql-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: #d4a843;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ql-label-opt {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: #9aa0ac;
+    opacity: 0.8;
+    font-weight: 400;
+    text-transform: none;
+  }
+  .ql-toggle-row {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 12px;
+  }
+  .login-toggle {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px; color: #e8e8e8;
+    cursor: pointer; background: none; border: none;
+    padding: 4px 0;
+    font-family: inherit;
+    transition: color 0.2s;
+    align-self: flex-start;
+  }
+  .login-toggle:hover { color: #e8b84b; }
   .login-toggle .switch {
     width: 30px; height: 16px;
     background: rgba(255,255,255,0.15);
@@ -68,35 +100,17 @@
   .login-toggle[data-on="true"] { color: #7ee8a2; }
   .login-toggle[data-on="true"] .switch { background: rgba(126,232,162,0.45); }
   .login-toggle[data-on="true"] .switch::after { left: 16px; background: #7ee8a2; }
-
-  /* ACCORDION */
-  .login-accordion {
-    position: fixed;
-    top: calc(48px + env(safe-area-inset-top));
-    left: 0; right: 0; z-index: 99;
-    background: rgba(14,22,40,0.96);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(212,168,67,0.2);
-    max-height: 0; overflow: hidden;
-    transition: max-height 0.32s ease;
+  .ql-desc {
+    font-size: 11.5px; color: #9aa0ac;
+    letter-spacing: 0.02em; line-height: 1.5;
   }
-  .login-accordion[data-open="true"] { max-height: 160px; }
-  .login-accordion-inner {
-    padding: 14px 18px;
-    max-width: 420px; margin: 0 auto;
-  }
-  .acc-intro {
-    font-size: 11px; color: #9aa0ac;
-    letter-spacing: 0.04em; margin-bottom: 10px;
-    text-align: center;
-  }
-  .acc-buttons { display: flex; gap: 8px; }
-  .acc-buttons button {
-    flex: 1; padding: 10px;
-    border-radius: 8px;
-    font-size: 12.5px; font-weight: 600;
+  .ql-btn {
+    display: block; width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13.5px; font-weight: 600;
     cursor: pointer; font-family: inherit;
+    margin-top: 8px;
   }
   .btn-google { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
   .btn-kakao { background: #FEE500; color: #3a1d1d; border: none; font-weight: 700; }
@@ -107,8 +121,9 @@
     color: #7ee8a2;
     background: rgba(126,232,162,0.06);
     border: 1px dashed rgba(126,232,162,0.25);
-    border-radius: 8px;
+    border-radius: 10px;
     letter-spacing: 0.02em;
+    margin-top: 8px;
   }
   .acc-logout-hint {
     margin-top: 6px;
@@ -169,29 +184,7 @@
 
 <header class="app-header">
   <span class="h-brand">ntable</span>
-  <button type="button" class="login-toggle" id="loginToggle" data-on="false" aria-expanded="false" aria-controls="loginAccordion" title="내 정보 기억하기" hidden>
-    <span class="toggle-label">내 정보 기억하기</span>
-    <span class="switch" aria-hidden="true"></span>
-  </button>
 </header>
-
-<div class="login-accordion" id="loginAccordion" data-open="false" aria-hidden="true">
-  <div class="login-accordion-inner">
-    <!-- 비로그인 영역 -->
-    <div id="accLoginGroup">
-      <div class="acc-intro">Google·카카오로 로그인하면 다음 모임부터 내 정보 자동 완성</div>
-      <div class="acc-buttons">
-        <button type="button" class="btn-google" id="googleBtn" hidden>Google</button>
-        <button type="button" class="btn-kakao" id="kakaoBtn" hidden>카카오</button>
-      </div>
-    </div>
-    <!-- 로그인 상태 — provider 라벨만 (실명·이메일 노출 X) -->
-    <div class="acc-connected" id="accConnected" hidden>
-      ✓ <span id="accProviderLabel">계정 연결됨</span>
-      <div class="acc-logout-hint">토글을 꺼서 로그아웃</div>
-    </div>
-  </div>
-</div>
 
 <div class="root">
   <div class="hero">
@@ -199,7 +192,26 @@
     <p>호스트 한 명, 스마트폰 하나면 시작됩니다.</p>
   </div>
 
-  <button type="button" class="cta-primary" id="openRoomBtn">익명으로 모임 열기</button>
+  <button type="button" class="cta-primary" id="openRoomBtn">모임 열기</button>
+
+  <section class="quick-login" id="quickLogin" hidden>
+    <div class="ql-label">빠른 입장 <span class="ql-label-opt">선택</span></div>
+    <div id="accLoginGroup">
+      <div class="ql-toggle-row">
+        <button type="button" class="login-toggle" id="loginToggle" data-on="true" aria-pressed="true">
+          <span class="toggle-label">내 정보 기억하기</span>
+          <span class="switch" aria-hidden="true"></span>
+        </button>
+        <span class="ql-desc">켜면 다음 방문 시 Google/카카오로 빠르게 입장</span>
+      </div>
+      <button type="button" class="ql-btn btn-google" id="googleBtn" hidden>Google로 계속</button>
+      <button type="button" class="ql-btn btn-kakao" id="kakaoBtn" hidden>카카오로 계속</button>
+    </div>
+    <div class="acc-connected" id="accConnected" hidden>
+      ✓ <span id="accProviderLabel">계정 연결됨</span>
+      <div class="acc-logout-hint">로그아웃하려면 토글을 OFF</div>
+    </div>
+  </section>
 
   <div class="guest-info" id="guestSection">
     <div style="font-size:14px;color:#ffffff;margin-bottom:10px;font-weight:600;">참가자세요?</div>
@@ -251,16 +263,15 @@ ensureUuid();
   }
 })();
 
-// 토글 + 아코디언 제어
+// 빠른 입장 섹션 제어 — OAuth provider 활성 시 노출, 항상 flat 레이아웃
+const quickLogin = document.getElementById('quickLogin');
 const loginToggle = document.getElementById('loginToggle');
-const accordion = document.getElementById('loginAccordion');
 const accLoginGroup = document.getElementById('accLoginGroup');
 const accConnected = document.getElementById('accConnected');
 const accProviderLabel = document.getElementById('accProviderLabel');
 let isAuthed = false;
 
-function applyAccordionContent() {
-  // 로그인 상태면 provider 라벨만, 아니면 OAuth 버튼만
+function applyConnectedView() {
   if (isAuthed) {
     accLoginGroup.hidden = true;
     accConnected.hidden = false;
@@ -270,13 +281,9 @@ function applyAccordionContent() {
   }
 }
 
-function setToggle(on, expand) {
+function setToggle(on) {
   loginToggle.dataset.on = on ? 'true' : 'false';
-  loginToggle.setAttribute('aria-expanded', expand ? 'true' : 'false');
-  accordion.dataset.open = expand ? 'true' : 'false';
-  accordion.setAttribute('aria-hidden', expand ? 'false' : 'true');
-  loginToggle.title = isAuthed ? (on ? '계정 연결됨' : '내 정보 기억하기') : '내 정보 기억하기';
-  applyAccordionContent();
+  loginToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
 }
 
 function setProviderLabel(me) {
@@ -287,7 +294,7 @@ function setProviderLabel(me) {
 }
 
 (async () => {
-  // OAuth provider config — 활성된 provider만 노출. 둘 다 비활성이면 토글 자체 숨김.
+  // OAuth provider config — 활성된 provider만 버튼 노출. 둘 다 비활성이면 섹션 전체 숨김.
   let cfgGoogle = false, cfgKakao = false;
   try {
     const r = await fetch('/api/auth/status');
@@ -295,13 +302,17 @@ function setProviderLabel(me) {
     cfgGoogle = !!cfg.google;
     cfgKakao = !!cfg.kakao;
   } catch (_) {}
-  if (cfgGoogle) document.getElementById('googleBtn').hidden = false;
-  if (cfgKakao) document.getElementById('kakaoBtn').hidden = false;
   if (!cfgGoogle && !cfgKakao) {
-    loginToggle.style.display = 'none';
+    // provider 없으면 섹션 자체 숨김
     return;
   }
-  loginToggle.hidden = false;
+  quickLogin.hidden = false;
+  if (cfgGoogle) document.getElementById('googleBtn').hidden = false;
+  if (cfgKakao) document.getElementById('kakaoBtn').hidden = false;
+
+  // 토글 초기 상태 — 저장된 기억 유지 선호, 기본 ON
+  const remembered = (() => { try { return localStorage.getItem('login_remember'); } catch (_) { return null; } })();
+  setToggle(remembered !== 'false');
 
   // 로그인 상태 확인 — 실명·이메일은 절대 노출하지 않음 (authed 여부만)
   try {
@@ -312,19 +323,18 @@ function setProviderLabel(me) {
       if (me.authed) {
         isAuthed = true;
         setProviderLabel(me);
-        const remember = localStorage.getItem('login_remember');
-        // 사용자가 의도적으로 OFF했으면 OFF 유지. 그 외엔 자동 ON + 펼침 (계정 라벨 노출).
-        if (remember === 'false') {
-          setToggle(false, false);
-        } else {
+        // 로그인 상태 + remember 미설정 시 ON 으로 저장
+        if (remembered !== 'false') {
           try { localStorage.setItem('login_remember', 'true'); } catch (_) {}
-          setToggle(true, true);
+          setToggle(true);
         }
       } else {
         try { localStorage.removeItem('user_token'); } catch (_) {}
       }
     }
   } catch (_) {}
+
+  applyConnectedView();
 
   // ?role=guest 자동 스크롤
   try {
@@ -340,26 +350,26 @@ function setProviderLabel(me) {
 loginToggle.addEventListener('click', async () => {
   const wasOn = loginToggle.dataset.on === 'true';
   if (wasOn) {
-    // ON → OFF
+    // ON → OFF: 기억 해제 + 캐시 정리. 인증 상태면 즉시 로그아웃.
     try {
       localStorage.setItem('login_remember', 'false');
       localStorage.removeItem('profile_snapshot');
       localStorage.removeItem('preferred_nickname');
     } catch (_) {}
     if (isAuthed) {
-      // 로그인 상태에서 OFF = 즉시 로그아웃 (모달 없음). 토큰·서버 세션 모두 종료.
       const tok = localStorage.getItem('user_token');
       if (tok) {
         try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-user-token': tok } }); } catch (_) {}
       }
       try { localStorage.removeItem('user_token'); } catch (_) {}
       isAuthed = false;
+      applyConnectedView();
     }
-    setToggle(false, false);
+    setToggle(false);
   } else {
-    // OFF → ON: 항상 펼침. 컨텐츠는 isAuthed 따라 분기.
+    // OFF → ON: 기억 활성화. OAuth 연결은 사용자가 버튼을 눌러야 개시.
     try { localStorage.setItem('login_remember', 'true'); } catch (_) {}
-    setToggle(true, true);
+    setToggle(true);
   }
 });
 

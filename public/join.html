@@ -434,7 +434,7 @@ function renderStep() {
       body = `
         <div class="step-num">${stepNum} · 시작</div>
         <h2 class="step-title">닉네임을 정해주세요</h2>
-        <p class="step-sub">이 모임 안에서만 사용. <strong>모임이 끝나면 사라져요.</strong></p>
+        <p class="step-sub">모임 안에서만 사용하는 닉네임이에요.</p>
         ${ROOM.isHost ? `<div style="background:rgba(212,168,67,0.08);border:1px dashed rgba(212,168,67,0.4);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#e8b84b;margin-bottom:18px;line-height:1.55;">📢 여기 입력한 내용은 다른 참가자 카드에 표시됩니다.</div>` : ''}
         <div class="field">
           <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" autocomplete="off" autocapitalize="off" autocorrect="off" value="${escHtml(data.nickname)}">
@@ -467,7 +467,7 @@ function renderStep() {
             <button type="button" class="chip${fmt==='decade'&&!data.hide_birth_year?' selected':''}" data-group="bfmt" data-value="decade">30대 (10대 단위)</button>
             <button type="button" class="chip${fmt==='decade_half'&&!data.hide_birth_year?' selected':''}" data-group="bfmt" data-value="decade_half">30초·중·후 (기본·권장)</button>
             <button type="button" class="chip${fmt==='exact'&&!data.hide_birth_year?' selected':''}" data-group="bfmt" data-value="exact">정확한 연도 (1990)</button>
-            <button type="button" class="chip${data.hide_birth_year?' selected':''}" data-group="bfmt" data-value="hide">🔒 카드에 표시 안 함 (매칭에만 사용)</button>
+            <button type="button" class="chip${data.hide_birth_year?' selected':''}" data-group="bfmt" data-value="hide">🔒 다른 참가자에게 숨김 (매칭에만 사용)</button>
           </div>
         </div>`
         : `
@@ -475,7 +475,7 @@ function renderStep() {
           <div class="field-label">내 출생연도 공개</div>
           <div class="chip-row">
             <button type="button" class="chip${!data.hide_birth_year?' selected':''}" data-group="hide_birth_year" data-value="false">호스트 설정대로 표시 (${fmt==='decade'?'30대':fmt==='decade_half'?'30초·중·후':'정확한 연도'})</button>
-            <button type="button" class="chip${data.hide_birth_year?' selected':''}" data-group="hide_birth_year" data-value="true">🔒 카드에 표시 안 함</button>
+            <button type="button" class="chip${data.hide_birth_year?' selected':''}" data-group="hide_birth_year" data-value="true">🔒 다른 참가자에게 숨김</button>
           </div>
         </div>`;
       body = `
@@ -518,7 +518,7 @@ function renderStep() {
           <div class="chip-row">
             <button type="button" class="chip${!rd && !data.hide_region?' selected':''}" data-group="rdfmt" data-value="false">시·도만 (예: 서울)</button>
             <button type="button" class="chip${rd && !data.hide_region?' selected':''}" data-group="rdfmt" data-value="true">광역시는 구까지 (예: 강남)</button>
-            <button type="button" class="chip${data.hide_region?' selected':''}" data-group="rdfmt" data-value="hide">🔒 카드에 표시 안 함 (매칭에만 사용)</button>
+            <button type="button" class="chip${data.hide_region?' selected':''}" data-group="rdfmt" data-value="hide">🔒 다른 참가자에게 숨김 (매칭에만 사용)</button>
           </div>
         </div>`
         : `
@@ -526,7 +526,7 @@ function renderStep() {
           <div class="field-label">내 지역 공개</div>
           <div class="chip-row">
             <button type="button" class="chip${!data.hide_region?' selected':''}" data-group="hide_region" data-value="false">호스트 설정대로 표시 (${rd?'광역시 구까지':'시·도만'})</button>
-            <button type="button" class="chip${data.hide_region?' selected':''}" data-group="hide_region" data-value="true">🔒 카드에 표시 안 함</button>
+            <button type="button" class="chip${data.hide_region?' selected':''}" data-group="hide_region" data-value="true">🔒 다른 참가자에게 숨김</button>
           </div>
         </div>`;
       body = `
@@ -563,7 +563,7 @@ function renderStep() {
           <div class="chip-row">${INDUSTRIES.map(v => `<button type="button" class="chip${data.industry===v?' selected':''}" data-group="industry" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
         </div>
         <div class="field">
-          <label class="chip df-check${data.hide_industry?' selected':''}" style="cursor:pointer;"><input type="checkbox" id="hide_industry"${data.hide_industry?' checked':''} style="display:none;"> 🔒 카드에 표시 안 함 (매칭에만 사용)</label>
+          <label class="chip df-check${data.hide_industry?' selected':''}" style="cursor:pointer;"><input type="checkbox" id="hide_industry"${data.hide_industry?' checked':''} style="display:none;"> 🔒 다른 참가자에게 숨김 (매칭에만 사용)</label>
         </div>
         <div class="actions">
           ${prevBtn}
@@ -607,7 +607,7 @@ function renderStep() {
           <input type="text" id="interestInput" maxlength="100" placeholder="다른 관심사 직접 입력 (콤마로 여러 개)" value="${escHtml(extraTokens.join(', '))}" style="margin-top:14px;">
         </div>
         <div class="field">
-          <label class="chip df-check${data.hide_interest?' selected':''}" style="cursor:pointer;"><input type="checkbox" id="hide_interest"${data.hide_interest?' checked':''} style="display:none;"> 🔒 관심사 카드에 표시 안 함 (매칭에만 사용)</label>
+          <label class="chip df-check${data.hide_interest?' selected':''}" style="cursor:pointer;"><input type="checkbox" id="hide_interest"${data.hide_interest?' checked':''} style="display:none;"> 🔒 다른 참가자에게 숨김 (매칭에만 사용)</label>
         </div>
         <div class="actions">
           ${prevBtn}
@@ -620,7 +620,7 @@ function renderStep() {
       body = `
         <div class="step-num">${stepNum} · 인스타그램 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">매칭된 사람에게만<br>공개돼요 💌</h2>
-        <p class="step-sub">서로 입력했을 때만 양쪽에게 바로 보여요.<br><strong>오늘 아니면 다신 못 볼 사이</strong>, 놓치지 마세요.</p>
+        <p class="step-sub">서로 입력했을 때만 양쪽에게 바로 보여요.</p>
         <div class="field">
           <input type="text" id="instaInput" maxlength="50" placeholder="@your_instagram" value="${escHtml(data.instagram || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" style="text-align:center;font-size:18px;letter-spacing:0.04em;">
           <div class="hint">영문·숫자·점·언더바만 가능. @ 는 자동으로 처리</div>
@@ -704,7 +704,7 @@ function rowH(k, v, hidden) {
   // hidden=true면 매칭에만 사용 (다른 게스트 카드에서 마스킹). 본인 확인엔 값+🔒 표시.
   if (!v) return `<div class="summary-row"><span class="key">${k}</span><span class="val empty">생략</span></div>`;
   if (hidden) {
-    return `<div class="summary-row"><span class="key">${k}</span><span class="val" style="opacity:0.55;">${escHtml(v)} <span style="font-size:10px;color:#9aa0ac;letter-spacing:0.04em;">🔒 카드 비공개</span></span></div>`;
+    return `<div class="summary-row"><span class="key">${k}</span><span class="val" style="opacity:0.55;">${escHtml(v)} <span style="font-size:10px;color:#9aa0ac;letter-spacing:0.04em;">🔒 참가자에게 숨김</span></span></div>`;
   }
   return `<div class="summary-row"><span class="key">${k}</span><span class="val">${escHtml(v)}</span></div>`;
 }
