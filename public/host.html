@@ -1651,7 +1651,10 @@
     </div>
     <div class="action-right">
       <button type="button" class="btn btn-outline" id="force-match-btn" style="display:none;">강제 매칭</button>
-      <button type="button" class="btn btn-gold" id="primary-btn">다음 · 탐구로</button>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <button type="button" class="btn btn-gold" id="primary-btn">모임 시작</button>
+        <span id="primary-btn-hint" style="font-size:11px;color:var(--text-muted);text-align:center;line-height:1.3;">모임 중간에도 입장이 가능해요</span>
+      </div>
       <button type="button" class="btn btn-red" id="close-room-btn" style="display:none;">모임 종료</button>
     </div>
   </div>
@@ -2492,10 +2495,12 @@ function updatePrimaryButton() {
   closeBtn.style.display = 'none';
   backBtn.style.display = state.activeTab !== 'intro' ? 'inline-flex' : 'none';
 
+  const hint = document.getElementById('primary-btn-hint');
   switch (state.activeTab) {
     case 'intro':
-      btn.textContent = '다음 · 탐구로';
+      btn.textContent = '모임 시작';
       btn.style.display = 'inline-flex';
+      if (hint) hint.style.display = '';
       break;
     case 'explore':
       if (state.currentQIdx < state.questions.length - 1) {
@@ -2505,10 +2510,12 @@ function updatePrimaryButton() {
       }
       btn.style.display = 'inline-flex';
       forceBtn.style.display = 'inline-flex';
+      if (hint) hint.style.display = 'none';
       break;
     case 'free':
       btn.textContent = '마무리로 →';
       btn.style.display = 'inline-flex';
+      if (hint) hint.style.display = 'none';
       break;
     case 'ending':
       // 1:1 모임은 매칭 발표 + action-bar 종료 버튼 모두 숨김 (mvp-card 안 종료 버튼만)

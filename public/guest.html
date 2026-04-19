@@ -1989,6 +1989,16 @@ async function handleWSMessage(msg) {
           el.textContent = cur + 1;
         }
       }
+      // intro 화면에 있으면 members 다시 fetch → 신규 입장자 카드 즉시 표시
+      if (msg.uuid !== STATE.uuid && STATE.currentState === 'intro') {
+        try { await loadIntroData(); } catch (_) {}
+      }
+      break;
+    case 'user_left':
+      // intro에 있으면 members 갱신 (카드 제거)
+      if (STATE.currentState === 'intro') {
+        try { await loadIntroData(); } catch (_) {}
+      }
       break;
 
     case 'state_update': {
