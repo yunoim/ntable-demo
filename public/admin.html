@@ -354,6 +354,12 @@
       <div class="section-h">실시간 스냅샷</div>
       <div class="stats-grid" id="liveSnapGrid"></div>
 
+      <div class="section-h">성장 추이 (최근 30일)</div>
+      <div class="stats-grid" id="growthSummary"></div>
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 28px;">
+        <canvas id="growthChart" height="120"></canvas>
+      </div>
+
       <div class="section-h">팩 사용 분포 (전체 기간)</div>
       <div class="table-wrap" id="packsUsageTable"></div>
 
@@ -377,6 +383,10 @@
         <button type="button" class="filter-btn" data-filter="waiting" onclick="filterRooms('waiting')">대기</button>
         <button type="button" class="filter-btn" data-filter="open" onclick="filterRooms('open')">진행 중</button>
         <button type="button" class="filter-btn" data-filter="closed" onclick="filterRooms('closed')">종료</button>
+      </div>
+      <div id="roomsBulkBar" style="display:none; margin-bottom:10px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; font-size:13px; align-items:center; gap:10px;">
+        <span id="roomsSelectedCount" style="color:var(--text);">0개 선택됨</span>
+        <button type="button" class="btn-sm red" id="roomsBulkDeleteBtn" onclick="bulkDeleteRooms()" style="margin-left:auto;">선택 삭제</button>
       </div>
       <div class="table-wrap" id="roomsTable"></div>
     </div>
@@ -510,6 +520,7 @@ async function api(path, opts = {}) {
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+const escHtml = esc;
 function fmtDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
@@ -580,22 +591,62 @@ function renderStats(s) {
 
 // ── Insights ───────────────────────────────────────────────────────
 let npsChartInstance = null;
+let growthChartInstance = null;
 
 async function loadInsights() {
   try {
-    const [live, packs, nps, match, hosts] = await Promise.all([
+    const [live, growth, packs, nps, match, hosts] = await Promise.all([
       api('/api/panel/live-snapshot'),
+      api('/api/panel/growth?days=30'),
       api('/api/panel/packs-usage'),
       api('/api/panel/nps-trend'),
       api('/api/panel/match-success'),
       api('/api/panel/hosts-leaderboard'),
     ]);
     renderLiveSnap(live);
+    renderGrowth(growth);
     renderPacksUsage(packs);
     renderNpsTrend(nps);
     renderMatchSuccess(match);
     renderHostsLeaderboard(hosts);
   } catch (e) { errToast(e.message); }
+}
+
+function renderGrowth(data) {
+  const s = data.summary || {};
+  const box = (label, p) => `
+    <div class="stat-card">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${(p && p.users) || 0}<span style="font-size:14px;color:var(--text-muted);font-weight:400;"> 가입</span></div>
+      <div class="stat-sub">방 ${(p && p.rooms) || 0} · 후기 ${(p && p.surveys) || 0}</div>
+    </div>`;
+  document.getElementById('growthSummary').innerHTML =
+    box('오늘', s.today) + box('어제', s.yesterday) + box('최근 7일', s.last_7d) + box('최근 30일', s.last_30d);
+
+  const canvas = document.getElementById('growthChart');
+  if (!canvas || !window.Chart) return;
+  const daily = data.daily || [];
+  const labels = daily.map(r => String(r.date).slice(5));
+  if (growthChartInstance) growthChartInstance.destroy();
+  growthChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '가입', data: daily.map(r => r.users), borderColor: '#d4a843', backgroundColor: 'rgba(212,168,67,0.15)', tension: 0.3 },
+        { label: '방 생성', data: daily.map(r => r.rooms), borderColor: '#7ee8a2', backgroundColor: 'rgba(126,232,162,0.12)', tension: 0.3 },
+        { label: '후기', data: daily.map(r => r.surveys), borderColor: '#888', backgroundColor: 'rgba(200,200,200,0.06)', tension: 0.3 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e6dfc9' } } },
+      scales: {
+        x: { ticks: { color: '#999', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#aaa', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
+      },
+    },
+  });
 }
 
 function renderHostsLeaderboard(rows) {
@@ -735,10 +786,16 @@ function renderMatchSuccess(data) {
 
 // ── Rooms ──────────────────────────────────────────────────────────
 let roomsFilter = '';
+let roomsCurrent = [];          // 현재 탭에 렌더된 방 리스트 (bulk용)
+const roomsSelected = new Set(); // 체크된 room_code
+
 async function loadRooms() {
   try {
     const data = await api(`/api/panel/rooms${roomsFilter ? `?status=${roomsFilter}` : ''}`);
+    roomsCurrent = data;
+    roomsSelected.clear();
     renderRoomsTable(data, 'roomsTable', true);
+    updateBulkBar();
   } catch (e) { errToast(e.message); }
 }
 function filterRooms(s) {
@@ -753,12 +810,14 @@ function renderRoomsTable(rooms, containerId, withActions) {
   c.innerHTML = `
     <table>
       <thead><tr>
+        ${withActions ? '<th style="width:32px;"><input type="checkbox" id="roomsSelectAll" aria-label="전체 선택" onclick="toggleSelectAllRooms(this.checked)"></th>' : ''}
         <th>CODE</th><th>제목</th><th>호스트</th><th>참가</th><th>상태</th><th>생성</th>
         ${withActions ? '<th></th>' : ''}
       </tr></thead>
       <tbody>
       ${rooms.map(r => `
         <tr>
+          ${withActions ? `<td data-label="선택"><input type="checkbox" class="room-check" data-code="${esc(r.room_code)}" data-status="${esc(r.status)}" onclick="onRoomCheck(this)" aria-label="선택: ${esc(r.room_code)}"></td>` : ''}
           <td data-label="CODE" style="font-family:monospace;color:var(--gold)">${esc(r.room_code)}</td>
           <td data-label="제목">${esc(r.title)}</td>
           <td data-label="호스트">${esc(r.host_nickname || '-')}</td>
@@ -773,6 +832,70 @@ function renderRoomsTable(rooms, containerId, withActions) {
         </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+function onRoomCheck(el) {
+  const code = el.dataset.code;
+  if (el.checked) roomsSelected.add(code); else roomsSelected.delete(code);
+  syncSelectAllCheckbox();
+  updateBulkBar();
+}
+function toggleSelectAllRooms(checked) {
+  document.querySelectorAll('#roomsTable .room-check').forEach(cb => {
+    cb.checked = checked;
+    const code = cb.dataset.code;
+    if (checked) roomsSelected.add(code); else roomsSelected.delete(code);
+  });
+  updateBulkBar();
+}
+function syncSelectAllCheckbox() {
+  const all = document.querySelectorAll('#roomsTable .room-check');
+  const hdr = document.getElementById('roomsSelectAll');
+  if (!hdr || !all.length) return;
+  const checkedCount = [...all].filter(c => c.checked).length;
+  hdr.checked = checkedCount === all.length;
+  hdr.indeterminate = checkedCount > 0 && checkedCount < all.length;
+}
+function updateBulkBar() {
+  const bar = document.getElementById('roomsBulkBar');
+  const n = roomsSelected.size;
+  if (!bar) return;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  const cnt = document.getElementById('roomsSelectedCount');
+  if (cnt) cnt.textContent = `${n}개 선택됨`;
+}
+
+async function bulkDeleteRooms() {
+  const codes = [...roomsSelected];
+  if (!codes.length) return;
+  const openCount = roomsCurrent.filter(r => roomsSelected.has(r.room_code) && r.status === 'open').length;
+  const openWarn = openCount > 0 ? `\n⚠️ 진행 중 모임 ${openCount}개 포함 — 참가자들이 바로 끊겨요.\n` : '';
+  const msg = `⚠️ ${codes.length}개 모임의 모든 데이터(멤버/투표/후기) 영구 삭제.${openWarn}\n되돌릴 수 없음. 계속?`;
+  if (!confirm(msg)) return;
+  try {
+    const btn = document.getElementById('roomsBulkDeleteBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '삭제 중…'; }
+    const r = await api('/api/panel/rooms/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ codes }),
+    });
+    const nDel = (r.deleted || []).length;
+    const failList = (r.failed || []).map(f => f.code);
+    const nfList = r.not_found || [];
+    if (failList.length || nfList.length) {
+      const parts = [`${nDel}개 삭제`];
+      if (failList.length) parts.push(`실패: ${failList.join(', ')}`);
+      if (nfList.length)  parts.push(`없음: ${nfList.join(', ')}`);
+      errToast(parts.join(' · '));
+    }
+    roomsSelected.clear();
+    await loadRooms();
+  } catch (e) {
+    errToast(e.message);
+  } finally {
+    const btn = document.getElementById('roomsBulkDeleteBtn');
+    if (btn) { btn.disabled = false; btn.textContent = '선택 삭제'; }
+  }
 }
 
 async function viewRoom(code) {

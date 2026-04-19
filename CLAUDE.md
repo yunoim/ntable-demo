@@ -48,6 +48,11 @@
 - 같은 Dedup Key로 페이지 2개 만들지 말 것
 - 모호하면 사용자에게 "기존 로그 업데이트? 신규?" 확인
 
+### [R6] advisor 양끝 점검 (2단계 이상 개발 작업)
+- **설계 advisor**: 요구사항 파악 후 설계안(엔드포인트·스키마·UI·엣지케이스) 정리 → advisor 호출 → 구현 착수
+- **검증 advisor**: 파일 수정 durable 반영 후 → advisor 호출 → 사용자 보고/커밋/배포
+- 1줄 수정·단순 탐색·질문은 예외. 세부 기준: memory `feedback_advisor_dev_cycle.md`
+
 ---
 
 ## 기본 정보

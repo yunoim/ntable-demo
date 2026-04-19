@@ -177,6 +177,47 @@ router.delete('/panel/rooms/:code', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/panel/rooms/bulk-delete  body: { codes: [...] }
+// 코드별 독립 트랜잭션 — 하나 실패해도 나머지 계속 진행
+router.post('/panel/rooms/bulk-delete', requireAdmin, async (req, res) => {
+  const raw = Array.isArray(req.body?.codes) ? req.body.codes : [];
+  const codes = [...new Set(raw.filter(c => typeof c === 'string' && c.length))];
+  if (!codes.length) return res.status(400).json({ error: 'no codes' });
+  if (codes.length > 100) return res.status(400).json({ error: 'too many (max 100)' });
+
+  const deleted = [];
+  const failed = [];
+  const not_found = [];
+
+  for (const code of codes) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const r = await client.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+      if (!r.rows.length) {
+        await client.query('ROLLBACK');
+        not_found.push(code);
+        continue;
+      }
+      const room_id = r.rows[0].id;
+      await client.query('DELETE FROM member_results WHERE room_id = $1', [room_id]);
+      await client.query('DELETE FROM survey_responses WHERE room_id = $1', [room_id]);
+      await client.query('DELETE FROM room_connections WHERE room_id = $1', [room_id]);
+      await client.query('DELETE FROM room_state WHERE room_id = $1', [room_id]);
+      await client.query('DELETE FROM rooms WHERE id = $1', [room_id]);
+      await client.query('COMMIT');
+      deleted.push(code);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error('[panel] bulk-delete error for', code, err);
+      failed.push({ code, error: err.message });
+    } finally {
+      client.release();
+    }
+  }
+  res.json({ deleted, failed, not_found });
+});
+
 // GET /api/panel/users?limit=
 // 익명 구조 — 빈 users (방 한번도 안 만든·참여 안 한 uuid)는 자동 숨김
 // 닉네임은 room_members 의 가장 최근 닉을 사용 (방별 닉이라 없을 수 있음)
@@ -219,6 +260,7 @@ router.delete('/panel/users/:uuid', requireAdmin, async (req, res) => {
     await client.query('DELETE FROM member_results WHERE uuid = $1', [uuid]);
     await client.query('DELETE FROM survey_responses WHERE uuid = $1', [uuid]);
     await client.query('DELETE FROM room_members WHERE uuid = $1', [uuid]);
+    await client.query('DELETE FROM room_connections WHERE from_uuid = $1 OR to_uuid = $1', [uuid]);
     // 호스트로 등록된 방은 NULL 처리 (FK 위반 방지) + 닫기
     await client.query("UPDATE rooms SET host_uuid = NULL, status = 'closed' WHERE host_uuid = $1", [uuid]);
     await client.query('DELETE FROM users WHERE uuid = $1', [uuid]);
@@ -396,6 +438,55 @@ router.get('/panel/match-success', requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('[panel] match-success error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/panel/growth?days=30 — 신규 가입·방 생성·후기 성장 추이
+// summary: today/yesterday/last_7d/last_30d 각각 { users, rooms, surveys }
+// daily:   최근 N일 (기본 30) 일별 [{ date, users, rooms, surveys }]
+router.get('/panel/growth', requireAdmin, async (req, res) => {
+  const days = Math.min(Math.max(parseInt(req.query.days || '30', 10) || 30, 7), 180);
+  try {
+    const [summary, daily] = await Promise.all([
+      pool.query(`
+        WITH periods AS (
+          SELECT 'today'     AS k, CURRENT_DATE     AS from_d, CURRENT_DATE + 1 AS to_d
+          UNION ALL SELECT 'yesterday', CURRENT_DATE - 1, CURRENT_DATE
+          UNION ALL SELECT 'last_7d',   CURRENT_DATE - 7, CURRENT_DATE + 1
+          UNION ALL SELECT 'last_30d',  CURRENT_DATE - 30, CURRENT_DATE + 1
+        )
+        SELECT p.k,
+          (SELECT COUNT(*)::int FROM users             WHERE created_at >= p.from_d AND created_at < p.to_d) AS users,
+          (SELECT COUNT(*)::int FROM rooms             WHERE created_at >= p.from_d AND created_at < p.to_d) AS rooms,
+          (SELECT COUNT(*)::int FROM survey_responses  WHERE created_at >= p.from_d AND created_at < p.to_d) AS surveys
+        FROM periods p
+      `),
+      pool.query(`
+        SELECT d.day::date AS date,
+          (SELECT COUNT(*)::int FROM users            WHERE created_at::date = d.day) AS users,
+          (SELECT COUNT(*)::int FROM rooms            WHERE created_at::date = d.day) AS rooms,
+          (SELECT COUNT(*)::int FROM survey_responses WHERE created_at::date = d.day) AS surveys
+        FROM generate_series(CURRENT_DATE - ($1::int - 1), CURRENT_DATE, interval '1 day') AS d(day)
+        ORDER BY d.day ASC
+      `, [days])
+    ]);
+
+    const summaryObj = { today: {}, yesterday: {}, last_7d: {}, last_30d: {} };
+    for (const row of summary.rows) {
+      summaryObj[row.k] = { users: row.users, rooms: row.rooms, surveys: row.surveys };
+    }
+    res.json({
+      summary: summaryObj,
+      daily: daily.rows.map(r => ({
+        date: r.date,
+        users: r.users,
+        rooms: r.rooms,
+        surveys: r.surveys,
+      })),
+    });
+  } catch (err) {
+    console.error('[panel] growth error:', err);
     res.status(500).json({ error: err.message });
   }
 });
