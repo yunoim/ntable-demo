@@ -1926,6 +1926,8 @@ function connectWS() {
       }
     } catch (_) {}
     try { STATE.ws.send(JSON.stringify({ type: 'request_photos' })); } catch (_) {}
+    // WS reconnect 시 host 현재 화면으로 강제 catch-up (REST fallback)
+    catchUpToHostScreen();
   };
   STATE.ws.onclose = (e) => {
     console.log('[guest] ws.onclose', e.code, e.reason);
@@ -1952,6 +1954,43 @@ function connectWS() {
   STATE.ws.onmessage = (e) => {
     try { handleWSMessage(JSON.parse(e.data)); } catch(_) {}
   };
+}
+
+// REST fallback: host 현재 phase로 catch-up (init·재접속 모두 호출)
+async function catchUpToHostScreen() {
+  try {
+    const r = await fetch(`/api/rooms/${STATE.roomCode}`);
+    if (!r.ok) return;
+    const room = await r.json();
+    STATE.room = room;
+    const cur = room.current_state;
+    console.log('[guest] catchUp current_state:', cur, 'curScreen:', STATE.currentState);
+    if (!cur || !cur.current_tab) return;
+    const tab = cur.current_tab;
+    if (tab === STATE.currentState) {
+      // 같은 화면이면 데이터만 refresh (자료 stale 방지)
+      if (tab === 'intro') { try { await loadIntroData(); } catch (_) {} }
+      else if (tab === 'explore') {
+        if (cur.question_index !== undefined) STATE.currentQIndex = cur.question_index;
+        try { await loadExploreData(); renderQuestion(); } catch (_) {}
+      } else if (tab === 'closing') {
+        try { await loadClosingData(); } catch (_) {}
+        if (typeof applyClosingPhase === 'function') applyClosingPhase(cur.phase || 'closing');
+      }
+      return;
+    }
+    if (tab === 'intro') { switchScreen('intro'); try { await loadIntroData(); } catch (_) {} }
+    else if (tab === 'explore') {
+      if (cur.question_index !== undefined) STATE.currentQIndex = cur.question_index;
+      switchScreen('explore');
+      try { await loadExploreData(); renderQuestion(); } catch (_) {}
+    } else if (tab === 'free') { switchScreen('free'); }
+    else if (tab === 'closing') {
+      switchScreen('closing');
+      try { await loadClosingData(); } catch (_) {}
+      if (typeof applyClosingPhase === 'function') applyClosingPhase(cur.phase || 'closing');
+    }
+  } catch (e) { console.warn('[guest] catchUp error', e); }
 }
 
 function startPing() {

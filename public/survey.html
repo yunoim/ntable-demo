@@ -517,12 +517,10 @@
       if (!data.eligible) {
         let msg = '후기 제출 불가';
         let actions = '';
+        let bannerOnClickHome = false;
         if (data.reason === 'NOT_PARTICIPANT') {
-          msg = '이 모임에 참여한 기록이 없어 후기를 남길 수 없어요.';
-          actions = `<div class="ineligible-actions">
-            <a href="/" class="primary">홈으로</a>
-            <a href="/room/${encodeURIComponent(room_code)}/join">이 모임 참여하기</a>
-          </div>`;
+          msg = '이 모임에 참여한 기록이 없어 후기를 남길 수 없어요. (탭하면 홈으로)';
+          bannerOnClickHome = true;
         } else if (data.reason === 'ALREADY_SUBMITTED') {
           msg = '이미 후기를 제출했어요. 잠시 후 결과 페이지로 이동합니다.';
           actions = `<div class="ineligible-actions">
@@ -530,17 +528,21 @@
             <a href="/">홈으로</a>
           </div>`;
         } else if (data.reason === 'ROOM_NOT_FOUND') {
-          msg = '해당 모임을 찾을 수 없어요.';
-          actions = `<div class="ineligible-actions">
-            <a href="/" class="primary">홈으로</a>
-          </div>`;
+          msg = '해당 모임을 찾을 수 없어요. (탭하면 홈으로)';
+          bannerOnClickHome = true;
         } else {
-          actions = `<div class="ineligible-actions">
-            <a href="/" class="primary">홈으로</a>
-          </div>`;
+          msg = '후기 제출 불가. (탭하면 홈으로)';
+          bannerOnClickHome = true;
         }
         ineligibleBanner.innerHTML = '<div>' + msg + '</div>' + actions;
         ineligibleBanner.hidden = false;
+        if (bannerOnClickHome) {
+          ineligibleBanner.style.cursor = 'pointer';
+          ineligibleBanner.onclick = () => { location.href = '/'; };
+        } else {
+          ineligibleBanner.style.cursor = '';
+          ineligibleBanner.onclick = null;
+        }
         if (data.reason === 'ALREADY_SUBMITTED') {
           setTimeout(goResult, 1500);
         }
