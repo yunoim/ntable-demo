@@ -355,7 +355,9 @@ router.get('/rooms/:code/explore-result', async (req, res) => {
   const questions = enabledQuestions.slice(0, qcount); // 호스트가 정한 문항 수만큼만
   const members = await pool.query(
     `SELECT mr.uuid, mr.votes_json,
-            COALESCE(rm.nickname, '익명') AS nickname
+            COALESCE(rm.nickname, '익명') AS nickname,
+            rm.emoji AS emoji,
+            rm.gender AS gender
        FROM member_results mr
        LEFT JOIN room_members rm ON rm.room_id = mr.room_id AND rm.uuid = mr.uuid
       WHERE mr.room_id = $1`,
@@ -363,14 +365,14 @@ router.get('/rooms/:code/explore-result', async (req, res) => {
   );
   // 모든 멤버 닉네임 (vote 안 한 사람도 표시 위해 room_members 별도 fetch)
   const allMembers = await pool.query(
-    `SELECT uuid, nickname FROM room_members WHERE room_id = $1`,
+    `SELECT uuid, nickname, emoji, gender FROM room_members WHERE room_id = $1`,
     [room_id]
   );
   // member_results에 없는 사람 추가
   const haveUuids = new Set(members.rows.map(m => m.uuid));
   for (const am of allMembers.rows) {
     if (!haveUuids.has(am.uuid)) {
-      members.rows.push({ uuid: am.uuid, nickname: am.nickname, votes_json: {} });
+      members.rows.push({ uuid: am.uuid, nickname: am.nickname, emoji: am.emoji, gender: am.gender, votes_json: {} });
     }
   }
   res.json({ questions, members: members.rows });

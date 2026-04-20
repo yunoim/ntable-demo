@@ -212,6 +212,36 @@ router.post('/connections', async (req, res) => {
   }
 });
 
+// GET /api/connections/status?room_code=&uuid=
+// 내가 from_uuid 로 선택한 상대 중 나를 to_uuid 로 선택한 사람 (= 상호 매칭) 리스트
+// survey 페이지에서 먼저 제출한 사용자가 재방문 시 '서로 선택' 뱃지 복구 용도
+router.get('/connections/status', async (req, res) => {
+  const { room_code, uuid } = req.query;
+  if (!room_code || !uuid) return res.status(400).json({ error: 'room_code, uuid required' });
+  try {
+    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [room_code]);
+    if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+    const room_id = roomRes.rows[0].id;
+    const mutuals = await pool.query(
+      `SELECT c1.to_uuid AS uuid,
+              COALESCE(rm.nickname, u.nickname) AS nickname
+         FROM room_connections c1
+         INNER JOIN room_connections c2
+           ON c1.room_id = c2.room_id
+          AND c1.from_uuid = c2.to_uuid
+          AND c1.to_uuid = c2.from_uuid
+         LEFT JOIN room_members rm ON rm.room_id = c1.room_id AND rm.uuid = c1.to_uuid
+         LEFT JOIN users u ON u.uuid = c1.to_uuid
+        WHERE c1.room_id = $1 AND c1.from_uuid = $2`,
+      [room_id, uuid]
+    );
+    res.json({ mutuals: mutuals.rows });
+  } catch (err) {
+    console.error('connections status error:', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 // GET /api/result?uuid=&room_code=
 router.get('/result', async (req, res) => {
   const { uuid, room_code } = req.query;
@@ -436,11 +466,11 @@ router.get('/rooms/:code/couple-card', async (req, res) => {
     const partnerVotes = (pRes.rows[0] && pRes.rows[0].votes_json) || {};
 
     const nickRes = await pool.query(
-      `SELECT uuid, nickname FROM room_members WHERE room_id = $1 AND uuid = ANY($2)`,
+      `SELECT uuid, nickname, emoji, gender FROM room_members WHERE room_id = $1 AND uuid = ANY($2)`,
       [room_id, [uuid, partner_uuid]]
     );
     const nickMap = {};
-    for (const r of nickRes.rows) nickMap[r.uuid] = r.nickname;
+    for (const r of nickRes.rows) nickMap[r.uuid] = r;
 
     const qRes = await pool.query(
       'SELECT questions_json, question_count FROM rooms WHERE id = $1',
@@ -466,8 +496,18 @@ router.get('/rooms/:code/couple-card', async (req, res) => {
     }
 
     res.json({
-      me: { uuid, nickname: nickMap[uuid] || '나' },
-      partner: { uuid: partner_uuid, nickname: nickMap[partner_uuid] || '상대' },
+      me: {
+        uuid,
+        nickname: (nickMap[uuid] && nickMap[uuid].nickname) || '나',
+        emoji: nickMap[uuid]?.emoji || null,
+        gender: nickMap[uuid]?.gender || null,
+      },
+      partner: {
+        uuid: partner_uuid,
+        nickname: (nickMap[partner_uuid] && nickMap[partner_uuid].nickname) || '상대',
+        emoji: nickMap[partner_uuid]?.emoji || null,
+        gender: nickMap[partner_uuid]?.gender || null,
+      },
       total: questions.length,
       matched,
       questions,

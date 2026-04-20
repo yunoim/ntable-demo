@@ -755,6 +755,35 @@
   }
   connectSurveyWs();
 
+  // 서버에서 이미 상호 매칭된 상대 목록 가져와 뱃지 복구 (먼저 제출하고 화면 꺼진 사이 B가 제출한 경우 커버)
+  async function refreshMutualsFromServer() {
+    try {
+      const r = await fetch(`/api/connections/status?room_code=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!Array.isArray(d.mutuals)) return;
+      let changed = false;
+      for (const m of d.mutuals) {
+        if (m && m.uuid && m.nickname && !mutualMap.has(m.uuid)) {
+          mutualMap.set(m.uuid, m.nickname);
+          changed = true;
+        }
+      }
+      if (changed) {
+        updateMutualBadge();
+        if (mutualMap.size > 0) document.getElementById('doneOverlay').classList.add('show');
+      }
+    } catch (_) {}
+  }
+  refreshMutualsFromServer();
+
+  // 모바일 보호모드(화면 꺼짐) 후 복귀 — WS 재연결 + 상태 재동기화
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (!_surveyWs || _surveyWs.readyState > 1) { try { connectSurveyWs(); } catch (_) {} }
+    refreshMutualsFromServer();
+  });
+
   function goResult() {
     location.href = `/result?room=${room_code}&uuid=${uuid}`;
   }

@@ -798,7 +798,7 @@
     <span class="pager-dot" data-dot="3"></span>
   </div>
 
-  <div style="margin-top:20px;text-align:center;">
+  <div id="home-link-wrap" style="margin-top:20px;text-align:center;opacity:0;pointer-events:none;transition:opacity 0.3s;">
     <a href="/" style="display:inline-block;padding:12px 28px;background:transparent;color:var(--gold-light);border:1px solid var(--gold-border);border-radius:10px;text-decoration:none;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:0.02em;">← 홈으로</a>
   </div>
 </div>
@@ -1533,9 +1533,12 @@
       const d = await r.json();
       const escCC = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const truncate = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
-      // 닉네임
+      // 닉네임 + 이모지 (사용자 선택 → 없으면 성별 기본 폴백)
+      const genderDefault = (g) => (g === 'M' || g === 'male') ? '👨' : (g === 'F' || g === 'female') ? '👩' : '🙂';
+      const meEmoji = escCC(d.me?.emoji || genderDefault(d.me?.gender));
+      const pEmoji = escCC(d.partner?.emoji || genderDefault(d.partner?.gender));
       document.getElementById('cc-nicks').innerHTML =
-        `${escCC(d.me?.nickname || '나')} <span style="color:#f0ca60;">💘</span> ${escCC(d.partner?.nickname || '상대')}`;
+        `<span style="font-size:20px;line-height:1;">${meEmoji}</span> ${escCC(d.me?.nickname || '나')} <span style="color:#f0ca60;">💘</span> <span style="font-size:20px;line-height:1;">${pEmoji}</span> ${escCC(d.partner?.nickname || '상대')}`;
       // 질문 row
       const rowsEl = document.getElementById('cc-rows');
       rowsEl.innerHTML = '';
@@ -1600,9 +1603,17 @@
     const pager = document.getElementById('pager');
     const dots = Array.from(document.querySelectorAll('#pager-dots .pager-dot'));
     if (!pager || !dots.length) return;
+    const homeWrap = document.getElementById('home-link-wrap');
     const sync = () => {
       const idx = Math.round(pager.scrollLeft / (pager.clientWidth || 1));
       dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      // 홈으로 버튼은 마지막 가시 페이지에서만 노출
+      if (homeWrap) {
+        const lastVisibleIdx = dots.reduce((acc, d, i) => d.style.display === 'none' ? acc : i, 0);
+        const atLast = idx >= lastVisibleIdx;
+        homeWrap.style.opacity = atLast ? '1' : '0';
+        homeWrap.style.pointerEvents = atLast ? 'auto' : 'none';
+      }
     };
     pager.addEventListener('scroll', () => {
       if (pager._raf) return;

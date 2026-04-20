@@ -1809,8 +1809,9 @@
         <!-- 모바일에서만 #user-menu 가 JS 로 이 슬롯으로 재배치됨 (데스크탑은 #phase-bar) -->
         <div id="mobile-more-slot"></div>
       </div>
-      <!-- 운영 지표 위젯 — 이 호스트의 누적 (.qr-side 내부로 이동: 모바일에선 QR 오른쪽 아래, 데스크탑은 display:contents 로 qr-wrap 자연 흐름) -->
-      <div id="host-stats" class="host-stats">
+      <!-- 운영 지표 위젯 — 누적 통계. 2026-04-21: intro 화면에서 '참가자 수' 로 오해 유발되어 기본 숨김.
+           DOM 은 유지 (renderHostStats / loadHostCumulativeStats 가 여전히 접근). 관리자 대시보드에서 확인 가능. -->
+      <div id="host-stats" class="host-stats" hidden>
         <div class="stat-line"><span class="stat-icon">🏠</span><span class="stat-text">누적 <strong id="stat-cum-rooms">0</strong>개 모임</span></div>
         <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text">참석 <strong id="stat-cum-people">0</strong>명</span></div>
         <div class="stat-line"><span class="stat-icon">💘</span><span class="stat-text">매칭 <strong id="stat-cum-matched">0</strong>명</span></div>
