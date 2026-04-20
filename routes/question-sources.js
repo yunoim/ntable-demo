@@ -278,7 +278,7 @@ const PACK_DEFAULTS = {
   // 커플/듀오 — 닉·이모지·MBTI·출생연도만. 자유대화 skip · 매칭·MVP·인스타 없음.
   // 결과: 개인 성향(ai_personality) + 연애 분석(couple_love: MBTI궁합 + 탐구답변 기반) + 커플 카드(couple_card) + 탐구결과 + 요약.
   couples: {
-    wizard_fields: ['nickname', 'emoji', 'mbti', 'birth_year'],
+    wizard_fields: ['nickname', 'emoji', 'gender', 'mbti', 'birth_year'],
     display_fields_default: ['birth_year', 'mbti'],
     result_sections: ['ai_personality', 'couple_love', 'couple_card', 'explore_result', 'summary'],
     skip_free_chat: true,
