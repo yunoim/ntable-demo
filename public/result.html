@@ -688,7 +688,7 @@
       <div class="card" id="insta-exchange-card" style="text-align:center;">
         <div class="card-title">📸 인스타그램 교환</div>
         <p class="hint-text" style="margin-bottom:14px;">마음에 든 사람과 인스타를 교환할 수 있어요.<br>상대도 나를 선택해야 공개돼요.</p>
-        <button type="button" class="insta-btn" id="insta-exchange-btn" disabled style="opacity:0.6;cursor:not-allowed;">준비 중 · 곧 열립니다</button>
+        <a class="insta-btn" id="insta-exchange-btn" href="#" style="text-decoration:none;display:block;text-align:center;">인스타 교환 열기 →</a>
       </div>
     </section>
   </div>
@@ -1313,6 +1313,13 @@
       });
     });
     sync();
+  })();
+
+  // 인스타 교환 페이지 링크 (결과 페이지 이후 별도 메뉴)
+  (function linkInstaExchange() {
+    const a = document.getElementById('insta-exchange-btn');
+    if (!a) return;
+    a.href = `/insta-exchange.html?room=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}`;
   })();
 
   loadPersonality();

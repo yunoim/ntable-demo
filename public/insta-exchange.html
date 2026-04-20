@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="/theme-lock.css">
+<script src="/samsung-dark-warn.js" defer></script>
+<title>인스타그램 교환 — ntable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:        #0a0f1e;
+    --navy-mid:    #141d35;
+    --surface:     #141d35;
+    --surface-2:   #1a2442;
+    --gold:        #d4a843;
+    --gold-light:  #f0ca60;
+    --gold-dim:    rgba(212,168,67,0.18);
+    --gold-border: rgba(212,168,67,0.35);
+    --white:       #f5f2ec;
+    --white-dim:   rgba(245,242,236,0.88);
+    --text:        #ddd5bc;
+    --text-muted:  rgba(216,208,187,0.78);
+    --subtext:     rgba(216,208,187,0.78);
+    --border:      rgba(255,255,255,0.14);
+    --danger:      #e87e7e;
+    --success:     #7ee8a2;
+  }
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    padding: 36px 18px 48px;
+    padding-top: calc(36px + env(safe-area-inset-top));
+    padding-bottom: calc(48px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(212,168,67,0.09), transparent 55%),
+      radial-gradient(circle at 80% 90%, rgba(80,100,180,0.06), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container { width: 100%; max-width: 460px; position: relative; z-index: 1; }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 8px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  h1 em { font-style: italic; color: var(--gold-light); }
+  .sub {
+    color: var(--subtext);
+    font-size: 13.5px;
+    margin-bottom: 26px;
+    line-height: 1.65;
+    text-align: center;
+  }
+
+  .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px 0; color: var(--subtext); font-size: 13.5px; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(212,168,67,0.3); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--subtext);
+    font-size: 14px;
+    line-height: 1.7;
+    background: rgba(212,168,67,0.05);
+    border: 1px solid rgba(212,168,67,0.18);
+    border-radius: 14px;
+  }
+
+  /* 카드 그리드 */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .ix-card {
+    position: relative;
+    aspect-ratio: 1 / 1.22;
+    perspective: 1200px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .ix-card[disabled] { cursor: default; }
+  .ix-inner {
+    position: absolute; inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ix-card.flipped .ix-inner { transform: rotateY(180deg); }
+  .ix-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 14px;
+    overflow: hidden;
+  }
+  .ix-face.front {
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+  }
+  .ix-face.back {
+    background: linear-gradient(145deg, rgba(212,168,67,0.22), rgba(212,168,67,0.08));
+    border: 1px solid var(--gold);
+    transform: rotateY(180deg);
+    color: var(--white);
+  }
+  .ix-card.pending .ix-face.front {
+    border-color: var(--gold);
+    background: rgba(212,168,67,0.12);
+  }
+  .ix-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .ix-name {
+    color: var(--white);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ix-state {
+    color: var(--text-muted);
+    font-size: 11.5px;
+    text-align: center;
+    line-height: 1.4;
+    min-height: 28px;
+    padding: 0 4px;
+  }
+  .ix-state.pending { color: var(--gold-light); font-weight: 600; }
+  .ix-state .hint { color: var(--text-muted); font-weight: 400; font-size: 10.5px; display: block; margin-top: 2px; }
+  .ix-action {
+    margin-top: 10px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--gold-border);
+    color: var(--gold-light);
+    font-size: 11.5px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+
+  /* 뒷면 (상호 매칭) */
+  .ix-back-label {
+    font-size: 11px;
+    color: var(--gold-light);
+    letter-spacing: 0.18em;
+    margin-bottom: 8px;
+  }
+  .ix-back-heart { font-size: 26px; margin-bottom: 8px; }
+  .ix-back-ig {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    text-decoration: none;
+    padding: 8px 14px;
+    background: rgba(10,15,30,0.35);
+    border-radius: 999px;
+    border: 1px solid rgba(212,168,67,0.55);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ix-back-ig:hover { background: rgba(10,15,30,0.55); }
+
+  /* 모달 */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(10,15,30,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 22px;
+  }
+  .modal-card {
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 18px;
+    padding: 26px 22px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    color: var(--white);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .modal-sub {
+    color: var(--subtext);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+  .modal-input-row { display: flex; gap: 8px; }
+  .modal-input {
+    flex: 1;
+    padding: 12px 14px;
+    background: rgba(212,168,67,0.06);
+    border: 1px solid var(--gold-border);
+    border-radius: 10px;
+    color: var(--white);
+    font-size: 15px;
+    font-family: inherit;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .modal-save {
+    padding: 0 18px;
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .modal-save:disabled { opacity: 0.55; cursor: wait; }
+  .modal-status {
+    font-size: 11.5px;
+    color: var(--subtext);
+    margin-top: 10px;
+    text-align: center;
+    min-height: 14px;
+  }
+
+  .back-link {
+    display: block;
+    margin: 28px auto 0;
+    text-align: center;
+    padding: 11px 22px;
+    background: transparent;
+    color: var(--gold-light);
+    border: 1px solid var(--gold-border);
+    border-radius: 10px;
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    width: fit-content;
+  }
+
+  @media (max-width: 360px) {
+    .card-grid { gap: 10px; }
+    .ix-avatar { width: 48px; height: 48px; font-size: 24px; margin-bottom: 8px; }
+    .ix-name { font-size: 13.5px; }
+    .ix-state { font-size: 10.5px; }
+  }
+</style>
+<script src="/sentry-init.js" data-page="insta-exchange" defer></script>
+</head>
+<body>
+<div class="container">
+  <div class="brand">ntable</div>
+  <h1>인스타그램 <em>교환</em></h1>
+  <p class="sub">마음에 든 사람을 눌러보세요.<br>상대도 당신을 눌러야 서로의 인스타가 공개됩니다.</p>
+
+  <div id="loading" class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
+  <div id="empty-msg" class="empty-state" hidden>선택 가능한 이성 참가자가 없어요.</div>
+  <div id="card-grid" class="card-grid" hidden></div>
+
+  <a href="#" id="back-to-result" class="back-link">← 결과로 돌아가기</a>
+</div>
+
+<!-- 본인 인스타 입력 모달 -->
+<div id="insta-modal" class="modal-backdrop" hidden>
+  <div class="modal-card">
+    <div class="modal-title">내 인스타 먼저</div>
+    <p class="modal-sub">상호 매칭 시 공개될 본인 인스타 아이디를 먼저 저장해주세요.<br>저장 전까진 다른 사람을 선택할 수 없어요.</p>
+    <div class="modal-input-row">
+      <input type="text" id="insta-input" class="modal-input" maxlength="50" placeholder="@your_instagram" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email">
+      <button type="button" id="insta-save" class="modal-save">저장</button>
+    </div>
+    <div id="insta-status" class="modal-status"></div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const room_code = params.get('room');
+  const uuid = params.get('uuid') || localStorage.getItem('demo_uuid');
+  if (!uuid || !room_code) location.href = '/';
+
+  const STATE = {
+    members: [],
+    myInstagram: null,
+    loading: false,
+  };
+
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const loadingEl = document.getElementById('loading');
+  const emptyEl = document.getElementById('empty-msg');
+  const gridEl = document.getElementById('card-grid');
+  const modalEl = document.getElementById('insta-modal');
+  const modalInput = document.getElementById('insta-input');
+  const modalSave = document.getElementById('insta-save');
+  const modalStatus = document.getElementById('insta-status');
+  const backLink = document.getElementById('back-to-result');
+  backLink.href = `/result?room=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}`;
+
+  // ── WS: insta_mutual 수신 시 상태 갱신 ────────────
+  let _ws = null;
+  function connectWs() {
+    try {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      _ws = new WebSocket(`${proto}://${location.host}/ws/${room_code}/${uuid}`);
+      _ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'insta_mutual') {
+            // 내가 포함된 pair면 refetch
+            if (msg.a_uuid === uuid || msg.b_uuid === uuid) {
+              loadStatus();
+            }
+          }
+        } catch (_) {}
+      };
+      _ws.onclose = () => { setTimeout(connectWs, 5000); };
+      _ws.onerror = () => { try { _ws.close(); } catch (_) {} };
+    } catch (_) {}
+  }
+
+  async function loadStatus() {
+    try {
+      const r = await fetch(`/api/rooms/${room_code}/insta-status?uuid=${encodeURIComponent(uuid)}`);
+      if (!r.ok) throw new Error('fetch fail');
+      const d = await r.json();
+      STATE.members = Array.isArray(d.members) ? d.members : [];
+      STATE.myInstagram = d.me && d.me.instagram ? d.me.instagram : null;
+      render();
+    } catch (e) {
+      loadingEl.innerHTML = '<span>불러올 수 없어요. 잠시 후 다시 시도해주세요.</span>';
+    }
+  }
+
+  function render() {
+    loadingEl.hidden = true;
+    if (!STATE.members.length) {
+      emptyEl.hidden = false;
+      gridEl.hidden = true;
+      return;
+    }
+    emptyEl.hidden = true;
+    gridEl.hidden = false;
+    gridEl.innerHTML = '';
+    for (const m of STATE.members) {
+      gridEl.appendChild(buildCard(m));
+    }
+  }
+
+  function buildCard(m) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ix-card';
+    btn.dataset.uuid = m.uuid;
+    if (m.mutual) btn.classList.add('flipped');
+    if (m.i_selected && !m.mutual) btn.classList.add('pending');
+    if (m.i_selected) btn.disabled = true;
+
+    const emoji = m.emoji || '🙂';
+    let stateHtml;
+    if (m.mutual) {
+      stateHtml = `<div class="ix-state pending">💘 상호 매칭</div>`;
+    } else if (m.awaiting_them) {
+      stateHtml = `<div class="ix-state pending">✓ 선택했어요<span class="hint">상대가 아직 선택 안 했어요</span></div>`;
+    } else {
+      stateHtml = `<div class="ix-state">아직 선택 안 함<span class="hint">누르면 확정돼요</span></div>`;
+    }
+
+    const actionHtml = (!m.i_selected && !m.mutual)
+      ? `<span class="ix-action">선택하기</span>`
+      : '';
+
+    const igUrl = m.instagram ? `https://instagram.com/${encodeURIComponent(m.instagram)}` : '';
+    const igLink = m.mutual && m.instagram
+      ? `<a class="ix-back-ig" href="${igUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">@${esc(m.instagram)}</a>`
+      : `<div class="ix-back-ig" style="opacity:0.6;">@—</div>`;
+
+    btn.innerHTML = `
+      <div class="ix-inner">
+        <div class="ix-face front">
+          <div class="ix-avatar">${esc(emoji)}</div>
+          <div class="ix-name">${esc(m.nickname || '익명')}</div>
+          ${stateHtml}
+          ${actionHtml}
+        </div>
+        <div class="ix-face back">
+          <div class="ix-back-label">MATCHED</div>
+          <div class="ix-back-heart">💘</div>
+          <div class="ix-name" style="margin-bottom:10px;">${esc(m.nickname || '익명')}</div>
+          ${igLink}
+        </div>
+      </div>
+    `;
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      onSelect(m.uuid);
+    });
+    return btn;
+  }
+
+  async function onSelect(target_uuid) {
+    if (!STATE.myInstagram) {
+      openInstaModal();
+      return;
+    }
+    if (!confirm('이 사람을 선택하시겠어요?\n선택은 취소할 수 없어요. 상대도 당신을 선택하면 서로 인스타가 공개됩니다.')) return;
+    try {
+      const r = await fetch(`/api/rooms/${room_code}/insta-select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid, target_uuid }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (d && d.reason === 'me_empty') { openInstaModal(); return; }
+        alert('선택 실패: ' + (d.error || '알 수 없는 오류'));
+        return;
+      }
+      await loadStatus();
+    } catch (e) {
+      alert('네트워크 오류. 다시 시도해주세요.');
+    }
+  }
+
+  // ── 본인 인스타 입력 모달 ─────────────────────────
+  function openInstaModal() {
+    modalEl.hidden = false;
+    modalStatus.textContent = '';
+    modalInput.value = STATE.myInstagram || '';
+    setTimeout(() => modalInput.focus(), 100);
+  }
+  function closeInstaModal() { modalEl.hidden = true; }
+
+  modalInput.addEventListener('input', () => {
+    const cleaned = modalInput.value.toLowerCase().replace(/^@/, '').replace(/[^a-z0-9._]/g, '');
+    if (cleaned !== modalInput.value) modalInput.value = cleaned;
+  });
+  modalInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') modalSave.click(); });
+  modalSave.addEventListener('click', async () => {
+    const val = modalInput.value.trim();
+    if (!val) { modalStatus.textContent = '인스타 아이디를 입력해주세요'; modalStatus.style.color = '#ff8a8a'; return; }
+    modalSave.disabled = true;
+    const origLabel = modalSave.textContent;
+    modalSave.textContent = '저장 중…';
+    modalStatus.textContent = '';
+    try {
+      const r = await fetch(`/api/rooms/${room_code}/me/instagram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid, instagram: val }),
+      });
+      if (!r.ok) throw new Error('save fail');
+      STATE.myInstagram = val;
+      closeInstaModal();
+      await loadStatus();
+    } catch (e) {
+      modalSave.disabled = false;
+      modalSave.textContent = origLabel;
+      modalStatus.textContent = '저장 실패. 다시 시도해주세요.';
+      modalStatus.style.color = '#ff8a8a';
+    }
+  });
+
+  // 초기 로드
+  loadStatus();
+  connectWs();
+</script>
+</body>
+</html>
