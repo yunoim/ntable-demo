@@ -277,6 +277,22 @@ async function initDB() {
       )
     `);
 
+    // insta_selects — 결과 페이지 이후 '인스타 교환' 전용. 선택은 single-direction committed (취소 없음).
+    // 상호 선택(양방향 레코드 2건) 시에만 양쪽 instagram 공개.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS insta_selects (
+        id SERIAL PRIMARY KEY,
+        room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+        selector_uuid VARCHAR NOT NULL,
+        target_uuid VARCHAR NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(room_id, selector_uuid, target_uuid)
+      )
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_insta_selects_room ON insta_selects(room_id)
+    `);
+
     // admin_users — Google OAuth 화이트리스트
     await client.query(`
       CREATE TABLE IF NOT EXISTS admin_users (

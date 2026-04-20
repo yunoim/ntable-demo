@@ -730,6 +730,169 @@ router.post('/rooms/:code/me/instagram', async (req, res) => {
   res.json({ ok: true, instagram: insta || null });
 });
 
+// ── 인스타 교환 (별도 메뉴, 결과 페이지 이후) ──────────────────────
+// 선택 정책: 이성만 + 본인 인스타 입력 필수 + 취소 불가.
+// 상호 선택(2 rows) 시에만 양쪽에 insta_mutual broadcast, 인스타 공개.
+
+function normGenderInsta(g) {
+  if (!g) return null;
+  const s = String(g).toLowerCase();
+  if (s === 'm' || s === 'male') return 'M';
+  if (s === 'f' || s === 'female') return 'F';
+  return null;
+}
+function isOppositeInsta(a, b) {
+  const na = normGenderInsta(a), nb = normGenderInsta(b);
+  return na && nb && na !== nb;
+}
+
+// POST /api/rooms/:code/insta-select
+// body: { uuid, target_uuid }
+router.post('/rooms/:code/insta-select', async (req, res) => {
+  const { code } = req.params;
+  const { uuid, target_uuid } = req.body || {};
+  if (!uuid || !target_uuid) return res.status(400).json({ error: 'uuid, target_uuid required' });
+  if (uuid === target_uuid) return res.status(400).json({ error: 'self-select not allowed' });
+
+  try {
+    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+    if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+    const room_id = roomRes.rows[0].id;
+
+    // 본인 인스타 입력 필수
+    const meRes = await pool.query(
+      'SELECT instagram, gender FROM room_members WHERE room_id = $1 AND uuid = $2',
+      [room_id, uuid]
+    );
+    if (meRes.rows.length === 0) return res.status(404).json({ error: 'member not found' });
+    if (!meRes.rows[0].instagram) {
+      return res.status(400).json({ error: 'instagram required', reason: 'me_empty' });
+    }
+
+    // 이성 필터 + 대상 존재 확인
+    const targetRes = await pool.query(
+      'SELECT gender FROM room_members WHERE room_id = $1 AND uuid = $2',
+      [room_id, target_uuid]
+    );
+    if (targetRes.rows.length === 0) return res.status(404).json({ error: 'target not found' });
+    if (!isOppositeInsta(meRes.rows[0].gender, targetRes.rows[0].gender)) {
+      return res.status(400).json({ error: 'opposite gender only' });
+    }
+
+    // INSERT (idempotent)
+    await pool.query(
+      `INSERT INTO insta_selects (room_id, selector_uuid, target_uuid)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (room_id, selector_uuid, target_uuid) DO NOTHING`,
+      [room_id, uuid, target_uuid]
+    );
+
+    // 양방향 체크 — 2 rows 있으면 상호 선택
+    const pairRes = await pool.query(
+      `SELECT COUNT(*)::int AS cnt FROM insta_selects
+        WHERE room_id = $1
+          AND ((selector_uuid = $2 AND target_uuid = $3)
+            OR (selector_uuid = $3 AND target_uuid = $2))`,
+      [room_id, uuid, target_uuid]
+    );
+    const mutual = pairRes.rows[0].cnt >= 2;
+
+    if (mutual) {
+      // 양쪽 인스타 조회 후 broadcast (기존 insta_mutual 이벤트 재사용)
+      const bothRes = await pool.query(
+        'SELECT uuid, nickname, instagram FROM room_members WHERE room_id = $1 AND uuid = ANY($2)',
+        [room_id, [uuid, target_uuid]]
+      );
+      const me = bothRes.rows.find(r => r.uuid === uuid);
+      const other = bothRes.rows.find(r => r.uuid === target_uuid);
+      if (me && other && other.instagram) {
+        try {
+          const wsModule = require('./ws');
+          wsModule.broadcastToRoom(code, {
+            type: 'insta_mutual',
+            source: 'exchange',
+            a_uuid: me.uuid,
+            b_uuid: other.uuid,
+            a: { uuid: me.uuid, nickname: me.nickname, instagram: me.instagram },
+            b: { uuid: other.uuid, nickname: other.nickname, instagram: other.instagram },
+          });
+        } catch (_) {}
+      }
+    }
+
+    res.json({ ok: true, mutual });
+  } catch (err) {
+    console.error('insta-select error:', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// GET /api/rooms/:code/insta-status?uuid=
+// 응답: { me: {instagram, selected: [uuid...]}, members: [{uuid, nickname, emoji, i_selected, mutual, awaiting_them, instagram?}] }
+// instagram 필드는 mutual 일 때만 노출.
+router.get('/rooms/:code/insta-status', async (req, res) => {
+  const { code } = req.params;
+  const { uuid } = req.query;
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+
+  try {
+    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+    if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+    const room_id = roomRes.rows[0].id;
+
+    const meRes = await pool.query(
+      'SELECT uuid, nickname, gender, instagram, emoji FROM room_members WHERE room_id = $1 AND uuid = $2',
+      [room_id, uuid]
+    );
+    if (meRes.rows.length === 0) return res.status(404).json({ error: 'member not found' });
+    const me = meRes.rows[0];
+
+    // 이성 참가자 전체
+    const othersRes = await pool.query(
+      'SELECT uuid, nickname, gender, instagram, emoji FROM room_members WHERE room_id = $1 AND uuid != $2',
+      [room_id, uuid]
+    );
+    const others = othersRes.rows.filter(o => isOppositeInsta(me.gender, o.gender));
+
+    // 내가 선택한 target + 나를 선택한 selector
+    const selRes = await pool.query(
+      `SELECT selector_uuid, target_uuid FROM insta_selects
+        WHERE room_id = $1 AND (selector_uuid = $2 OR target_uuid = $2)`,
+      [room_id, uuid]
+    );
+    const iSelected = new Set();
+    const selectedMe = new Set();
+    for (const r of selRes.rows) {
+      if (r.selector_uuid === uuid) iSelected.add(r.target_uuid);
+      if (r.target_uuid === uuid) selectedMe.add(r.selector_uuid);
+    }
+
+    const members = others.map(o => {
+      const i_sel = iSelected.has(o.uuid);
+      const s_me = selectedMe.has(o.uuid);
+      const mutual = i_sel && s_me;
+      const entry = {
+        uuid: o.uuid,
+        nickname: o.nickname,
+        emoji: o.emoji || null,
+        i_selected: i_sel,
+        mutual,
+        awaiting_them: i_sel && !mutual,
+      };
+      if (mutual && o.instagram) entry.instagram = o.instagram;
+      return entry;
+    });
+
+    res.json({
+      me: { uuid: me.uuid, nickname: me.nickname, instagram: me.instagram || null, emoji: me.emoji || null },
+      members,
+    });
+  } catch (err) {
+    console.error('insta-status error:', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 // PATCH /api/rooms/:code/me/profile — 본인 프로필 부분 수정 (내 정보 모달 인라인 편집용)
 // body: { uuid, gender?, birth_year?, region?, industry?, mbti?, interest?, instagram?,
 //         hide_birth_year?, hide_region?, hide_industry?, hide_interest?, hide_instagram? }
