@@ -1957,7 +1957,7 @@
 
       <div class="free-card" id="free-chat-card">
         <div class="card-head">💬 익명 채팅</div>
-        <div id="chat-log"><div class="empty-msg">대화가 시작되면 여기 표시됩니다</div></div>
+        <div id="chat-log"><div class="empty-msg">대화가 시작되면 여기 표시돼요</div></div>
         <div style="display:flex;gap:8px;margin-top:12px;">
           <input type="text" id="host-chat-input" maxlength="500" placeholder="익명으로 보내기 (Enter)" style="flex:1;padding:10px 14px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;color:#fff;font-family:inherit;font-size:14px;">
           <button type="button" id="host-chat-send" style="padding:0 16px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;">보내기</button>
@@ -2481,7 +2481,7 @@ function photoKick(targetUuid, nickname) {
     toast('연결이 끊겼어요');
     return;
   }
-  if (!confirm(`${nickname || '이 참가자'}의 사진을 강제로 제거하시겠어요?\n(모임 동안 사진 재업로드도 차단됩니다)`)) return;
+  if (!confirm(`${nickname || '이 참가자'}의 사진을 제거할까요?\n이 모임 동안 사진을 다시 올릴 수 없게 돼요.`)) return;
   state.ws.send(JSON.stringify({ type: 'photo_kick', target_uuid: targetUuid }));
   delete state.photos[targetUuid];
   state.bannedPhotos.add(targetUuid);
@@ -2624,7 +2624,7 @@ function renderApprovedList() {
 
 // 호스트 — 참가자 강퇴
 async function kickUser(targetUuid, nickname) {
-  if (!confirm(`"${nickname || '이 참가자'}"를 강퇴할까요?\n모임에서 즉시 나가게 됩니다.`)) return;
+  if (!confirm(`"${nickname || '이 참가자'}"를 이 모임에서 내보낼까요?\n모임에서 즉시 나가게 돼요.`)) return;
   try {
     await api(`/api/rooms/${state.roomCode}/kick`, 'POST', {
       host_uuid: state.uuid, target_uuid: targetUuid,
@@ -2635,9 +2635,9 @@ async function kickUser(targetUuid, nickname) {
     delete state.intros[targetUuid];
     renderApprovedList();
     renderProfiles();
-    toast(`${nickname || '참가자'} 강퇴 완료`);
+    toast(`${nickname || '참가자'}을(를) 모임에서 내보냈어요`);
   } catch (e) {
-    toast('강퇴 실패: ' + (e.message || ''));
+    toast('내보내기에 실패했어요: ' + (e.message || ''));
   }
 }
 
@@ -2969,7 +2969,7 @@ function updatePrimaryButton() {
         btn.style.opacity = canStart ? '' : '0.5';
         btn.style.cursor = canStart ? '' : 'not-allowed';
         if (hint) {
-          hint.textContent = canStart ? '모임 중간에도 입장이 가능해요' : `참가자 ${total}/2 — 최소 2명부터 시작할 수 있어요`;
+          hint.textContent = canStart ? '모임 중간에도 입장이 가능해요' : `참가자 ${total}명 · 호스트 포함 2명부터 시작할 수 있어요`;
           hint.style.color = canStart ? '' : '#ff8a8a';
           hint.style.display = '';
         }

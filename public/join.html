@@ -268,7 +268,7 @@
 <div class="root">
   <header>
     <div class="brand">ntable</div>
-    <div class="room-tag" id="roomTag">모임 코드 —</div>
+    <div class="room-tag" id="roomTag">참여 코드 —</div>
     <div class="room-title" id="roomTitle">—</div>
   </header>
 
@@ -344,7 +344,7 @@ function escHtml(s) {
 async function init() {
   if (!ROOM_CODE) { renderErr('잘못된 경로'); return; }
   ensureUuid();
-  document.getElementById('roomTag').textContent = `모임 코드 ${ROOM_CODE}`;
+  document.getElementById('roomTag').textContent = `참여 코드 ${ROOM_CODE}`;
   try {
     const r = await fetch(`/api/rooms/${ROOM_CODE}`);
     if (!r.ok) { renderErr('모임 정보를 불러올 수 없어요. 새로고침하거나 잠시 후 다시 시도해주세요.'); return; }
@@ -356,7 +356,7 @@ async function init() {
     ROOM.isHost = ROOM.host_uuid && ROOM.host_uuid === UUID;
     if (ROOM.isHost) {
       const sub = document.querySelector('.room-tag');
-      if (sub) sub.textContent = `모임 코드 ${ROOM_CODE} · 호스트`;
+      if (sub) sub.textContent = `참여 코드 ${ROOM_CODE} · 호스트`;
     }
 
     // 이미 join 했으면 바로 호스트/게스트 화면으로 (단 ?edit=1이면 wizard 재진행 — 내 정보 수정용)
