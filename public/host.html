@@ -277,6 +277,42 @@
   .settings-save { background: var(--gold); color: var(--navy); font-weight: 700; }
   .settings-save:hover:not(:disabled) { background: var(--gold-light); }
   .settings-save:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── 풀 편집 UI (30문항 / 24주제 전체 체크·순서·tier) ── */
+  .settings-row.disabled-row { opacity: 0.55; }
+  .settings-row .row-head .row-left { display: inline-flex; align-items: center; gap: 8px; }
+  .settings-row .row-check { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
+  .settings-row .row-order { display: inline-flex; gap: 2px; margin-left: auto; margin-right: 8px; }
+  .settings-row .row-order button {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); cursor: pointer; border-radius: 5px;
+    width: 22px; height: 22px; line-height: 1; padding: 0;
+    font-family: inherit; font-size: 12px;
+  }
+  .settings-row .row-order button:hover:not(:disabled) { color: var(--gold); border-color: var(--gold-border); }
+  .settings-row .row-order button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .tier-badge {
+    display: inline-block; font-size: 9px; padding: 2px 7px;
+    border-radius: 4px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .tier-badge.tier-surface   { background: rgba(126,232,162,0.15); color: #7ee8a2; }
+  .tier-badge.tier-preference { background: rgba(106,170,232,0.15); color: #6aaae8; }
+  .tier-badge.tier-deep      { background: rgba(180,130,230,0.15); color: #b482e6; }
+  .tier-badge.group-ask      { background: rgba(232,184,75,0.15); color: #e8b84b; }
+  .tier-badge.group-share    { background: rgba(126,232,162,0.15); color: #7ee8a2; }
+  .tier-badge.group-imagine  { background: rgba(180,130,230,0.15); color: #b482e6; }
+  .settings-summary {
+    background: var(--gold-dim-2);
+    border: 1px solid var(--gold-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px; color: var(--text);
+    margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .settings-summary .summary-main { color: var(--gold-light); font-weight: 600; }
+  .settings-summary .summary-hint { font-size: 11px; color: var(--text-muted); }
   .settings-status { font-size: 12px; text-align: center; margin-top: 10px; min-height: 16px; color: var(--gold-light); }
   .settings-status.err { color: var(--danger); }
 
@@ -1832,10 +1868,11 @@
 
     <!-- 탐구 질문 탭 -->
     <div class="settings-pane" data-pane="questions">
-      <div class="settings-field">
-        <label for="settings-qcount">문항 수 <span id="settings-qcount-value">10</span></label>
-        <input type="range" id="settings-qcount" min="1" max="15" value="10" step="1" />
-        <div class="settings-hint">1~15문항 중 선택. 아래 목록에서 앞에서부터 <strong id="settings-qcount-label">10</strong>문항이 실제로 사용돼요.</div>
+      <div class="settings-summary">
+        <div>
+          <div class="summary-main">사용 중 <span id="settings-qcount-value">10</span> / <span id="settings-qcount-total">30</span>문항</div>
+          <div class="summary-hint">체크박스로 사용할 문항을 고르세요. 최대 15개까지.</div>
+        </div>
       </div>
       <div class="settings-list" id="questions-edit-list"></div>
       <button type="button" class="settings-add" onclick="addQuestionRow()">+ 질문 추가</button>
@@ -1843,7 +1880,12 @@
 
     <!-- 자유대화 주제 탭 -->
     <div class="settings-pane" data-pane="topics" hidden>
-      <div class="settings-hint" style="margin-bottom:10px;">자유대화 시간에 호스트가 던질 질문 카드 풀이에요.</div>
+      <div class="settings-summary">
+        <div>
+          <div class="summary-main">사용 중 <span id="settings-tcount-value">0</span> / <span id="settings-tcount-total">0</span>주제</div>
+          <div class="summary-hint">자유대화 중 호스트가 던질 질문 카드 풀이에요.</div>
+        </div>
+      </div>
       <div class="settings-list" id="topics-edit-list"></div>
       <button type="button" class="settings-add" onclick="addTopicRow()">+ 주제 추가</button>
     </div>
@@ -3392,31 +3434,37 @@ async function openSettings() {
     toast('모임 시작 후에는 편집할 수 없어요'); return;
   }
   try {
+    // ?all=1 — 풀 30개 전체 받기 (호스트 편집 전용)
     const [qRes, tRes] = await Promise.all([
-      api(`/api/rooms/${state.roomCode}/questions`),
-      api(`/api/rooms/${state.roomCode}/free-topics`),
+      api(`/api/rooms/${state.roomCode}/questions?all=1`),
+      api(`/api/rooms/${state.roomCode}/free-topics?all=1`),
     ]);
     const qData = await qRes.json();
     const tData = await tRes.json();
-    settingsState.questions = Array.isArray(qData) ? qData.map((q, i) => ({
+    // 레거시 방 호환: 기존 questions_json 은 enabled 필드가 없음 (2c14623 이전 배포).
+    // 이 경우 앞 question_count 개만 enabled=true 로 정규화하여 기존 의미 보존.
+    const qArr = Array.isArray(qData) ? qData : [];
+    const tArr = Array.isArray(tData.topics) ? tData.topics : [];
+    const qLegacy = qArr.length > 0 && qArr.every(q => q && q.enabled === undefined);
+    const tLegacy = tArr.length > 0 && tArr.every(t => t && t.enabled === undefined);
+    const currentQCount = Number.isFinite(state.questionCount) ? state.questionCount : 10;
+    settingsState.questions = qArr.map((q, i) => ({
       id: q.id ?? i + 1,
+      tier: q.tier || null,
       question: q.question || '',
       a: (q.options && q.options[0] ? q.options[0].replace(/^A\.\s*/, '') : q.a || ''),
       b: (q.options && q.options[1] ? q.options[1].replace(/^B\.\s*/, '') : q.b || ''),
-    })) : [];
-    settingsState.topics = Array.isArray(tData.topics) ? tData.topics.map((t, i) => ({
-      id: t.id ?? i + 1, text: t.text || '',
-    })) : [];
+      enabled: qLegacy ? (i < currentQCount) : (q.enabled !== false),
+    }));
+    settingsState.topics = tArr.map((t, i) => ({
+      id: t.id ?? i + 1,
+      group: t.group || null,
+      text: t.text || '',
+      enabled: tLegacy ? true : (t.enabled !== false),
+    }));
   } catch {
     toast('설정을 불러오지 못했어요'); return;
   }
-
-  // qcount 슬라이더 초기값: room info 의 question_count 또는 질문 수
-  const currentQCount = state.questionCount || settingsState.questions.length || 10;
-  const slider = document.getElementById('settings-qcount');
-  slider.value = Math.min(Math.max(currentQCount, 1), 15);
-  document.getElementById('settings-qcount-value').textContent = slider.value;
-  document.getElementById('settings-qcount-label').textContent = slider.value;
 
   renderSettingsQuestions();
   renderSettingsTopics();
@@ -3426,6 +3474,35 @@ async function openSettings() {
   document.getElementById('settings-status').textContent = '';
   document.getElementById('settings-modal').hidden = false;
   document.body.style.overflow = 'hidden';
+}
+
+// tier / group 라벨·클래스 매핑
+const TIER_META = {
+  surface:    { label: 'Warm-up', cls: 'tier-surface' },
+  preference: { label: 'Pref',    cls: 'tier-preference' },
+  deep:       { label: 'Deep',    cls: 'tier-deep' },
+};
+const GROUP_META = {
+  ask:     { label: '물어보기', cls: 'group-ask' },
+  share:   { label: '꺼내기',   cls: 'group-share' },
+  imagine: { label: '상상하기', cls: 'group-imagine' },
+};
+
+function updateQuestionsSummary() {
+  const total = settingsState.questions.length;
+  const enabled = settingsState.questions.filter(q => q.enabled).length;
+  const v = document.getElementById('settings-qcount-value');
+  const t = document.getElementById('settings-qcount-total');
+  if (v) v.textContent = enabled;
+  if (t) t.textContent = total;
+}
+function updateTopicsSummary() {
+  const total = settingsState.topics.length;
+  const enabled = settingsState.topics.filter(t => t.enabled).length;
+  const v = document.getElementById('settings-tcount-value');
+  const t2 = document.getElementById('settings-tcount-total');
+  if (v) v.textContent = enabled;
+  if (t2) t2.textContent = total;
 }
 
 function renderHostRoleToggle() {
@@ -3476,12 +3553,23 @@ function switchSettingsTab(name) {
 function renderSettingsQuestions() {
   const list = document.getElementById('questions-edit-list');
   list.innerHTML = '';
+  const total = settingsState.questions.length;
   settingsState.questions.forEach((q, idx) => {
     const row = document.createElement('div');
-    row.className = 'settings-row';
+    row.className = 'settings-row' + (q.enabled ? '' : ' disabled-row');
+    const tierMeta = TIER_META[q.tier];
+    const tierBadge = tierMeta ? `<span class="tier-badge ${tierMeta.cls}">${tierMeta.label}</span>` : '';
     row.innerHTML = `
       <div class="row-head">
-        <span class="row-idx">Q${idx + 1}</span>
+        <span class="row-left">
+          <input type="checkbox" class="row-check" ${q.enabled ? 'checked' : ''} data-idx="${idx}" data-kind="q" aria-label="사용 여부" />
+          <span class="row-idx">Q${idx + 1}</span>
+          ${tierBadge}
+        </span>
+        <span class="row-order">
+          <button type="button" onclick="moveQuestion(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} aria-label="위로">↑</button>
+          <button type="button" onclick="moveQuestion(${idx}, 1)" ${idx === total - 1 ? 'disabled' : ''} aria-label="아래로">↓</button>
+        </span>
         <button type="button" class="remove-btn" onclick="removeQuestion(${idx})">삭제</button>
       </div>
       <input type="text" placeholder="질문 내용" value="${escHtml(q.question)}" data-field="question" data-idx="${idx}" maxlength="200" />
@@ -3499,17 +3587,32 @@ function renderSettingsQuestions() {
       if (settingsState.questions[i]) settingsState.questions[i][f] = e.target.value;
     });
   });
+  list.querySelectorAll('input.row-check').forEach(cb => {
+    cb.addEventListener('change', (e) => toggleQuestionEnabled(+e.target.dataset.idx, e.target.checked));
+  });
+  updateQuestionsSummary();
 }
 
 function renderSettingsTopics() {
   const list = document.getElementById('topics-edit-list');
   list.innerHTML = '';
+  const total = settingsState.topics.length;
   settingsState.topics.forEach((t, idx) => {
     const row = document.createElement('div');
-    row.className = 'settings-row';
+    row.className = 'settings-row' + (t.enabled ? '' : ' disabled-row');
+    const groupMeta = GROUP_META[t.group];
+    const groupBadge = groupMeta ? `<span class="tier-badge ${groupMeta.cls}">${groupMeta.label}</span>` : '';
     row.innerHTML = `
       <div class="row-head">
-        <span class="row-idx">#${idx + 1}</span>
+        <span class="row-left">
+          <input type="checkbox" class="row-check" ${t.enabled ? 'checked' : ''} data-idx="${idx}" data-kind="t" aria-label="사용 여부" />
+          <span class="row-idx">#${idx + 1}</span>
+          ${groupBadge}
+        </span>
+        <span class="row-order">
+          <button type="button" onclick="moveTopic(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} aria-label="위로">↑</button>
+          <button type="button" onclick="moveTopic(${idx}, 1)" ${idx === total - 1 ? 'disabled' : ''} aria-label="아래로">↓</button>
+        </span>
         <button type="button" class="remove-btn" onclick="removeTopic(${idx})">삭제</button>
       </div>
       <input type="text" placeholder="주제 (질문 카드)" value="${escHtml(t.text)}" data-field="text" data-idx="${idx}" maxlength="140" />
@@ -3522,11 +3625,55 @@ function renderSettingsTopics() {
       if (settingsState.topics[i]) settingsState.topics[i].text = e.target.value;
     });
   });
+  list.querySelectorAll('input.row-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const i = +e.target.dataset.idx;
+      if (settingsState.topics[i]) settingsState.topics[i].enabled = e.target.checked;
+      const row = cb.closest('.settings-row');
+      if (row) row.classList.toggle('disabled-row', !e.target.checked);
+      updateTopicsSummary();
+    });
+  });
+  updateTopicsSummary();
+}
+
+function toggleQuestionEnabled(idx, checked) {
+  const q = settingsState.questions[idx];
+  if (!q) return;
+  if (checked) {
+    // enabled 15개 초과 가드
+    const enabledCount = settingsState.questions.filter(x => x.enabled).length;
+    if (enabledCount >= 15) {
+      toast('최대 15문항까지 사용할 수 있어요');
+      // 체크 되돌리기
+      renderSettingsQuestions();
+      return;
+    }
+  }
+  q.enabled = checked;
+  const row = document.querySelector(`#questions-edit-list .settings-row:nth-child(${idx + 1})`);
+  if (row) row.classList.toggle('disabled-row', !checked);
+  updateQuestionsSummary();
+}
+
+function moveQuestion(idx, dir) {
+  const arr = settingsState.questions;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  renderSettingsQuestions();
+}
+function moveTopic(idx, dir) {
+  const arr = settingsState.topics;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  renderSettingsTopics();
 }
 
 function addQuestionRow() {
   const nextId = (settingsState.questions.at(-1)?.id || 0) + 1;
-  settingsState.questions.push({ id: nextId, question: '', a: '', b: '' });
+  settingsState.questions.push({ id: nextId, tier: null, question: '', a: '', b: '', enabled: false });
   renderSettingsQuestions();
 }
 function removeQuestion(idx) {
@@ -3535,7 +3682,7 @@ function removeQuestion(idx) {
 }
 function addTopicRow() {
   const nextId = (settingsState.topics.at(-1)?.id || 0) + 1;
-  settingsState.topics.push({ id: nextId, text: '' });
+  settingsState.topics.push({ id: nextId, group: null, text: '', enabled: true });
   renderSettingsTopics();
 }
 function removeTopic(idx) {
@@ -3550,33 +3697,46 @@ async function saveSettings() {
   statusEl.textContent = '저장 중...';
   statusEl.classList.remove('err');
 
-  const qcount = parseInt(document.getElementById('settings-qcount').value, 10) || 10;
-
-  // 유효한 질문만 payload 에 넣기
+  // 풀 전체 payload (enabled·tier·순서 유지). 텍스트 공백만 있는 행은 제거.
+  // 빈 행이 뒤섞이면 텍스트만 공백인 enabled=false 로 표시될 수 있으니 필터.
   const payloadQuestions = settingsState.questions
     .map(q => ({
       id: q.id,
+      tier: q.tier || null,
       question: (q.question || '').trim(),
       options: [`A. ${(q.a || '').trim()}`, `B. ${(q.b || '').trim()}`],
+      enabled: !!q.enabled,
     }))
     .filter(q => q.question && q.options[0] !== 'A. ' && q.options[1] !== 'B. ');
 
-  if (!payloadQuestions.length) {
+  const enabledQs = payloadQuestions.filter(q => q.enabled);
+  if (!enabledQs.length) {
     saveBtn.disabled = false;
-    statusEl.textContent = '최소 1개 이상의 완성된 질문이 필요해요';
+    statusEl.textContent = '최소 1개 이상의 질문을 사용으로 체크해 주세요';
+    statusEl.classList.add('err');
+    return;
+  }
+  if (enabledQs.length > 15) {
+    saveBtn.disabled = false;
+    statusEl.textContent = '사용할 질문은 최대 15개까지 선택할 수 있어요';
     statusEl.classList.add('err');
     return;
   }
 
   const payloadTopics = settingsState.topics
-    .map(t => ({ id: t.id, text: (t.text || '').trim() }))
+    .map(t => ({
+      id: t.id,
+      group: t.group || null,
+      text: (t.text || '').trim(),
+      enabled: !!t.enabled,
+    }))
     .filter(t => t.text);
 
   try {
     const qRes = await api(`/api/rooms/${state.roomCode}/questions`, 'PUT', {
       host_uuid: state.uuid,
       questions: payloadQuestions,
-      question_count: Math.min(qcount, payloadQuestions.length),
+      question_count: enabledQs.length,
     });
     if (!qRes.ok) {
       const err = await qRes.json().catch(() => ({}));
@@ -3935,10 +4095,8 @@ document.getElementById('settings-save-btn')?.addEventListener('click', saveSett
 document.querySelectorAll('.settings-tab').forEach(btn => {
   btn.addEventListener('click', () => switchSettingsTab(btn.dataset.stab));
 });
-document.getElementById('settings-qcount')?.addEventListener('input', (e) => {
-  document.getElementById('settings-qcount-value').textContent = e.target.value;
-  document.getElementById('settings-qcount-label').textContent = e.target.value;
-});
+// settings-qcount 슬라이더는 "풀 30개 편집" 개편 때 제거됨 (2026-04-20).
+// 사용 중 문항 수는 체크박스 개수로 자동 계산 (updateQuestionsSummary).
 document.querySelectorAll('#settings-modal .yn-btn').forEach(btn => {
   btn.addEventListener('click', () => setHostRole(btn.dataset.role));
 });

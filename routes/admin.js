@@ -39,6 +39,8 @@ async function isWaitingPhase(room_id) {
 
 router.get('/rooms/:code/questions', async (req, res) => {
   const { code } = req.params;
+  // ?all=1 — 호스트 편집 모달용: 풀 전체 반환 (enabled=false 포함 + tier 필드)
+  const returnAll = req.query.all === '1' || req.query.all === 'true';
   try {
     const r = await pool.query(
       'SELECT question_count, questions_json FROM rooms WHERE room_code = $1',
@@ -48,8 +50,11 @@ router.get('/rooms/:code/questions', async (req, res) => {
     const row = r.rows[0];
     // 방별 DB 스냅샷 우선, 없으면 md 폴백
     if (Array.isArray(row.questions_json) && row.questions_json.length) {
-      const limit = Number.isFinite(row.question_count) ? row.question_count : row.questions_json.length;
-      return res.json(row.questions_json.slice(0, limit));
+      if (returnAll) return res.json(row.questions_json); // 풀 전체
+      // 게스트/진행용: enabled=true 만 + question_count 슬라이스 (레거시 호환: enabled 없으면 true 간주)
+      const enabled = row.questions_json.filter(q => q && q.enabled !== false);
+      const limit = Number.isFinite(row.question_count) ? row.question_count : enabled.length;
+      return res.json(enabled.slice(0, limit));
     }
     const questions = parseQuestions();
     const limit = Number.isFinite(row.question_count) ? row.question_count : 10;
@@ -64,6 +69,7 @@ router.get('/rooms/:code/questions', async (req, res) => {
 
 router.get('/rooms/:code/free-topics', async (req, res) => {
   const { code } = req.params;
+  const returnAll = req.query.all === '1' || req.query.all === 'true';
   try {
     const r = await pool.query(
       'SELECT free_topics_json FROM rooms WHERE room_code = $1',
@@ -72,7 +78,9 @@ router.get('/rooms/:code/free-topics', async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'room not found' });
     const stored = r.rows[0].free_topics_json;
     if (Array.isArray(stored) && stored.length) {
-      return res.json({ topics: stored });
+      if (returnAll) return res.json({ topics: stored });
+      const enabled = stored.filter(t => t && t.enabled !== false);
+      return res.json({ topics: enabled });
     }
     res.json({ topics: parseFreeTopics() });
   } catch (err) {
@@ -99,7 +107,11 @@ router.put('/rooms/:code/questions', async (req, res) => {
       return res.status(400).json({ error: '질문 목록이 비어있어요' });
     }
 
-    // 정규화: { id, question, options: ["A. ...", "B. ..."] }
+    // 정규화: { id, tier, question, options: ["A. ...", "B. ..."], enabled }
+    // tier/enabled 는 호스트 편집 UI(풀 30개 전체)에서 전송됨. 구 클라이언트 호환:
+    // - tier 없으면 null
+    // - enabled 없으면 true 로 간주해 보존 (이 경우 슬라이더 qcount 로 실사용 수 제한)
+    const validTiers = ['surface', 'preference', 'deep'];
     const normalized = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i] || {};
@@ -114,17 +126,27 @@ router.put('/rooms/:code/questions', async (req, res) => {
       }
       normalized.push({
         id: Number.isFinite(q.id) ? q.id : i + 1,
+        tier: validTiers.includes(q.tier) ? q.tier : null,
         question: text,
         options: options.slice(0, 2),
+        enabled: q.enabled === false ? false : true,
       });
     }
     if (!normalized.length) return res.status(400).json({ error: '유효한 질문이 없어요' });
 
+    // enabled 체크는 max 15개 제약 (UI 슬라이더 max=15 정책과 정합)
+    const enabledCount = normalized.filter(q => q.enabled).length;
+    if (enabledCount > 15) {
+      return res.status(400).json({ error: '사용할 질문은 최대 15개까지 선택할 수 있어요' });
+    }
+
     let qcount = parseInt(question_count, 10);
-    if (!Number.isFinite(qcount)) qcount = normalized.length;
+    if (!Number.isFinite(qcount)) qcount = enabledCount || normalized.length;
     if (qcount < 1 || qcount > 15) {
       return res.status(400).json({ error: 'question_count must be between 1 and 15' });
     }
+    // enabled 수보다 qcount 가 크면 enabled 수로 맞춤 (신규 UI 정책)
+    if (enabledCount > 0 && qcount > enabledCount) qcount = enabledCount;
     if (qcount > normalized.length) qcount = normalized.length;
 
     await pool.query(
@@ -177,12 +199,25 @@ router.put('/rooms/:code/free-topics', async (req, res) => {
 
     if (!Array.isArray(topics)) return res.status(400).json({ error: 'topics 배열 필수' });
 
+    // group(ask/share/imagine) · enabled 보존. 구 클라이언트(문자열·{id,text})도 지원.
+    const validGroups = ['ask', 'share', 'imagine'];
     const normalized = [];
     let id = 1;
     for (const t of topics) {
-      const text = String((t && t.text) || t || '').trim();
+      if (typeof t === 'string') {
+        const text = t.trim();
+        if (text) normalized.push({ id: id++, group: null, text, enabled: true });
+        continue;
+      }
+      if (!t || typeof t !== 'object') continue;
+      const text = String(t.text || '').trim();
       if (!text) continue;
-      normalized.push({ id: id++, text });
+      normalized.push({
+        id: id++,
+        group: validGroups.includes(t.group) ? t.group : null,
+        text,
+        enabled: t.enabled === false ? false : true,
+      });
     }
     if (!normalized.length) return res.status(400).json({ error: '유효한 주제가 없어요' });
 

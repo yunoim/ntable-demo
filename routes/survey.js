@@ -265,9 +265,11 @@ router.get('/result', async (req, res) => {
         [room_id]
       );
       const allQs = (qRes.rows[0] && qRes.rows[0].questions_json) || [];
-      const qcount = Number.isFinite(qRes.rows[0]?.question_count) ? qRes.rows[0].question_count : allQs.length;
+      // enabled=true 만 집계 대상 (레거시 enabled 없으면 true 간주)
+      const enabledQs = allQs.filter(q => q && q.enabled !== false);
+      const qcount = Number.isFinite(qRes.rows[0]?.question_count) ? qRes.rows[0].question_count : enabledQs.length;
       const qById = new Map();
-      for (const q of allQs.slice(0, qcount)) qById.set(String(q.id), q);
+      for (const q of enabledQs.slice(0, qcount)) qById.set(String(q.id), q);
 
       const matchedPicks = [];
       for (const [qid, ans] of Object.entries(myVotes)) {

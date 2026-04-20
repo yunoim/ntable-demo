@@ -1,11 +1,32 @@
 // 질문/주제 팩 파서.
 // questions/packs/*.md — 각 파일이 하나의 팩 (메타 + 탐구 질문 + 자유대화 주제)
 // admin.js · rooms.js 에서 공용 사용.
+//
+// 3-tier 구조 (2026-04-20 확장):
+// - 탐구: `## 탐구 질문 - Warm-up` / `- Preference` / `- Deep`
+// - 자유대화: `## 자유대화 주제 - 물어보기` / `- 꺼내기` / `- 상상하기`
+// - 하위호환: 구 단일 섹션(`## 탐구 질문`, `## 자유대화 주제`)은 tier 미지정으로 수집됨
 
 const fs = require('fs');
 const path = require('path');
 
 const PACKS_DIR = path.join(__dirname, '../questions/packs');
+
+// 헤더 텍스트에서 tier / topic group 식별
+function detectQuestionTier(header) {
+  const h = header.toLowerCase();
+  if (h.includes('warm') || h.includes('surface') || h.includes('워밍')) return 'surface';
+  if (h.includes('preference') || h.includes('선호')) return 'preference';
+  if (h.includes('deep') || h.includes('깊은') || h.includes('심화')) return 'deep';
+  return null;
+}
+function detectTopicGroup(header) {
+  const h = header.toLowerCase();
+  if (h.includes('물어') || h.includes('ask')) return 'ask';
+  if (h.includes('꺼내') || h.includes('share')) return 'share';
+  if (h.includes('상상') || h.includes('imagine')) return 'imagine';
+  return null;
+}
 
 // 한 파일을 파싱해서 팩 객체 반환
 function parsePack(filePath) {
@@ -16,7 +37,9 @@ function parsePack(filePath) {
 
   let inFrontmatter = false;
   let frontmatterDone = false;
-  let section = null;
+  let section = null;       // 'questions' | 'topics' | null
+  let currentTier = null;   // 'surface' | 'preference' | 'deep' | null
+  let currentGroup = null;  // 'ask' | 'share' | 'imagine' | null
   let currentQ = null;
 
   for (const raw of content.split(/\r?\n/)) {
@@ -41,9 +64,17 @@ function parsePack(filePath) {
     if (trimmed.startsWith('## ')) {
       if (currentQ) { questions.push(currentQ); currentQ = null; }
       const header = trimmed.slice(3);
-      if (header.includes('탐구') || /questions/i.test(header)) section = 'questions';
-      else if (header.includes('주제') || header.includes('자유') || /topics/i.test(header)) section = 'topics';
-      else section = null;
+      if (header.includes('탐구') || /questions/i.test(header)) {
+        section = 'questions';
+        currentTier = detectQuestionTier(header);
+      } else if (header.includes('주제') || header.includes('자유') || /topics/i.test(header)) {
+        section = 'topics';
+        currentGroup = detectTopicGroup(header);
+      } else {
+        section = null;
+        currentTier = null;
+        currentGroup = null;
+      }
       continue;
     }
 
@@ -51,7 +82,12 @@ function parsePack(filePath) {
       const qMatch = trimmed.match(/^Q(\d+)\.\s+(.+)/);
       if (qMatch) {
         if (currentQ) questions.push(currentQ);
-        currentQ = { id: parseInt(qMatch[1], 10), question: qMatch[2], options: [] };
+        currentQ = {
+          id: questions.length + 1,
+          tier: currentTier,
+          question: qMatch[2],
+          options: [],
+        };
         continue;
       }
       const optMatch = trimmed.match(/^([AB])\.\s+(.+)/);
@@ -60,11 +96,27 @@ function parsePack(filePath) {
       }
     } else if (section === 'topics') {
       if (trimmed.startsWith('- ')) {
-        topics.push({ id: topics.length + 1, text: trimmed.slice(2).trim() });
+        topics.push({
+          id: topics.length + 1,
+          group: currentGroup,
+          text: trimmed.slice(2).trim(),
+        });
       }
     }
   }
   if (currentQ) questions.push(currentQ);
+
+  // tier / group 별 풀로 재구성 (편집 UI·방 생성 시드 에서 사용)
+  const questionsByTier = {
+    surface: questions.filter(q => q.tier === 'surface'),
+    preference: questions.filter(q => q.tier === 'preference'),
+    deep: questions.filter(q => q.tier === 'deep'),
+  };
+  const topicsByGroup = {
+    ask: topics.filter(t => t.group === 'ask'),
+    share: topics.filter(t => t.group === 'share'),
+    imagine: topics.filter(t => t.group === 'imagine'),
+  };
 
   return {
     id: meta.id || path.basename(filePath, '.md'),
@@ -75,7 +127,9 @@ function parsePack(filePath) {
     tone: meta.tone || '',
     category: meta.category || 'other',
     questions,
+    questionsByTier,
     topics,
+    topicsByGroup,
   };
 }
 
@@ -106,6 +160,86 @@ function getPack(packId) {
   const file = path.join(PACKS_DIR, `${safeId}.md`);
   if (!fs.existsSync(file)) return null;
   return parsePack(file);
+}
+
+// ── 방 생성 시 랜덤 추출 헬퍼 ─────────────────────────────────────────
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// tier 비율 분배 — count 를 surface/preference/deep 으로 나눔 (preference 우선)
+function distributeTiers(count) {
+  const base = Math.floor(count / 3);
+  const remainder = count - base * 3;
+  const dist = { surface: base, preference: base, deep: base };
+  if (remainder >= 1) dist.preference += 1;
+  if (remainder >= 2) dist.surface += 1;
+  return dist;
+}
+
+// 팩 + question_count 로 실제 방에 심을 질문 배열 생성
+// 반환: 풀 전체 (각 tier 내 셔플) + 앞에서부터 enabled 분배 (dist 만큼 true, 나머지 false)
+// tier 순서: surface → preference → deep (tier 간 순서는 유지 — arc 보존)
+function buildRoomQuestions(pack, count) {
+  if (!pack || !pack.questionsByTier) {
+    // 하위호환: tier 풀 없으면 전체 배열을 count 만큼 앞부분 enabled
+    const all = [...(pack?.questions || [])];
+    return all.map((q, i) => ({
+      id: i + 1,
+      tier: q.tier || null,
+      question: q.question,
+      options: q.options,
+      enabled: i < count,
+    }));
+  }
+  const dist = distributeTiers(count);
+  const out = [];
+  let nextId = 1;
+  for (const tier of ['surface', 'preference', 'deep']) {
+    const pool = shuffle([...(pack.questionsByTier[tier] || [])]);
+    pool.forEach((q, idx) => {
+      out.push({
+        id: nextId++,
+        tier,
+        question: q.question,
+        options: q.options,
+        enabled: idx < dist[tier],
+      });
+    });
+  }
+  return out;
+}
+
+// 팩 → 방 자유대화 topics: 전체 풀 + enabled 초기값 true
+// group 순서: ask → share → imagine (각 그룹 내 셔플)
+function buildRoomTopics(pack) {
+  if (!pack || !pack.topicsByGroup) {
+    const all = [...(pack?.topics || [])];
+    return all.map((t, i) => ({
+      id: i + 1,
+      group: t.group || null,
+      text: t.text,
+      enabled: true,
+    }));
+  }
+  const out = [];
+  let nextId = 1;
+  for (const group of ['ask', 'share', 'imagine']) {
+    const pool = shuffle([...(pack.topicsByGroup[group] || [])]);
+    pool.forEach(t => {
+      out.push({
+        id: nextId++,
+        group,
+        text: t.text,
+        enabled: true,
+      });
+    });
+  }
+  return out;
 }
 
 // 하위 호환 — 기본 팩
@@ -144,6 +278,9 @@ module.exports = {
   getPack,
   parseQuestions,
   parseFreeTopics,
+  buildRoomQuestions,
+  buildRoomTopics,
+  distributeTiers,
   DEFAULT_PACK_ID,
   PACK_FLOW_DEFAULTS,
   getPackFlow,

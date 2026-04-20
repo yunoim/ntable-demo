@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const QRCode = require('qrcode');
-const { listPacks, getPack, DEFAULT_PACK_ID, getPackFlow } = require('./question-sources');
+const { listPacks, getPack, DEFAULT_PACK_ID, getPackFlow, buildRoomQuestions, buildRoomTopics } = require('./question-sources');
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -95,9 +95,10 @@ router.post('/rooms', async (req, res) => {
     return res.status(500).json({ error: 'Failed to generate unique room code' });
   }
 
-  // 팩 스냅샷 — 방 생성 시점에 복사해서 호스트가 자유롭게 편집
-  const questionsSeed = pack.questions || [];
-  const topicsSeed = pack.topics || [];
+  // 팩 스냅샷 — 방 생성 시점에 tier별 셔플 + question_count 기준 enabled 분배
+  // 풀 30개 전체 저장. 호스트가 편집 모달에서 enabled 토글·순서·텍스트 수정 가능.
+  const questionsSeed = buildRoomQuestions(pack, question_count);
+  const topicsSeed = buildRoomTopics(pack);
 
   const client = await pool.connect();
   try {
@@ -344,8 +345,10 @@ router.get('/rooms/:code/explore-result', async (req, res) => {
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
   const room_id = room.rows[0].id;
   const allQuestions = room.rows[0].questions_json || [];
-  const qcount = Number.isFinite(room.rows[0].question_count) ? room.rows[0].question_count : allQuestions.length;
-  const questions = allQuestions.slice(0, qcount); // 호스트가 정한 문항 수만큼만
+  // enabled=true 인 문항만 (없는 레거시 방은 slice 로 호환)
+  const enabledQuestions = allQuestions.filter(q => q && q.enabled !== false);
+  const qcount = Number.isFinite(room.rows[0].question_count) ? room.rows[0].question_count : enabledQuestions.length;
+  const questions = enabledQuestions.slice(0, qcount); // 호스트가 정한 문항 수만큼만
   const members = await pool.query(
     `SELECT mr.uuid, mr.votes_json,
             COALESCE(rm.nickname, '익명') AS nickname
