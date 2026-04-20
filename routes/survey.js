@@ -337,7 +337,14 @@ router.get('/result', async (req, res) => {
       avg_satisfaction: hostAgg.rows[0].avg_satisfaction ? Number(hostAgg.rows[0].avg_satisfaction.toFixed(2)) : null,
     };
 
-    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary });
+    // 사랑의 작대기 상호 지명 커플 (전체 공개)
+    const allPairs = Array.isArray(match_json.pairs) ? match_json.pairs : [];
+    const mutual_pairs = allPairs.filter(p => p && p.type === 'mutual').map(p => ({
+      a: { uuid: p.a?.uuid || null, nickname: p.a?.nickname || null },
+      b: { uuid: p.b?.uuid || null, nickname: p.b?.nickname || null },
+    }));
+
+    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });

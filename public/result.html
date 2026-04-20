@@ -685,11 +685,10 @@
           <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
         </div>
       </div>
-      <div class="card" id="insta-card" style="display:none">
+      <div class="card" id="insta-exchange-card" style="text-align:center;">
         <div class="card-title">📸 인스타그램 교환</div>
-        <p class="hint-text">상호 동의 시에만 공개돼요. 먼저 공개 의사를 표시해보세요.</p>
-        <button type="button" class="insta-btn" id="insta-btn" onclick="requestInsta()">인스타 공개하기 📲</button>
-        <div id="insta-result"></div>
+        <p class="hint-text" style="margin-bottom:14px;">마음에 든 사람과 인스타를 교환할 수 있어요.<br>상대도 나를 선택해야 공개돼요.</p>
+        <button type="button" class="insta-btn" id="insta-exchange-btn" disabled style="opacity:0.6;cursor:not-allowed;">준비 중 · 곧 열립니다</button>
       </div>
     </section>
   </div>
@@ -933,6 +932,27 @@
 
       const matchEl = document.getElementById('match-content');
       const escMatch = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // 오늘의 커플 — 사랑의 작대기 상호 지명
+      const mutualPairs = Array.isArray(data.mutual_pairs) ? data.mutual_pairs : [];
+      const mutualHtml = mutualPairs.length > 0 ? `
+        <div class="match-frame" style="padding:22px;margin-bottom:18px;">
+          <div class="match-eyebrow">오늘의 커플 · 상호 지명</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+            ${mutualPairs.map(p => `
+              <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 16px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:12px;">
+                <span style="color:var(--white);font-weight:600;font-size:15px;">${escMatch(p.a?.nickname || '익명')}</span>
+                <span style="color:var(--gold-light);font-size:18px;">💘</span>
+                <span style="color:var(--white);font-weight:600;font-size:15px;">${escMatch(p.b?.nickname || '익명')}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : `
+        <div class="match-frame" style="padding:22px;margin-bottom:18px;text-align:center;">
+          <div class="match-eyebrow">오늘의 커플</div>
+          <div style="margin-top:12px;color:var(--subtext);font-size:13.5px;line-height:1.6;">서로 지목한 커플이 없었어요.</div>
+        </div>
+      `;
       if (data.match_nickname) {
         matchedUuid = data.match_uuid || null;
         const common = data.match_common || 0;
@@ -989,23 +1009,22 @@
               </div>`;
             }).join('')}
           </div>` : '';
-        matchEl.innerHTML = `
+        matchEl.innerHTML = mutualHtml + `
           <div class="match-frame">
-            <div class="match-eyebrow">오늘의 인연</div>
+            <div class="match-eyebrow">나와 가장 잘 맞았던 사람</div>
             ${photoHtml}
             <div class="match-name">${escMatch(data.match_nickname)}</div>
-            <div class="match-sub">서로의 선택이 가장 많이 닿았어요</div>
+            <div class="match-sub">탐구 선택이 가장 많이 닿았어요</div>
             ${commonChip}
             ${picksHtml}
             ${data.fi_count ? `<div class="fi-badge">❤️ ${data.fi_count}명이 나에게 관심 표시</div>` : ''}
           </div>
           ${topHtml}
         `;
-        document.getElementById('insta-card').style.display = 'block';
       } else {
         // 참여 상황별 fallback — fi_count 유무로 온도감 구분
         const hasInterest = (data.fi_count || 0) > 0;
-        matchEl.innerHTML = hasInterest
+        const fallback = hasInterest
           ? `
             <div class="match-fallback-frame">
               <div class="match-fallback-icon">✨</div>
@@ -1020,6 +1039,7 @@
               <div class="match-fallback-text">매칭은 타이밍이에요. 오늘 나눈 대화가<br>다음 누군가와의 연결로 이어질 거예요.</div>
             </div>
           `;
+        matchEl.innerHTML = mutualHtml + fallback;
       }
 
       const summEl = document.getElementById('summary-content');
