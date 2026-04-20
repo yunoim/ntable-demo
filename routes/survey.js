@@ -414,7 +414,19 @@ router.get('/rooms/:code/couple-card', async (req, res) => {
     const isMutualPair = pairs.some(p => p && p.type === 'mutual'
       && ((p.a?.uuid === uuid && p.b?.uuid === partner_uuid)
         || (p.a?.uuid === partner_uuid && p.b?.uuid === uuid)));
-    if (!isMutualPair) return res.status(403).json({ error: 'not a mutual pair' });
+    // couples 팩은 매칭 단계가 없어 match_json.pairs 가 비어있음 — 2인 멤버 자동 통과
+    let allowed = isMutualPair;
+    if (!allowed) {
+      const pkRes = await pool.query('SELECT pack_id FROM rooms WHERE id = $1', [room_id]);
+      if (pkRes.rows[0]?.pack_id === 'couples') {
+        const ct = await pool.query(
+          'SELECT COUNT(*)::int AS cnt FROM room_members WHERE room_id = $1 AND uuid = ANY($2)',
+          [room_id, [uuid, partner_uuid]]
+        );
+        allowed = ct.rows[0].cnt === 2;
+      }
+    }
+    if (!allowed) return res.status(403).json({ error: 'not a mutual pair' });
 
     const myVotes = myMr.rows[0].votes_json || {};
     const pRes = await pool.query(

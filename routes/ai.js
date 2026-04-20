@@ -298,7 +298,7 @@ router.get('/rooms/:code/couple-love', async (req, res) => {
     const partnerVotes = (pRes.rows[0] && pRes.rows[0].votes_json) || {};
 
     const profRes = await pool.query(
-      'SELECT uuid, nickname, gender, mbti FROM room_members WHERE room_id = $1 AND uuid = ANY($2)',
+      'SELECT uuid, nickname, gender, mbti, emoji FROM room_members WHERE room_id = $1 AND uuid = ANY($2)',
       [room_id, [uuid, partner_uuid]]
     );
     const me = profRes.rows.find(r => r.uuid === uuid) || {};
@@ -354,8 +354,8 @@ router.get('/rooms/:code/couple-love', async (req, res) => {
     }
 
     res.json({
-      me: { uuid: me.uuid, nickname: me.nickname || '나', gender: me.gender || null, mbti: me.mbti || null },
-      partner: { uuid: partner.uuid, nickname: partner.nickname || '상대', gender: partner.gender || null, mbti: partner.mbti || null },
+      me: { uuid: me.uuid, nickname: me.nickname || '나', gender: me.gender || null, mbti: me.mbti || null, emoji: me.emoji || null },
+      partner: { uuid: partner.uuid, nickname: partner.nickname || '상대', gender: partner.gender || null, mbti: partner.mbti || null, emoji: partner.emoji || null },
       mbti_compat: mbti,
       total,
       matched,
