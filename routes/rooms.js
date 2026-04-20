@@ -5,7 +5,8 @@ const QRCode = require('qrcode');
 const { listPacks, getPack, DEFAULT_PACK_ID, getPackFlow, buildRoomQuestions, buildRoomTopics, getPackDefaults } = require('./question-sources');
 
 function generateRoomCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  // 혼동 쉬운 문자 제외 (O↔0, I↔1) — 입력·공유 시 오독 방지
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
