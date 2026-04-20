@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { getPackDefaults } = require('./question-sources');
 
 const VALID_TAGS = [
   'conversation', 'host', 'matching', 'questions', 'space', 'people', 'pacing',
@@ -191,9 +192,11 @@ router.get('/result', async (req, res) => {
   if (!uuid || !room_code) return res.status(400).json({ error: 'uuid, room_code required' });
 
   try {
-    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [room_code]);
+    const roomRes = await pool.query('SELECT id, pack_id FROM rooms WHERE room_code = $1', [room_code]);
     if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
     const room_id = roomRes.rows[0].id;
+    const pack_id = roomRes.rows[0].pack_id;
+    const pack_defaults = getPackDefaults(pack_id);
 
     const mrRes = await pool.query(
       'SELECT match_json, votes_json, fi_count FROM member_results WHERE uuid = $1 AND room_id = $2',
@@ -344,7 +347,7 @@ router.get('/result', async (req, res) => {
       b: { uuid: p.b?.uuid || null, nickname: p.b?.nickname || null },
     }));
 
-    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs });
+    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs, pack_id, pack_defaults });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });

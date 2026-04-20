@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const QRCode = require('qrcode');
-const { listPacks, getPack, DEFAULT_PACK_ID, getPackFlow, buildRoomQuestions, buildRoomTopics } = require('./question-sources');
+const { listPacks, getPack, DEFAULT_PACK_ID, getPackFlow, buildRoomQuestions, buildRoomTopics, getPackDefaults } = require('./question-sources');
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -169,7 +169,9 @@ router.get('/rooms/:code', async (req, res) => {
   } catch (_) {}
   // id는 응답에서 제외 (외부 노출 불필요)
   delete room.id;
-  res.json({ ...room, current_state });
+  // 팩 기본값 — read-time 계산 (스냅샷 X). 팩별 wizard·display·result·flow 정책.
+  const pack_defaults = getPackDefaults(room.pack_id);
+  res.json({ ...room, current_state, pack_defaults });
 });
 
 // GET /api/rooms/:code/preview

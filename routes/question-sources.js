@@ -263,6 +263,79 @@ function getPackFlow(packId) {
   return ['mvp']; // 미정의 팩 기본값
 }
 
+// 팩별 UX 정책 (wizard 수집 · 카드 노출 · 결과 페이지 섹션 · 인스타 교환)
+// Read-time 에 /api/rooms/:code · /api/result 응답으로 내려줌 (스냅샷 저장 X).
+// 호스트가 display_fields 추가·hide_* 토글로 사용자별 override 가능.
+const WIZARD_FIELDS_ALL = ['nickname', 'emoji', 'gender', 'birth_year', 'region', 'industry', 'mbti', 'interest', 'instagram'];
+const DISPLAY_FIELDS_ALL = ['birth_year', 'region', 'industry', 'mbti', 'interest'];
+const RESULT_SECTIONS_ALL = ['ai_personality', 'couple_card', 'best_match', 'mutual_pairs', 'mvp', 'explore_result', 'summary'];
+
+// skip_free_chat: true 면 탐구(explore) → 자유대화(free) 건너뛰고 바로 마무리(ending).
+// wizard_fields: 게스트가 입장 마법사에서 수집하는 필드.
+// display_fields_default: 결과카드·참가자카드에 보이는 필드 기본값 (호스트 override 가능).
+// result_sections: 결과 페이지에서 렌더될 섹션 화이트리스트.
+const PACK_DEFAULTS = {
+  // 커플/듀오 — 닉·이모지·MBTI·출생연도만. 자유대화 skip · 매칭·MVP·인스타 없음.
+  couples: {
+    wizard_fields: ['nickname', 'emoji', 'mbti', 'birth_year'],
+    display_fields_default: ['birth_year', 'mbti'],
+    result_sections: ['ai_personality', 'couple_card', 'explore_result', 'summary'],
+    skip_free_chat: true,
+    insta_exchange_enabled: false,
+    best_match_enabled: false,
+    mvp_enabled: false,
+    match_pairs_enabled: false,
+  },
+  // 소개팅/연애 — 전체 필드, 매칭 + 인스타 교환 핵심.
+  dating: {
+    wizard_fields: ['nickname', 'emoji', 'gender', 'birth_year', 'region', 'industry', 'mbti', 'interest', 'instagram'],
+    display_fields_default: ['birth_year', 'region', 'industry', 'interest'],
+    result_sections: ['ai_personality', 'best_match', 'mutual_pairs', 'explore_result', 'summary'],
+    skip_free_chat: false,
+    insta_exchange_enabled: true,
+    best_match_enabled: true,
+    mvp_enabled: true,
+    match_pairs_enabled: true,
+  },
+  // 처음 만나는 사이 — MVP 중심. 인스타·작대기 제외.
+  icebreaker: {
+    wizard_fields: ['nickname', 'emoji', 'gender', 'birth_year', 'region', 'industry', 'mbti', 'interest'],
+    display_fields_default: ['birth_year', 'region', 'industry', 'interest'],
+    result_sections: ['ai_personality', 'best_match', 'mvp', 'explore_result', 'summary'],
+    skip_free_chat: false,
+    insta_exchange_enabled: false,
+    best_match_enabled: true,
+    mvp_enabled: true,
+    match_pairs_enabled: false,
+  },
+  // 오랜만 — 이미 아는 사이. 최소 필드 + 탐구 결과만.
+  'friends-reunion': {
+    wizard_fields: ['nickname', 'emoji', 'birth_year', 'mbti'],
+    display_fields_default: ['birth_year', 'mbti'],
+    result_sections: ['ai_personality', 'explore_result', 'summary'],
+    skip_free_chat: false,
+    insta_exchange_enabled: false,
+    best_match_enabled: false,
+    mvp_enabled: false,
+    match_pairs_enabled: false,
+  },
+  // 팀빌딩 — 업종·관심사 중심. MVP 만. 매칭·인스타 없음.
+  teambuilding: {
+    wizard_fields: ['nickname', 'emoji', 'industry', 'mbti', 'interest'],
+    display_fields_default: ['industry', 'mbti', 'interest'],
+    result_sections: ['ai_personality', 'mvp', 'explore_result', 'summary'],
+    skip_free_chat: false,
+    insta_exchange_enabled: false,
+    best_match_enabled: false,
+    mvp_enabled: true,
+    match_pairs_enabled: false,
+  },
+};
+
+function getPackDefaults(packId) {
+  return PACK_DEFAULTS[packId] || PACK_DEFAULTS[DEFAULT_PACK_ID];
+}
+
 function parseQuestions() {
   return getPack(DEFAULT_PACK_ID)?.questions || [];
 }
@@ -284,4 +357,9 @@ module.exports = {
   DEFAULT_PACK_ID,
   PACK_FLOW_DEFAULTS,
   getPackFlow,
+  PACK_DEFAULTS,
+  getPackDefaults,
+  WIZARD_FIELDS_ALL,
+  DISPLAY_FIELDS_ALL,
+  RESULT_SECTIONS_ALL,
 };
