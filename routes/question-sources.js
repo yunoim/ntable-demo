@@ -268,7 +268,7 @@ function getPackFlow(packId) {
 // 호스트가 display_fields 추가·hide_* 토글로 사용자별 override 가능.
 const WIZARD_FIELDS_ALL = ['nickname', 'emoji', 'gender', 'birth_year', 'region', 'industry', 'mbti', 'interest', 'instagram'];
 const DISPLAY_FIELDS_ALL = ['birth_year', 'region', 'industry', 'mbti', 'interest'];
-const RESULT_SECTIONS_ALL = ['ai_personality', 'couple_card', 'best_match', 'mutual_pairs', 'mvp', 'explore_result', 'summary'];
+const RESULT_SECTIONS_ALL = ['ai_personality', 'couple_love', 'couple_card', 'best_match', 'mutual_pairs', 'mvp', 'explore_result', 'summary'];
 
 // skip_free_chat: true 면 탐구(explore) → 자유대화(free) 건너뛰고 바로 마무리(ending).
 // wizard_fields: 게스트가 입장 마법사에서 수집하는 필드.
@@ -276,10 +276,11 @@ const RESULT_SECTIONS_ALL = ['ai_personality', 'couple_card', 'best_match', 'mut
 // result_sections: 결과 페이지에서 렌더될 섹션 화이트리스트.
 const PACK_DEFAULTS = {
   // 커플/듀오 — 닉·이모지·MBTI·출생연도만. 자유대화 skip · 매칭·MVP·인스타 없음.
+  // 결과: 개인 성향(ai_personality) + 연애 분석(couple_love: MBTI궁합 + 탐구답변 기반) + 커플 카드(couple_card) + 탐구결과 + 요약.
   couples: {
     wizard_fields: ['nickname', 'emoji', 'mbti', 'birth_year'],
     display_fields_default: ['birth_year', 'mbti'],
-    result_sections: ['ai_personality', 'couple_card', 'explore_result', 'summary'],
+    result_sections: ['ai_personality', 'couple_love', 'couple_card', 'explore_result', 'summary'],
     skip_free_chat: true,
     insta_exchange_enabled: false,
     best_match_enabled: false,
