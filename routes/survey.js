@@ -119,7 +119,8 @@ router.get('/survey/participants', async (req, res) => {
               COALESCE(rm.nickname, u.nickname) AS nickname,
               COALESCE(rm.gender,   u.gender)   AS gender,
               COALESCE(rm.birth_year, u.birth_year) AS birth_year,
-              COALESCE(rm.mbti,     u.mbti)     AS mbti
+              COALESCE(rm.mbti,     u.mbti)     AS mbti,
+              COALESCE(rm.emoji,    u.emoji)    AS emoji
          FROM member_results mr
          LEFT JOIN room_members rm ON rm.room_id = mr.room_id AND rm.uuid = mr.uuid
          LEFT JOIN users u ON u.uuid = mr.uuid

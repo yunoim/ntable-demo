@@ -993,7 +993,7 @@
         } else {
           matchEl.innerHTML = '<div class="match-fallback-frame"><div class="match-fallback-text">파트너 정보가 없어요.</div></div>';
         }
-      } else
+      } else {
       const mutualHtml = mutualPairs.length > 0 ? `
         <div class="match-frame" style="padding:22px;margin-bottom:18px;">
           <div class="match-eyebrow">오늘의 커플 · 상호 지명</div>
@@ -1101,6 +1101,7 @@
           `;
         matchEl.innerHTML = mutualHtml + coupleBtnHtml + fallback;
       }
+      } // end else (non-couples 분기)
 
       const summEl = document.getElementById('summary-content');
       const exploreEl = document.getElementById('explore-content');

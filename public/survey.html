@@ -580,10 +580,13 @@
         btn.type = 'button';
         btn.className = 'person-row';
         btn.dataset.uuid = p.uuid;
-        const initial = (p.nickname || '?').slice(0, 1).toUpperCase();
+        // 아바타: 사용자 이모지 우선 → 성별 기본 이모지 → 닉네임 첫글자 순 폴백
+        const defaultEmoji = (p.gender === 'M' || p.gender === 'male') ? '👨'
+                           : (p.gender === 'F' || p.gender === 'female') ? '👩' : '🙂';
+        const avatarChar = p.emoji || defaultEmoji || (p.nickname || '?').slice(0, 1).toUpperCase();
         const meta = [p.mbti, p.birth_year ? `${new Date().getFullYear() - p.birth_year + 1}세` : null].filter(Boolean).join(' · ');
         btn.innerHTML = `
-          <div class="person-avatar">${escHtml(initial)}</div>
+          <div class="person-avatar">${escHtml(avatarChar)}</div>
           <div style="flex:1">
             <div class="person-name">${escHtml(p.nickname)}</div>
             ${meta ? `<div class="person-meta">${escHtml(meta)}</div>` : ''}

@@ -814,6 +814,94 @@
   /* skip_free_chat 팩(couples 등)은 '자유대화' 단계를 아예 숨김 */
   body.skip-free-chat .phase-step[data-tab="free"] { display: none !important; }
 
+  /* ── 모바일 참가자 리스트 + 카드 모달 ─────────── */
+  #mp-list-wrap { display: none; } /* 데스크탑은 항상 숨김 — profile-carousel 로 노출 */
+  .mp-list-head {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--gold-border);
+    border-radius: 12px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .mp-list-head:active { transform: scale(0.99); }
+  .mp-list-title { display: inline-flex; align-items: center; gap: 8px; }
+  .mp-list-title > span { color: var(--gold-light); }
+  .mp-list-chev { color: var(--gold); transition: transform 0.25s; }
+  #mp-list-wrap[data-open="false"] .mp-list-chev { transform: rotate(-90deg); }
+  #mp-list-wrap[data-open="false"] .mp-list-body { display: none; }
+  .mp-list-body {
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 55vh; overflow-y: auto;
+  }
+  .mp-item {
+    width: 100%;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--gold-border);
+    border-radius: 12px;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .mp-item:hover { background: var(--surface-2); border-color: var(--gold); }
+  .mp-item:active { transform: scale(0.99); }
+  .mp-item-photo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(212,168,67,0.35); }
+  .mp-item-emoji { width: 36px; height: 36px; border-radius: 50%; background: var(--gold-dim); display: inline-flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; border: 1px solid rgba(212,168,67,0.25); }
+  .mp-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .mp-item-name { color: var(--white); font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mp-item-meta { color: var(--text-muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.02em; }
+  .mp-item-chev { color: var(--gold); font-size: 20px; flex-shrink: 0; opacity: 0.7; }
+
+  /* 카드 모달 (모바일·PC 공용) */
+  .mp-card-modal {
+    position: fixed; inset: 0;
+    background: rgba(10,15,30,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1600;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    animation: mpModalFade 0.18s ease-out;
+  }
+  .mp-card-modal[hidden] { display: none; }
+  .mp-card-modal-inner {
+    position: relative;
+    max-width: 340px;
+    width: 100%;
+    animation: mpModalRise 0.22s cubic-bezier(0.4,0,0.2,1);
+  }
+  .mp-card-modal-inner .profile-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    transform: none !important;
+  }
+  .mp-card-modal-hint {
+    margin-top: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+  }
+  @keyframes mpModalFade { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes mpModalRise { from { transform: translateY(14px); opacity: 0.6 } to { transform: translateY(0); opacity: 1 } }
+
+  @media (max-width: 768px) {
+    #profile-carousel { display: none !important; }
+    #mp-list-wrap { display: block; }
+  }
+
   /* Phase header */
   #phase-bar {
     display: flex;
@@ -1786,6 +1874,14 @@
     <!-- INTRO -->
     <div class="panel active" id="panel-intro">
       <div id="profile-carousel"></div>
+      <!-- 모바일 전용 접이식 참가자 리스트 (PC 에서는 profile-carousel 사용) -->
+      <div id="mp-list-wrap" data-open="true" hidden>
+        <button type="button" id="mp-list-toggle" class="mp-list-head" onclick="toggleMpList()">
+          <span class="mp-list-title">👥 참가자 <span id="mp-list-count">0</span></span>
+          <span class="mp-list-chev" aria-hidden="true">▾</span>
+        </button>
+        <div id="mp-list-body" class="mp-list-body"></div>
+      </div>
       <div id="no-approved" class="empty-msg" style="text-align:center; padding: 40px 0; font-size: 16px;">
         아직 참가자가 없어요. QR을 공유해 모임을 시작해보세요.
       </div>
@@ -1887,6 +1983,11 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- 참가자 카드 모달 (모바일: 리스트 아이템 탭 → 해당 카드 확대 표시). 모달 어디든 탭하면 닫힘. -->
+<div id="mp-card-modal" class="mp-card-modal" hidden onclick="closeMpCard()">
+  <div class="mp-card-modal-inner" id="mp-card-modal-inner"></div>
+</div>
 
 <!-- TV 연결 모달 -->
 <div id="tvModal" hidden>
@@ -2526,6 +2627,7 @@ function renderProfiles() {
     const meta = [genderLabel, birthDisplay, (showRegion && u.region) ? escHtml(u.region) : ''].filter(Boolean).join(' · ');
     const card = document.createElement('div');
     card.className = 'profile-card';
+    card.dataset.uuid = u.uuid;
     const isHostCard = u.uuid === state.host_uuid || u.uuid === state.uuid;
     const hostBadge = isHostCard ? `<div class="profile-host-badge" title="모임 호스트">👑 호스트</div>` : '';
     card.innerHTML = `
@@ -2541,6 +2643,87 @@ function renderProfiles() {
       ${introHtml}`;
     carousel.appendChild(card);
   }
+  // 모바일 전용 접이식 리스트도 동기 갱신
+  renderMpList();
+}
+
+function renderMpList() {
+  const wrap = document.getElementById('mp-list-wrap');
+  const body = document.getElementById('mp-list-body');
+  const cnt = document.getElementById('mp-list-count');
+  if (!wrap || !body) return;
+  const users = state.approvedUsers || [];
+  if (cnt) cnt.textContent = users.length;
+  if (users.length === 0) {
+    wrap.hidden = true;
+    body.innerHTML = '';
+    return;
+  }
+  wrap.hidden = false;
+  body.innerHTML = '';
+  for (const u of users) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'mp-item';
+    item.dataset.uuid = u.uuid;
+    const photo = state.photos && state.photos[u.uuid];
+    const defaultEmoji = (u.gender === 'M' || u.gender === 'male') ? '👨'
+                       : (u.gender === 'F' || u.gender === 'female') ? '👩' : '🙂';
+    const emoji = u.emoji || defaultEmoji;
+    const avatarHtml = photo
+      ? `<img class="mp-item-photo" src="${escHtml(photo)}" alt="">`
+      : `<span class="mp-item-emoji">${escHtml(emoji)}</span>`;
+    const genderLabel = (u.gender === 'M' || u.gender === 'male') ? '남'
+                      : (u.gender === 'F' || u.gender === 'female') ? '여' : '';
+    const byStr = u.birth_year ? formatBirthYear(u.birth_year, state.birthYearFormat || 'exact') : '';
+    const meta = [genderLabel, byStr, u.mbti].filter(Boolean).join(' · ');
+    item.innerHTML = `
+      ${avatarHtml}
+      <span class="mp-item-main">
+        <span class="mp-item-name">${escHtml(u.nickname)}</span>
+        <span class="mp-item-meta">${escHtml(meta)}</span>
+      </span>
+      <span class="mp-item-chev" aria-hidden="true">›</span>`;
+    item.addEventListener('click', () => openMpCard(u.uuid));
+    body.appendChild(item);
+  }
+}
+
+function toggleMpList() {
+  const wrap = document.getElementById('mp-list-wrap');
+  if (!wrap) return;
+  const open = wrap.getAttribute('data-open') !== 'false';
+  wrap.setAttribute('data-open', open ? 'false' : 'true');
+}
+
+function openMpCard(uuid) {
+  const source = document.querySelector(`#profile-carousel .profile-card[data-uuid="${CSS.escape(uuid)}"]`);
+  const modal = document.getElementById('mp-card-modal');
+  const inner = document.getElementById('mp-card-modal-inner');
+  if (!modal || !inner) return;
+  inner.innerHTML = '';
+  if (source) {
+    const clone = source.cloneNode(true);
+    clone.style.cursor = 'default';
+    inner.appendChild(clone);
+  } else {
+    // carousel 렌더 전이거나 찾을 수 없으면 데이터 기반으로 간이 카드
+    const u = (state.approvedUsers || []).find(x => x.uuid === uuid);
+    if (u) {
+      const emoji = u.emoji || '🙂';
+      inner.innerHTML = `<div class="profile-card"><div class="profile-avatar">${escHtml(emoji)}</div><div class="name">${escHtml(u.nickname)}</div></div>`;
+    }
+  }
+  const hint = document.createElement('div');
+  hint.className = 'mp-card-modal-hint';
+  hint.textContent = '카드 아무 곳이나 탭하면 닫혀요';
+  inner.appendChild(hint);
+  modal.hidden = false;
+}
+
+function closeMpCard() {
+  const modal = document.getElementById('mp-card-modal');
+  if (modal) modal.hidden = true;
 }
 
 function renderQuestion() {
