@@ -662,7 +662,7 @@
       <!-- 둘이서 hero (즉시 모임 생성, 확인 스킵) -->
       <div class="couples-hero" id="couplesHero">
         <span class="couples-hero-eyebrow">둘이서</span>
-        <h3 style="font-size:19px;margin-bottom:14px;">연인 · 썸 타는 사이</h3>
+        <h3 style="font-size:19px;margin-bottom:14px;">연인·가까운 사이</h3>
         <button type="button" class="couples-hero-btn" id="quickCouplesBtn">둘이서 시작하기</button>
       </div>
 
@@ -672,14 +672,14 @@
       <div class="pack-grid" id="packGrid"></div>
     </div>
 
-    <!-- TV 페어링 진입점 (Case 2 전용: 폰으로 컨트롤 + 외부 화면에 쇼잉) -->
+    <!-- TV 페어링 진입점 (Case 2 전용: 폰으로 조작 + 외부 화면에 표시) -->
     <!-- Case 1 (큰 화면 단독)은 여기 안 들어오고 일반 방 생성 플로우 그대로 타면 host.html 이 큰 레이아웃으로 렌더됨 -->
     <div id="tvEntry" style="margin: 22px auto 0; text-align: center; max-width: 380px;">
       <a href="/tv" style="color: var(--gold); font-size: 13.5px; text-decoration: none; display: inline-block; padding: 10px 16px; border: 1px solid var(--gold-border); border-radius: 999px; letter-spacing: 0.01em; background: var(--gold-dim-2);">
-        📺 외부 화면(TV·프로젝터)에 쇼잉만 띄우기 →
+        📺 외부 화면(TV·프로젝터)에 결과만 띄우기 →
       </a>
       <div style="margin-top: 8px; font-size: 11.5px; color: var(--text-dim); line-height: 1.5;">
-        폰에서 컨트롤, 외부 화면은 쇼잉 전용 (페어링 필요)
+        폰으로 조작하고 외부 화면에는 결과만 보여줘요 (연결 필요)
       </div>
     </div>
 
@@ -794,7 +794,7 @@
     const ROOM_KITS = [
       {
         id: 'couples', icon: '💞', title: '둘이서',
-        desc: '연인 · 썸 타는 사이',
+        desc: '연인·가까운 사이',
         defaults: {
           question_count: 10,
           display_fields: ['birth_year', 'region', 'industry', 'interest'],
@@ -836,7 +836,7 @@
           '자유대화 (타이머 15분 · 익명채팅 · 주제카드)',
           'MVP 투표',
           '사랑의 작대기 매칭 (사진·공통답변)',
-          '인스타 상호 공개 (mutual)',
+          '인스타 상호 공개 (양쪽 모두 선택 시)',
           'AI 성향 카드',
         ],
         defaults: {

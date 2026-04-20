@@ -1874,8 +1874,8 @@
       <button type="button" class="phase-step active" data-tab="intro" aria-label="1단계: 소개">
         <span class="phase-num" aria-hidden="true">01</span><span class="phase-label">소개</span>
       </button>
-      <button type="button" class="phase-step" data-tab="explore" aria-label="2단계: 탐구">
-        <span class="phase-num" aria-hidden="true">02</span><span class="phase-label">탐구</span>
+      <button type="button" class="phase-step" data-tab="explore" aria-label="2단계: 질문">
+        <span class="phase-num" aria-hidden="true">02</span><span class="phase-label">질문</span>
       </button>
       <button type="button" class="phase-step" data-tab="free" aria-label="3단계: 자유대화">
         <span class="phase-num" aria-hidden="true">03</span><span class="phase-label">자유대화</span>
@@ -1969,18 +1969,18 @@
     <div class="panel" id="panel-ending">
       <div class="stage-tag" hidden>Step 04 · 마무리</div>
       <h1 class="stage-title">오늘의 <em>결과</em></h1>
-      <p class="stage-sub">MVP 투표 → 발표 → 작대기 → 매칭 발표 순서로 진행하세요.</p>
+      <p class="stage-sub">오늘의 주인공 투표 → 발표 → 또 만나고 싶은 사람 선택 → 매칭 발표 순서로 진행해요.</p>
 
       <div class="closing-substeps" id="closingSubsteps">
-        <span class="csub" data-sub="mvp">① MVP 투표</span>
-        <span class="csub" data-sub="mvp-result">② MVP 발표</span>
-        <span class="csub" data-sub="match">③ 작대기 투표</span>
+        <span class="csub" data-sub="mvp">① 주인공 투표</span>
+        <span class="csub" data-sub="mvp-result">② 주인공 발표</span>
+        <span class="csub" data-sub="match">③ 또 만나고 싶은 사람</span>
         <span class="csub" data-sub="match-result">④ 매칭 발표</span>
       </div>
 
       <div class="closing-grid">
         <div class="free-card">
-          <div class="card-head" id="closing-card-head">🏆 MVP 투표 — 가장 인상적인 사람</div>
+          <div class="card-head" id="closing-card-head">🏆 오늘의 주인공 투표</div>
           <div id="mvp-list"></div>
           <!-- participant 호스트 본인 투표 UI -->
           <div id="host-self-vote-wrap" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;">
@@ -3402,7 +3402,7 @@ function renderHostSelfVote(phase) {
     others = others.filter(u => isOppositeGender(myGender, u.gender));
   }
   if (others.length === 0) {
-    const msg = phase === 'closing-match' ? '작대기 투표 대상이 없어요' : '다른 참가자가 없어요';
+    const msg = phase === 'closing-match' ? '선택할 상대가 없어요' : '다른 참가자가 없어요';
     optsEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">${msg}</div>`;
     return;
   }
@@ -3413,7 +3413,7 @@ function renderHostSelfVote(phase) {
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
         ${others.map(u => `<button type="button" class="chip${pick===u.uuid?' selected':''}" data-host-mvp="${escHtml(u.uuid)}" style="font-size:12px;">${escHtml(u.nickname)}</button>`).join('')}
       </div>
-      <button type="button" onclick="submitHostMvp()" style="margin-top:10px;padding:8px 14px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">내 MVP 제출</button>
+      <button type="button" onclick="submitHostMvp()" style="margin-top:10px;padding:8px 14px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">내 선택 제출</button>
     `;
     optsEl.querySelectorAll('[data-host-mvp]').forEach(b => {
       b.addEventListener('click', () => {
@@ -3422,13 +3422,13 @@ function renderHostSelfVote(phase) {
       });
     });
   } else if (phase === 'closing-match') {
-    // 사랑의 작대기 — 복수 선택 (서버 POST /connections)
+    // 또 만나고 싶은 사람 — 복수 선택 (서버 POST /connections)
     const picks = new Set(state.hostMatchPicks || []);
     optsEl.innerHTML = `
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
         ${others.map(u => `<button type="button" class="chip${picks.has(u.uuid)?' selected':''}" data-host-match="${escHtml(u.uuid)}" style="font-size:12px;">${escHtml(u.nickname)}</button>`).join('')}
       </div>
-      <button type="button" onclick="submitHostMatch()" style="margin-top:10px;padding:8px 14px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">내 작대기 제출</button>
+      <button type="button" onclick="submitHostMatch()" style="margin-top:10px;padding:8px 14px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">내 선택 제출</button>
     `;
     optsEl.querySelectorAll('[data-host-match]').forEach(b => {
       b.addEventListener('click', () => {
@@ -3443,10 +3443,10 @@ function renderHostSelfVote(phase) {
 }
 
 async function submitHostMvp() {
-  if (!state.hostMvpPick) { toast('MVP 대상을 선택해주세요'); return; }
+  if (!state.hostMvpPick) { toast('오늘의 주인공을 한 명 골라주세요'); return; }
   try {
     const r = await api(`/api/rooms/${state.roomCode}/vote/mvp`, 'POST', { uuid: state.uuid, target_uuid: state.hostMvpPick });
-    if (r.ok) toast('✓ 내 MVP 제출');
+    if (r.ok) toast('✓ 선택을 제출했어요');
     else toast('제출 실패');
   } catch { toast('제출 실패'); }
 }
@@ -3482,11 +3482,11 @@ function renderClosingSubsteps(current) {
   const help = document.getElementById('closing-card-help');
   const nextBtn = document.getElementById('closingNextBtn');
   const labels = {
-    'closing-mvp':        ['🏆 MVP 투표 — 가장 인상적인 사람', '참가자가 본인 카드에서 투표 + "투표 완료" 누름. 호스트 화면은 실시간 집계.', 'MVP 발표 →'],
-    'closing-mvp-result': ['🏆 MVP 발표', '참가자 화면에 MVP 카드가 떴어요. 다음 단계로 넘기세요.', '작대기 시작 →'],
-    'closing-match':      ['💘 사랑의 작대기', '참가자가 또 만나고 싶은 사람을 선택 + "선택 완료". 모두 끝나면 매칭 발표로.', '매칭 발표 →'],
+    'closing-mvp':        ['🏆 오늘의 주인공 투표', '참가자가 각자 카드에서 투표하고 "투표 완료"를 눌러요. 이 화면엔 실시간 집계가 보여요.', '주인공 발표 →'],
+    'closing-mvp-result': ['🏆 오늘의 주인공 발표', '참가자 화면에 주인공 카드가 떴어요. 다음 단계로 넘기세요.', '또 만나고 싶은 사람 →'],
+    'closing-match':      ['💘 또 만나고 싶은 사람', '참가자가 또 만나고 싶은 사람을 고르고 "선택 완료"를 눌러요. 모두 끝나면 매칭 발표로 넘기세요.', '매칭 발표 →'],
     'closing-match-result': ['💘 매칭 결과', '매칭 카드가 참가자 화면에 떴어요. 인스타 공유 등 마무리 단계.', '모임 종료'],
-    'closing-explore-result': ['📖 오늘의 탐구 결과', '진행한 모든 문항과 누가 무엇을 골랐는지 표시.', '모임 종료'],
+    'closing-explore-result': ['📖 오늘의 질문 — 모아 보기', '진행한 모든 문항과 누가 어떤 답을 골랐는지 표시돼요.', '모임 종료'],
   };
   const conf = labels[current] || labels['closing-mvp'];
   if (head) head.textContent = conf[0];

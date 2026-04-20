@@ -1404,7 +1404,7 @@
 <div id="mvpOverlay" hidden>
   <div class="mvp-card">
     <button type="button" class="mvp-close" onclick="closeMVPOverlay()" aria-label="닫기">✕</button>
-    <div class="mvp-label">🏆 오늘의 MVP</div>
+    <div class="mvp-label">🏆 오늘의 주인공</div>
     <div class="mvp-photo" id="mvpPhoto"></div>
     <div class="mvp-name" id="mvpName"></div>
     <div class="mvp-sub" id="mvpSub"></div>
@@ -1498,9 +1498,9 @@
     </summary>
     <div class="rules-body">
       <div class="rule-item"><strong>① 소개</strong>모든 참가자 프로필을 카드로 확인</div>
-      <div class="rule-item"><strong>② 탐구</strong>A/B 밸런스 게임으로 성향·취향 탐구</div>
+      <div class="rule-item"><strong>② 질문</strong>A/B 밸런스 게임으로 서로 알아가기</div>
       <div class="rule-item"><strong>③ 자유대화</strong>익명 채팅으로 편하게 대화</div>
-      <div class="rule-item"><strong>④ 마무리</strong>MVP·매칭 발표 + 결과 카드</div>
+      <div class="rule-item"><strong>④ 마무리</strong>오늘의 주인공·매칭 발표 + 결과 카드</div>
     </div>
   </details>
 
@@ -1570,7 +1570,7 @@
 <div class="screen" id="screenExplore">
   <div class="top-bar">
     <span class="logo">ntable</span>
-    <span class="tab-indicator">🔍 탐구</span>
+    <span class="tab-indicator">🔍 질문</span>
     <span class="room-tag" id="exploreProgress">0 / 13</span>
   </div>
   <div class="question-area" id="questionArea">
@@ -1622,14 +1622,14 @@
   </div>
   <div class="closing-content">
     <div class="section-block" id="mvpSection">
-      <div class="section-title">🏆 오늘의 MVP</div>
+      <div class="section-title">🏆 오늘의 주인공</div>
       <div class="section-block-hint">오늘 가장 인상 깊었던 분 한 명을 선택해주세요. (다시 누르면 취소)</div>
       <div id="mvpList"></div>
       <button type="button" class="vote-submit-btn" id="mvpSubmit" onclick="submitVote('mvp')" disabled>투표 완료</button>
       <div class="vote-done-msg" id="mvpDoneMsg">✓ 투표 완료</div>
     </div>
     <div class="section-block" id="matchSection">
-      <div class="section-title">💘 사랑의 작대기</div>
+      <div class="section-title">💘 또 만나고 싶은 사람</div>
       <div class="section-block-hint">마음에 든 분 한 명을 선택해주세요. 서로 지목하면 매칭돼요. (다시 누르면 취소)</div>
       <div id="matchList"></div>
       <button type="button" class="vote-submit-btn" id="matchSubmit" onclick="submitVote('match')" disabled>선택 완료</button>
@@ -2303,7 +2303,7 @@ function applyClosingPhase(phase) {
     case 'closing-mvp-result':
       mvpSec.hidden = true;
       matchSec.hidden = true;
-      if (wait) { wait.hidden = false; wait.querySelector('div:not(.closing-wait-icon)').textContent = '🏆 MVP 발표 중…'; }
+      if (wait) { wait.hidden = false; wait.querySelector('div:not(.closing-wait-icon)').textContent = '🏆 오늘의 주인공 발표 중…'; }
       break;
     case 'closing-match':
       mvpSec.hidden = true;
@@ -3127,7 +3127,7 @@ async function renderGuestExploreResult() {
   area.innerHTML = `
     <div id="guest-explore-card" style="padding:8px 4px;">
       <div style="text-align:center;font-size:36px;margin-bottom:8px;">📖</div>
-      <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#fff;text-align:center;margin-bottom:18px;">오늘의 탐구 결과</h2>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#fff;text-align:center;margin-bottom:18px;">오늘의 질문 — 모아 보기</h2>
       <div id="guest-explore-list" style="font-size:13px;line-height:1.6;color:var(--text);">불러오는 중…</div>
     </div>
     <button type="button" onclick="saveGuestExploreImage()" style="display:block;width:100%;margin-top:14px;padding:13px;background:transparent;color:#e8b84b;border:1px solid rgba(212,168,67,0.5);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">📷 사진으로 저장</button>
@@ -3187,7 +3187,7 @@ function renderExploreResultHtml(data, myUuid) {
       </div>
     `;
   }).join('');
-  return cards || '<div style="color:#6f7889;text-align:center;padding:20px;">아직 탐구 데이터가 없어요</div>';
+  return cards || '<div style="color:#6f7889;text-align:center;padding:20px;">아직 답한 질문이 없어요</div>';
 }
 
 async function saveGuestExploreImage() {
@@ -3229,7 +3229,7 @@ function renderVoteList(containerId, type) {
     .filter(m => type !== 'match' || isOppositeGender(myGender, m.gender));
 
   if (type === 'match' && candidates.length === 0) {
-    container.innerHTML = '<div style="padding:14px;color:#6f7889;font-size:13px;text-align:center;">작대기 투표 대상이 없어요</div>';
+    container.innerHTML = '<div style="padding:14px;color:#6f7889;font-size:13px;text-align:center;">또 만나고 싶은 사람을 선택할 상대가 없어요</div>';
     return;
   }
 
