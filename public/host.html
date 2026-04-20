@@ -1530,6 +1530,8 @@
     .action-left, .action-right { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
     .btn { flex: 1; padding: 12px 16px; font-size: 14px; min-width: 0; }
     .btn-gold { min-width: 0; }
+    .primary-btn-wrap { flex: 1; min-width: 0; }
+    .primary-btn-wrap > .btn { width: 100%; flex: none; }
   }
 
   /* mobile share row — sidebar-head 통째로 숨김 처리되어 사용 안 됨 (2026-04-19) */
@@ -1788,7 +1790,7 @@
     </div>
     <div class="action-right">
       <button type="button" class="btn btn-outline" id="force-match-btn" style="display:none;">강제 매칭</button>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="primary-btn-wrap" style="display:flex;flex-direction:column;align-items:stretch;gap:4px;">
         <button type="button" class="btn btn-gold" id="primary-btn">모임 시작</button>
         <span id="primary-btn-hint" style="font-size:11px;color:var(--text-muted);text-align:center;line-height:1.3;">모임 중간에도 입장이 가능해요</span>
       </div>
