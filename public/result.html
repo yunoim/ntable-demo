@@ -1007,36 +1007,6 @@
     }
   }
 
-  // 카카오 공유 — SDK init + 카드 공유 (host.html 패턴 재사용)
-  async function setupKakaoShare() {
-    try {
-      const r = await fetch('/api/share-config');
-      if (!r.ok) return;
-      const cfg = await r.json();
-      if (!cfg.kakaoJsKey || !window.Kakao) return;
-      if (!Kakao.isInitialized()) Kakao.init(cfg.kakaoJsKey);
-      const btn = document.getElementById('kakao-share-btn');
-      if (btn) btn.hidden = false;
-    } catch (_) {}
-  }
-  function kakaoShareResult() {
-    if (!window.Kakao || !Kakao.isInitialized || !Kakao.isInitialized()) { alert('카카오 공유 준비 중입니다'); return; }
-    const url = 'https://ntable.kr';
-    const personality = document.getElementById('share-type')?.textContent || '';
-    const emoji = document.getElementById('share-emoji')?.textContent || '🍽️';
-    try {
-      Kakao.Share.sendDefault({
-        objectType: 'feed',
-        content: {
-          title: `오늘 ntable 모임 다녀왔어요 ${emoji}`,
-          description: `내 성향: ${personality}\n누가 열어도 재밌는 모임 — ntable`,
-          imageUrl: `${location.origin}/og-image.png`,
-          link: { mobileWebUrl: url, webUrl: url },
-        },
-        buttons: [{ title: 'ntable에서 열어보기', link: { mobileWebUrl: url, webUrl: url } }],
-      });
-    } catch (e) { alert('카카오 공유 실패'); }
-  }
   async function saveResultUrl() {
     const btn = document.getElementById('save-url-btn');
     const original = btn ? btn.textContent : '';
@@ -1045,17 +1015,6 @@
       if (btn) { btn.textContent = '✓ 복사됨 · 북마크해두세요'; setTimeout(() => { btn.textContent = original; }, 2400); }
     } catch (_) {
       if (btn) { btn.textContent = '❌ 복사 실패'; setTimeout(() => { btn.textContent = original; }, 1800); }
-    }
-  }
-
-  async function copyNtableLink() {
-    const btn = document.getElementById('copy-link-btn');
-    const originalText = btn ? btn.textContent : '';
-    try {
-      await navigator.clipboard.writeText('https://ntable.kr');
-      if (btn) { btn.textContent = '✓ 복사됨'; setTimeout(() => { btn.textContent = originalText; }, 1800); }
-    } catch (_) {
-      if (btn) { btn.textContent = '❌ 실패'; setTimeout(() => { btn.textContent = originalText; }, 1800); }
     }
   }
 

@@ -70,10 +70,17 @@ router.post('/rooms', async (req, res) => {
     const dt = new Date(req.body.meeting_at);
     if (Number.isFinite(dt.getTime())) meeting_at = dt.toISOString();
   }
-  // 팩별 closing flow (호스트 override 가능)
+  // 팩별 closing flow (호스트 override 가능) — pack_defaults 로 재검증해서
+  // couples 처럼 mvp/match 비활성 팩에 'mvp','match' 수동 추가 시도 차단.
   const validSteps = ['mvp', 'match', 'explore-result'];
+  const packDef = getPackDefaults(pack.id);
+  const packStepOk = (s) => {
+    if (s === 'mvp' && packDef.mvp_enabled === false) return false;
+    if (s === 'match' && packDef.match_pairs_enabled === false) return false;
+    return true;
+  };
   let closing_steps = Array.isArray(req.body.closing_steps)
-    ? req.body.closing_steps.filter(s => validSteps.includes(s))
+    ? req.body.closing_steps.filter(s => validSteps.includes(s) && packStepOk(s))
     : getPackFlow(pack.id);
 
   // uuid 보장 — 신규 익명 사용자는 자동 등록 (방별 익명 구조)
@@ -730,10 +737,11 @@ router.post('/rooms/:code/me/instagram', async (req, res) => {
   if (insta.length > 50) insta = insta.slice(0, 50);
   const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
-  await pool.query(
+  const r = await pool.query(
     'UPDATE room_members SET instagram = $1 WHERE room_id = $2 AND uuid = $3',
     [insta || null, room.rows[0].id, uuid]
   );
+  if (r.rowCount === 0) return res.status(403).json({ error: 'NOT_PARTICIPANT' });
   res.json({ ok: true, instagram: insta || null });
 });
 
