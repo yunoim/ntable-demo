@@ -106,6 +106,44 @@
     margin-bottom: 32px;
     line-height: 1.7;
   }
+  /* ── 4페이지 스와이프 셸 ─────────────────────── */
+  .pager {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    height: 72dvh;
+    min-height: 480px;
+    overscroll-behavior-x: contain;
+  }
+  .pager::-webkit-scrollbar { display: none; }
+  .page {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    scroll-snap-align: start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+  .page > .card:last-child { margin-bottom: 0; }
+  .pager-dots {
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+    margin: 18px 0 4px;
+  }
+  .pager-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(212,168,67,0.25);
+    transition: background 0.25s, transform 0.2s;
+    cursor: pointer;
+  }
+  .pager-dot.active { background: var(--gold); transform: scale(1.25); }
+
   .card {
     background: var(--surface);
     border: 1px solid var(--gold-border);
@@ -587,56 +625,83 @@
   <h1>오늘의 <em>결과</em></h1>
   <p class="sub">수고하셨어요. 오늘 모임을 정리해드릴게요 🎉</p>
 
-  <div class="card">
-    <div class="card-title">✨ AI 성향 분석</div>
-    <div class="loading" id="personality-loading">
-      <div class="spinner"></div>
-      <span>분석 중...</span>
-    </div>
-    <div id="personality-body" style="display:none">
-      <!-- html2canvas 캡처 타깃: 이 박스만 이미지로 저장됨 -->
-      <div id="share-card" class="share-card">
-        <div class="share-card-brand">ntable</div>
-        <div class="share-card-photo" id="share-photo" style="display:none"></div>
-        <div class="share-card-emoji" id="share-emoji">✨</div>
-        <div class="share-card-type" id="share-type">탐구형</div>
-        <div class="share-card-text" id="personality-text"></div>
-        <div id="share-match-line" class="share-match-line" style="display:none;"></div>
-        <div class="share-card-footer">오늘의 모임 유형 · ntable.kr</div>
+  <div id="pager" class="pager">
+    <!-- 페이지 1 — AI 성향 분석 -->
+    <section class="page" data-page="0">
+      <div class="card">
+        <div class="card-title">✨ AI 성향 분석</div>
+        <div class="loading" id="personality-loading">
+          <div class="spinner"></div>
+          <span>분석 중...</span>
+        </div>
+        <div id="personality-body" style="display:none">
+          <!-- html2canvas 캡처 타깃: 이 박스만 이미지로 저장됨 -->
+          <div id="share-card" class="share-card">
+            <div class="share-card-brand">ntable</div>
+            <div class="share-card-photo" id="share-photo" style="display:none"></div>
+            <div class="share-card-emoji" id="share-emoji">✨</div>
+            <div class="share-card-type" id="share-type">탐구형</div>
+            <div class="share-card-text" id="personality-text"></div>
+            <div id="share-match-line" class="share-match-line" style="display:none;"></div>
+            <div class="share-card-footer">오늘의 모임 유형 · ntable.kr</div>
+          </div>
+          <div class="share-actions">
+            <button type="button" id="save-image-btn" class="share-btn" aria-label="이미지 저장">📷 이미지 저장</button>
+            <button type="button" id="insta-share-btn" class="share-btn outline" aria-label="인스타 스토리로 공유">📸 인스타 스토리 공유</button>
+          </div>
+          <div class="share-actions" style="margin-top:10px;">
+            <button type="button" id="kakao-share-btn" class="share-btn outline" aria-label="카카오톡 공유" hidden style="background:rgba(254,229,0,0.12);border-color:rgba(254,229,0,0.45);color:#FEE500;">💛 카카오톡 공유</button>
+            <button type="button" id="copy-link-btn" class="share-btn outline" aria-label="ntable 링크 복사">🔗 ntable 링크 복사</button>
+          </div>
+        </div>
       </div>
-      <div class="share-actions">
-        <button type="button" id="save-image-btn" class="share-btn" aria-label="이미지 저장">📷 이미지 저장</button>
-        <button type="button" id="insta-share-btn" class="share-btn outline" aria-label="인스타 스토리로 공유">📸 인스타 스토리 공유</button>
+    </section>
+
+    <!-- 페이지 2 — 베스트 매칭 -->
+    <section class="page" data-page="1">
+      <div class="card">
+        <div class="card-title">💘 베스트 매칭</div>
+        <div id="match-content">
+          <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
+        </div>
       </div>
-      <div class="share-actions" style="margin-top:10px;">
-        <button type="button" id="kakao-share-btn" class="share-btn outline" aria-label="카카오톡 공유" hidden style="background:rgba(254,229,0,0.12);border-color:rgba(254,229,0,0.45);color:#FEE500;">💛 카카오톡 공유</button>
-        <button type="button" id="copy-link-btn" class="share-btn outline" aria-label="ntable 링크 복사">🔗 ntable 링크 복사</button>
+    </section>
+
+    <!-- 페이지 3 — 오늘의 탐구 나의 선택 -->
+    <section class="page" data-page="2">
+      <div class="card">
+        <div class="card-title">📖 오늘의 탐구 — 나의 선택</div>
+        <div id="explore-content">
+          <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <!-- 페이지 4 — 오늘 모임 요약 + 인스타 교환 -->
+    <section class="page" data-page="3">
+      <div class="card">
+        <div class="card-title">📊 오늘 모임 요약</div>
+        <div id="summary-content">
+          <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
+        </div>
+      </div>
+      <div class="card" id="insta-card" style="display:none">
+        <div class="card-title">📸 인스타그램 교환</div>
+        <p class="hint-text">상호 동의 시에만 공개돼요. 먼저 공개 의사를 표시해보세요.</p>
+        <button type="button" class="insta-btn" id="insta-btn" onclick="requestInsta()">인스타 공개하기 📲</button>
+        <div id="insta-result"></div>
+      </div>
+    </section>
   </div>
 
-  <div class="card">
-    <div class="card-title">💘 베스트 매칭</div>
-    <div id="match-content">
-      <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
-    </div>
+  <div class="pager-dots" id="pager-dots">
+    <span class="pager-dot active" data-dot="0"></span>
+    <span class="pager-dot" data-dot="1"></span>
+    <span class="pager-dot" data-dot="2"></span>
+    <span class="pager-dot" data-dot="3"></span>
   </div>
 
-  <div class="card">
-    <div class="card-title">📊 오늘 모임 요약</div>
-    <div id="summary-content">
-      <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
-    </div>
-  </div>
-
-  <div class="card" id="insta-card" style="display:none">
-    <div class="card-title">📸 인스타그램 교환</div>
-    <p class="hint-text">상호 동의 시에만 공개돼요. 먼저 공개 의사를 표시해보세요.</p>
-    <button type="button" class="insta-btn" id="insta-btn" onclick="requestInsta()">인스타 공개하기 📲</button>
-    <div id="insta-result"></div>
-  </div>
-
-  <div style="margin-top:28px;text-align:center;">
+  <div style="margin-top:20px;text-align:center;">
     <a href="/" style="display:inline-block;padding:12px 28px;background:transparent;color:var(--gold-light);border:1px solid var(--gold-border);border-radius:10px;text-decoration:none;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:0.02em;">← 홈으로</a>
   </div>
 </div>
@@ -681,8 +746,8 @@
       const r = await fetch(`/api/personality?uuid=${uuid}&room_code=${room_code}`);
       const data = await r.json();
       document.getElementById('personality-loading').style.display = 'none';
-      // 본인 이모지(wizard 선택) 우선, 없으면 성향 이모지
-      document.getElementById('share-emoji').textContent = data.my_emoji || data.emoji || '✨';
+      // 결과(성향 분석)에서 도출된 이모지 사용 — wizard 선택 이모지 대신 결과 기반
+      document.getElementById('share-emoji').textContent = data.emoji || '✨';
       document.getElementById('share-type').textContent = data.personality || '탐구형';
       document.getElementById('personality-text').textContent = data.text || '분석 결과를 불러올 수 없어요.';
       document.getElementById('personality-body').style.display = 'block';
@@ -958,9 +1023,10 @@
       }
 
       const summEl = document.getElementById('summary-content');
+      const exploreEl = document.getElementById('explore-content');
       // 간단 escape
       const escResHtml = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-      // 인기 TOP 5 → 오늘 모든 문항 + 나의 선택
+      // 페이지 3 — 오늘의 탐구 나의 선택
       let hlHtml = '';
       try {
         const er = await fetch(`/api/rooms/${room_code}/explore-result`);
@@ -969,8 +1035,7 @@
           const myMember = (ed.members || []).find(m => m.uuid === uuid);
           const myVotes = (myMember && myMember.votes_json) || {};
           if ((ed.questions || []).length) {
-            hlHtml = `<div style="font-size:12px;color:var(--subtext);margin:18px 0 10px;letter-spacing:0.04em;">오늘의 탐구 — 나의 선택</div>` +
-              ed.questions.map((q, i) => {
+            hlHtml = ed.questions.map((q, i) => {
                 const opts = q.options || [];
                 const optA = String(opts[0] || '').replace(/^A\.\s*/, '');
                 const optB = String(opts[1] || '').replace(/^B\.\s*/, '');
@@ -1017,11 +1082,12 @@
           </div>
         </div>
         ${hostAggHtml}
-        ${hlHtml}
       `;
+      exploreEl.innerHTML = hlHtml || '<div style="color:var(--subtext);text-align:center;padding:20px 0;font-size:13px;">탐구 데이터가 없어요</div>';
     } catch {
       document.getElementById('match-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
       document.getElementById('summary-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      document.getElementById('explore-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
     }
   }
 
@@ -1110,6 +1176,27 @@
       btn.textContent = '인스타 공개하기 📲';
     }
   }
+
+  // 페이지 pager dots 동기화
+  (function setupPager() {
+    const pager = document.getElementById('pager');
+    const dots = Array.from(document.querySelectorAll('#pager-dots .pager-dot'));
+    if (!pager || !dots.length) return;
+    const sync = () => {
+      const idx = Math.round(pager.scrollLeft / (pager.clientWidth || 1));
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    };
+    pager.addEventListener('scroll', () => {
+      if (pager._raf) return;
+      pager._raf = requestAnimationFrame(() => { sync(); pager._raf = null; });
+    });
+    dots.forEach((d, i) => {
+      d.addEventListener('click', () => {
+        pager.scrollTo({ left: pager.clientWidth * i, behavior: 'smooth' });
+      });
+    });
+    sync();
+  })();
 
   loadPersonality();
   loadResult();
