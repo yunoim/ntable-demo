@@ -710,6 +710,15 @@ function renderStep() {
         : '아래 정보로 다른 참가자에게 보입니다.';
       const submitLabel = ROOM.isHost ? '모임 만들고 게스트 초대하기' : '입장하기';
       const genderLabel = data.gender === 'male' ? '남성' : data.gender === 'female' ? '여성' : data.gender === 'unspecified' ? '선택 안 함' : '';
+      // 호스트가 설정한 birth_year_format 에 맞춘 실제 표시값
+      const fmtBy = ROOM.birth_year_format || 'exact';
+      const birthDisplay = data.birth_year ? formatBirthYear(data.birth_year, fmtBy) : '';
+      // 호스트 region_detail=false 면 구 정보 숨기고 시·도만 표시 (다른 참가자에게 보일 형태)
+      let regionDisplay = data.region || '';
+      if (regionDisplay && ROOM.region_detail === false) {
+        const metro = (typeof detectMetro === 'function') ? detectMetro(regionDisplay) : '';
+        if (metro && regionDisplay.startsWith(metro + ' ')) regionDisplay = metro;
+      }
       body = `
         <div class="step-num">${stepNum} · 확인</div>
         <h2 class="step-title">이렇게 입장해요</h2>
@@ -718,8 +727,8 @@ function renderStep() {
           <div class="summary-row"><span class="key">아바타</span><span class="val">${data.emoji ? `<span style="font-size:22px;">${escHtml(data.emoji)}</span>` : '<span class="empty">생략</span>'}</span></div>
           <div class="summary-row"><span class="key">닉네임</span><span class="val">${escHtml(data.nickname)}</span></div>
           ${rowH('성별', genderLabel, false)}
-          ${rowH('출생연도', data.birth_year ? data.birth_year + '년' : '', data.hide_birth_year)}
-          ${rowH('지역', data.region, data.hide_region)}
+          ${rowH('출생연도', birthDisplay, data.hide_birth_year)}
+          ${rowH('지역', regionDisplay, data.hide_region)}
           ${rowH('업종', data.industry, data.hide_industry)}
           ${rowH('MBTI', data.mbti, false)}
           ${rowH('관심사', data.interest, data.hide_interest)}
@@ -737,6 +746,30 @@ function renderStep() {
   main.innerHTML = body;
   bindStep(key);
   renderProgress();
+}
+
+// 호스트 birth_year_format 에 맞춰 연도 → 표시 문자열 (host.html 과 동일 로직)
+function formatBirthYear(year, format) {
+  if (!year) return '';
+  const y = new Date().getFullYear();
+  const age = y - year + 1;
+  if (format === 'decade_half') {
+    if (age < 20) return '10대';
+    if (age >= 60) return '60대+';
+    const decade = Math.floor(age / 10) * 10;
+    const half = age % 10;
+    const label = half <= 3 ? '초' : half <= 6 ? '중' : '후';
+    return `${decade}${label}`;
+  }
+  if (format === 'decade') {
+    if (age < 20) return '10대';
+    if (age < 30) return '20대';
+    if (age < 40) return '30대';
+    if (age < 50) return '40대';
+    if (age < 60) return '50대';
+    return '60대+';
+  }
+  return `${year}년`;
 }
 
 function row(k, v) {
