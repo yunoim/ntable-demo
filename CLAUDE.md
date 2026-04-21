@@ -9,6 +9,12 @@
 
 ## 🔒 MANDATORY RULES (매 세션 절대 준수)
 
+### [R0] 브랜드 자산 참조 — 사용자 대면 텍스트 작성 시 필수
+- UI · 에러 메시지 · 온보딩 · 랜딩 카피 작성 시 반드시 [`docs/brand/ntable-brand-guide.md`](docs/brand/ntable-brand-guide.md) 참조.
+- 태그라인·포지셔닝 문구는 단일 소스(위 파일)에서만 정의. 하드코딩 금지.
+- 노션 업데이트·보고서 작성 시에도 동일 톤 적용.
+- 변경 필요 시 Notion 원본(`ntable-brand-guide`) 먼저 수정 → 레포 사본 동기화 → 관련 코드·문서 반영 순서.
+
 ### [R1] 작업 시작 전 — Notion 선행 조회
 1. Notion "Claude Code 작업 로그" DB에서 관련 작업 검색 (중복 방지)
    - Data Source: `b49ce025-ec70-4ffa-b2cf-d6c57bb5db93`
