@@ -1015,6 +1015,9 @@ router.patch('/rooms/:code/display', async (req, res) => {
 
 // ── 플레이리스트 링크 (playlist-share 팩 전용) ──────────────────────
 // interest 필드 재활용 대신 방별 별도 테이블. upsert 허용(사용자가 오타 수정 가능).
+// 참고: 요청자 서명 검증은 방 참가자 쓰기 엔드포인트 전체 일괄 롤아웃 필요.
+// 현재는 room_members 멤버십만 검증. 단일 오프라인 이벤트 스코프에서는 충분.
+// 설계안·적용 대상·재평가 트리거: docs/backlog/member-write-auth.md
 
 function sanitizePlaylistUrl(raw) {
   const s = String(raw || '').trim();
