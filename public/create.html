@@ -819,8 +819,8 @@
     // 자유대화 메타는 v1 표시용. 실제 server 적용은 백로그.
     const ROOM_KITS = [
       {
-        id: 'couples', icon: '💞', title: '둘이서',
-        desc: '연인·가까운 사이',
+        id: 'couples', icon: '👫', title: '둘이서',
+        desc: '2인 전용 — 가벼운 대화부터 깊은 질문까지',
         defaults: {
           question_count: 10,
           display_fields: ['birth_year', 'region', 'industry', 'interest'],
@@ -832,7 +832,7 @@
       },
       {
         id: 'icebreaker', icon: '🤝', title: '처음 만나는 사이',
-        desc: '낯선 사람들과 첫 인사',
+        desc: '아이스브레이커 — 5분 안에 어색함을 해소',
         detailedDesc: '간단한 5문항으로 어색함을 풀고, MVP 투표로 분위기를 마무리합니다.',
         features: [
           'QR 자동 입장 · 익명 닉네임',
@@ -853,7 +853,7 @@
       },
       {
         id: 'dating', icon: '💘', title: '소개팅·연애',
-        desc: '호감도를 재미있게',
+        desc: '밸런스 게임 + 상호 지명 매칭 + 인스타 상호 공개',
         detailedDesc: '10문항으로 서로를 탐구하고, 사랑의 작대기로 매칭. 양쪽 모두 입력하면 인스타가 공개됩니다.',
         features: [
           'QR 자동 입장 · 익명 닉네임',
@@ -897,32 +897,33 @@
       //     free_chat_timer_minutes: 20, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
       //   },
       // },
-      {
-        id: 'nights-stories', icon: '🌙', title: '나의 이야기 찾기',
-        desc: '조용한 대화·성찰 소모임',
-        seriesLabel: 'ntable Nights',
-        detailedDesc: '내면·관계·지나온 선택을 들여다보는 A/B 10문항 탐구 → 자유대화 → 오늘의 주인공 발표.',
-        features: [
-          'QR 자동 입장 · 익명 닉네임',
-          '참가자 카드 자동 표시',
-          '10문항 A/B 내면 탐구',
-          '자유대화 (타이머 20분 · 익명채팅 · 주제카드)',
-          '오늘의 주인공 투표',
-          '탐구 결과 공개',
-          'AI 성향 카드',
-        ],
-        defaults: {
-          question_count: 10,
-          display_fields: ['birth_year', 'interest'],
-          birth_year_format: 'decade_half',
-          host_role: 'participant', display_mode: 'mobile',
-          photo_enabled: true, region_detail: false,
-          free_chat_timer_minutes: 20, free_chat_chat_enabled: true, free_chat_topic_card_enabled: true,
-        },
-      },
+      // 나의 이야기 찾기 — 랜딩 5종에 맞춰 create UI 에서 일시 제외. PACK_DEFAULTS / 질문 MD 는 유지.
+      // {
+      //   id: 'nights-stories', icon: '🌙', title: '나의 이야기 찾기',
+      //   desc: '조용한 대화·성찰 소모임',
+      //   seriesLabel: 'ntable Nights',
+      //   detailedDesc: '내면·관계·지나온 선택을 들여다보는 A/B 10문항 탐구 → 자유대화 → 오늘의 주인공 발표.',
+      //   features: [
+      //     'QR 자동 입장 · 익명 닉네임',
+      //     '참가자 카드 자동 표시',
+      //     '10문항 A/B 내면 탐구',
+      //     '자유대화 (타이머 20분 · 익명채팅 · 주제카드)',
+      //     '오늘의 주인공 투표',
+      //     '탐구 결과 공개',
+      //     'AI 성향 카드',
+      //   ],
+      //   defaults: {
+      //     question_count: 10,
+      //     display_fields: ['birth_year', 'interest'],
+      //     birth_year_format: 'decade_half',
+      //     host_role: 'participant', display_mode: 'mobile',
+      //     photo_enabled: true, region_detail: false,
+      //     free_chat_timer_minutes: 20, free_chat_chat_enabled: true, free_chat_topic_card_enabled: true,
+      //   },
+      // },
       {
         id: 'playlist-share', icon: '🎵', title: '나만의 플리 공유회',
-        desc: '각자 플리 공유 · BEST 뽑기',
+        desc: '각자 15분 플리를 스피커로 공유 · BEST 플리 투표',
         seriesLabel: 'ntable Plays',
         detailedDesc: '각자 15분 플리를 스피커로 공유하고, 익명 채팅으로 실시간 반응·BEST 플리 투표·인스타 교환까지.',
         features: [
@@ -947,7 +948,7 @@
       },
       {
         id: 'teambuilding', icon: '💼', title: '팀·회사',
-        desc: '팀빌딩 · 신입 OT · 워크숍',
+        desc: '팀빌딩 — 업무 스타일 탐구·신입 OT·워크숍',
         detailedDesc: '업무 스타일 10문항으로 팀원의 성향을 파악하고, MVP·페어·결과 카드까지 한 번에.',
         features: [
           'QR 자동 입장 · 익명 닉네임',
