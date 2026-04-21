@@ -752,16 +752,28 @@ function renderStep() {
     case 'photo': {
       // 'photo' step → 'emoji' step으로 전환 (2026-04-19) — 사진 업로드 폐기, 이모지 단일화
       // 카테고리별 이모지 (2026-04-20) — 표정·동물·운동·자연·음식·취미·상징
+      // T-15 (2026-04-22): 큐레이션 — 카테고리당 12개 × 7 = 84. 인지 부하 감소.
       const EMOJI_CATEGORIES = [
-        { label: '표정 · 기분', emojis: ['😀','😁','😂','🤣','😊','😇','🙂','🥰','😍','🤩','😎','🤔','🧐','😌','😴','🤗','🤓','🥳','😏','🤭','😜','🤪','😬','🙃','😋','🫠','🫡','🫣'] },
-        { label: '동물', emojis: ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🐨','🐵','🐸','🐙','🦋','🦉','🐧','🐳','🦄','🐢','🦒','🐘','🦜','🐿️','🦔','🦦','🦥','🦩','🐝','🐞','🐬','🦈'] },
-        { label: '운동 · 활동', emojis: ['⚽','🏀','🏈','⚾','🎾','🏐','🎱','🏓','🏸','🥊','🏋️','🚴','🏃','⛷️','🏂','🏄','🏌️','🧘','🤸','🏊','⛹️','🤺','🧗','🚵','🏇','🥋'] },
-        { label: '자연 · 날씨', emojis: ['🌸','🌷','🌻','🌹','🌺','🌼','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌿','🌴','🌲','🌈','❄️','☁️','⚡','🌟','🌞','🌛','🌱','🍃','🍂','🪷'] },
-        { label: '음식 · 음료', emojis: ['🍎','🍕','🍔','🍣','🍜','🍰','🍫','🍷','🍺','☕','🍵','🍙','🍩','🍓','🥐','🍳','🥗','🍲','🌮','🥟','🍦','🍪','🥩','🍝','🍱','🧋','🍹','🍾'] },
-        { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎲','🧩','🎤','🎭','🎹','♟️','🎧','🖌️','🎻','🥁','🎺','🎼','📸','🎥','🕹️','📖','🎳','🎪'] },
-        { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','💜','💛','💚','💙','🖤','🤍','🧡','💖','🌟','⚡','✨','🔮','🪄','🎀','🗝️','⚓','🧿'] },
+        { label: '표정 · 기분', emojis: ['😀','😊','🥰','😍','🤩','🤔','😎','😴','🤗','🥳','😌','🙃'] },
+        { label: '동물',        emojis: ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦋','🐧','🦄','🐳'] },
+        { label: '운동 · 활동', emojis: ['⚽','🏀','🎾','🥊','🏋️','🚴','🏃','🏄','🧘','🏊','🤸','🧗'] },
+        { label: '자연 · 날씨', emojis: ['🌸','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌴','🌈','⚡','🌟'] },
+        { label: '음식 · 음료', emojis: ['🍎','🍕','🍣','🍰','🍫','🍷','☕','🍜','🍓','🍹','🥐','🍦'] },
+        { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼'] },
+        { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'] },
       ];
+      // 자주 쓰는 6개 — 입장 직전 빠른 선택용 (카테고리 교차 샘플)
+      const QUICK_EMOJIS = ['😊','🥰','✨','🎵','🐰','🌸'];
+      // 전체 풀 (랜덤 선택용) — 외부 handler 접근 위해 window 에 보관
+      const ALL_EMOJIS = EMOJI_CATEGORIES.flatMap(c => c.emojis);
+      window._ALL_EMOJIS = ALL_EMOJIS;
       const curEmoji = data.emoji || '';
+      // T-15 (2026-04-22): 빠른 선택 6개 + 더보기 토글. 선택된 이모지가 quick 에 없으면 자동 확장.
+      const curInQuick = curEmoji && QUICK_EMOJIS.includes(curEmoji);
+      if (typeof window._emojiExpanded !== 'boolean') {
+        window._emojiExpanded = !!(curEmoji && !curInQuick);
+      }
+      const expanded = window._emojiExpanded;
       // 현재 선택된 이모지가 속한 카테고리를 기본 탭으로 (없으면 0)
       let defaultCatIdx = 0;
       if (curEmoji) {
@@ -772,6 +784,19 @@ function renderStep() {
       const safeCatIdx = Math.max(0, Math.min(activeCatIdx, EMOJI_CATEGORIES.length - 1));
       window._emojiCatIdx = safeCatIdx;
       const activeCat = EMOJI_CATEGORIES[safeCatIdx];
+      const quickChips = QUICK_EMOJIS.map(e =>
+        `<button type="button" class="chip emoji-chip${curEmoji===e?' selected':''}" data-emoji="${e}" style="font-size:22px;padding:7px 10px;">${e}</button>`
+      ).join('');
+      const quickRow = `
+        <div class="emoji-quick-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px;">
+          <span style="font-size:11px;color:var(--text-muted, #c0c0c0);letter-spacing:0.08em;text-transform:uppercase;margin-right:4px;">자주 쓰는</span>
+          ${quickChips}
+          <button type="button" class="emoji-random-btn" onclick="pickRandomEmoji()" style="margin-left:auto;padding:7px 12px;background:transparent;border:1px solid var(--gold-border, rgba(212,168,67,0.35));color:var(--gold, #d4a843);border-radius:999px;font-size:12px;font-family:inherit;cursor:pointer;letter-spacing:0.04em;">🎲 랜덤</button>
+        </div>
+      `;
+      const moreToggle = `
+        <button type="button" class="emoji-more-btn" onclick="toggleEmojiMore()" style="display:block;width:100%;padding:8px;background:transparent;border:none;color:var(--text-muted, #c0c0c0);font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:0.04em;">${expanded ? '접기 ▲' : '더보기 ▼'}</button>
+      `;
       const categoryTabs = EMOJI_CATEGORIES.map((cat, idx) => `
         <button type="button" class="emoji-cat-tab${idx === safeCatIdx ? ' active' : ''}" data-cat-idx="${idx}" onclick="switchEmojiCat(${idx})">${escHtml(cat.label)}</button>
       `).join('');
@@ -780,13 +805,18 @@ function renderStep() {
           ${activeCat.emojis.map(e => `<button type="button" class="chip emoji-chip${curEmoji===e?' selected':''}" data-emoji="${e}" style="font-size:22px;padding:7px 10px;">${e}</button>`).join('')}
         </div>
       `;
+      const fullCategories = expanded ? `
+        <div class="emoji-cat-tabs" style="margin-top:6px;">${categoryTabs}</div>
+        <div class="emoji-cat-grid" style="max-height:28vh;overflow-y:auto;">${activeEmojiGrid}</div>
+      ` : '';
       body = `
         <div class="step-num">${stepNum} · 나를 표현하는 이모지 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">이모지를 골라주세요</h2>
         <p class="step-sub">참가자 카드·매칭 결과에 표시돼요.</p>
         <div class="field" style="margin-bottom:12px;">
-          <div class="emoji-cat-tabs">${categoryTabs}</div>
-          <div class="emoji-cat-grid" style="max-height:32vh;overflow-y:auto;">${activeEmojiGrid}</div>
+          ${quickRow}
+          ${moreToggle}
+          ${fullCategories}
         </div>
         <div class="field" style="margin-bottom:0;">
           <div class="field-label" style="font-size:12px;color:var(--gold, #e8b84b);margin-bottom:6px;letter-spacing:0.04em;">직접 입력</div>
@@ -1089,6 +1119,18 @@ function skipInstagram() {
 // 이모지 카테고리 탭 전환 — 현재 step(emoji) 재렌더. data.emoji 는 그대로 보존
 function switchEmojiCat(idx) {
   window._emojiCatIdx = idx;
+  renderStep();
+}
+
+// T-15 (2026-04-22): 더보기 토글 · 랜덤 선택
+function toggleEmojiMore() {
+  window._emojiExpanded = !window._emojiExpanded;
+  renderStep();
+}
+function pickRandomEmoji() {
+  const pool = window._ALL_EMOJIS;
+  if (!Array.isArray(pool) || pool.length === 0) return;
+  data.emoji = pool[Math.floor(Math.random() * pool.length)];
   renderStep();
 }
 
