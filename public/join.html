@@ -550,7 +550,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" id="nextBtn" disabled onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" id="nextBtn" disabled onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -605,7 +605,7 @@ function renderStep() {
           ${birthSection}
           <div class="actions">
             ${prevBtn}
-            <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+            <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
           </div>
         `;
       }
@@ -646,7 +646,7 @@ function renderStep() {
         ${rdSection}
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -665,7 +665,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -685,7 +685,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -701,7 +701,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -726,7 +726,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -750,7 +750,7 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
@@ -833,14 +833,15 @@ function renderStep() {
         </div>
         <div class="actions">
           ${prevBtn}
-          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          <button type="button" class="btn btn-next" onclick="nextStep()" data-copy="buttons.wizard_next">다음</button>
         </div>
       `;
       break;
     }
     case 'confirm':
       const subText = '아래 정보로 다른 참가자에게 보입니다.';
-      const submitLabel = '입장하기';
+      // T-23 (2026-04-22): 위저드 마지막 버튼은 buttons.wizard_done ("모임에 들어가기")
+      const submitLabel = (typeof t === 'function') ? t('buttons.wizard_done') : '모임에 들어가기';
       const genderLabel = data.gender === 'male' ? '남성' : data.gender === 'female' ? '여성' : data.gender === 'unspecified' ? '선택 안 함' : '';
       // 모임장이 설정한 birth_year_format 에 맞춘 실제 표시값
       const fmtBy = ROOM.birth_year_format || 'exact';

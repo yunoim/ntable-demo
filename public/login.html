@@ -11,6 +11,7 @@
 <script src="/oauth-redirect.js"></script>
 <script src="/pending-reveals.js" defer></script>
 <script src="/twemoji-brand.js" defer></script>
+<script src="/js/brand.js"></script>
 <title>ntable — 누구나 모임장이 되는 모임</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -230,7 +231,7 @@
     <p>모임장이라면 새 모임을 열고, 참가자라면 아래에 참여 코드를 입력하세요.</p>
   </div>
 
-  <button type="button" class="cta-primary" id="openRoomBtn">새 모임 만들기</button>
+  <button type="button" class="cta-primary" id="openRoomBtn" data-copy="buttons.open_room">모임 열기</button>
 
   <!-- 토글 ON + 미인증일 때만 노출: OAuth 버튼. 인증되면 헤더 우상단 라벨만 사용. -->
   <section class="quick-login" id="quickLogin" hidden>
@@ -280,6 +281,13 @@ document.getElementById('openRoomBtn').addEventListener('click', () => {
 });
 
 ensureUuid();
+
+// T-23 (2026-04-22): brand.json 로드 후 data-copy 요소(버튼 라벨 등) 치환
+if (typeof loadBrand === 'function') {
+  loadBrand().then(() => {
+    if (typeof applyCopyToDOM === 'function') applyCopyToDOM(document);
+  }).catch(() => {});
+}
 
 // OAuth 콜백 토큰 처리는 /oauth-redirect.js 가 담당 (전 페이지 공통)
 // login.html은 추가로 auth_error 쿼리 정리만 담당
