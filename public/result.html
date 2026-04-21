@@ -749,6 +749,8 @@
           <div class="share-actions">
             <button type="button" id="save-image-btn" class="share-btn" aria-label="이미지 저장">📷 이미지 저장</button>
             <button type="button" id="insta-share-btn" class="share-btn outline" aria-label="공유하기">📸 공유하기</button>
+            <!-- T-09 (2026-04-22): Instagram Story 9:16 캡처 전용 off-screen 컨테이너. shareToInstagram 에서만 사용. -->
+            <div id="storyCanvas" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1080px;height:1920px;background:linear-gradient(180deg,#0a0f1e 0%,#141d35 100%);color:#f5f2ec;font-family:'Cormorant Garamond','Noto Serif KR',serif;display:flex;flex-direction:column;justify-content:space-between;padding:120px 80px;box-sizing:border-box;"></div>
           </div>
         </div>
       </div>
@@ -958,11 +960,41 @@
     }
   }
 
-  // 인스타 스토리 공유 — share-card DOM 을 html2canvas 로 PNG 뽑아서 Web Share API 로 전달
+  // T-09: Instagram Story 9:16 레이아웃 빌드 (off-screen storyCanvas 에 채움)
+  function buildStoryCanvas() {
+    const sc = document.getElementById('storyCanvas');
+    if (!sc) return null;
+    const emoji = document.getElementById('share-emoji')?.textContent || '✨';
+    const type = document.getElementById('share-type')?.textContent || '—';
+    const text = (document.getElementById('personality-text')?.textContent || '').slice(0, 140);
+    const photoEl = document.getElementById('share-photo');
+    const hasPhoto = photoEl && photoEl.style.display !== 'none' && photoEl.querySelector('img');
+    const photoSrc = hasPhoto ? photoEl.querySelector('img').src : null;
+    const mediaBlock = photoSrc
+      ? `<div style="width:520px;height:520px;margin:0 auto;border-radius:50%;overflow:hidden;border:8px solid #d4a843;box-shadow:0 0 80px rgba(212,168,67,0.35);"><img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;display:block;" crossorigin="anonymous"/></div>`
+      : `<div style="font-size:340px;line-height:1;text-align:center;">${escHtml(emoji)}</div>`;
+    sc.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:72px;font-weight:600;color:#d4a843;letter-spacing:0.3em;">ntable</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:26px;letter-spacing:0.24em;color:#c0c0c0;margin-top:16px;text-transform:uppercase;">Today's Type</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:60px;">
+        ${mediaBlock}
+        <div style="font-family:'Cormorant Garamond',serif;font-size:140px;font-weight:600;color:#f5e7b5;line-height:1.1;text-align:center;">${escHtml(type)}</div>
+        <div style="font-family:'Noto Sans KR',sans-serif;font-size:38px;line-height:1.55;color:#c0c0c0;text-align:center;max-width:800px;">${escHtml(text)}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:34px;color:#d4a843;">누구나 모임장이 되는 모임</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:26px;color:#c0c0c0;margin-top:12px;letter-spacing:0.08em;">ntable.kr</div>
+      </div>`;
+    return sc;
+  }
+  function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // 인스타 스토리 공유 — 9:16 storyCanvas 를 html2canvas 로 PNG 뽑아서 Web Share API 로 전달 (T-09)
   async function shareToInstagram() {
     const btn = document.getElementById('insta-share-btn');
-    const card = document.getElementById('share-card');
-    if (!card || typeof html2canvas === 'undefined') {
+    if (typeof html2canvas === 'undefined') {
       alert('공유 카드 준비 중이에요. 잠시 후 다시 시도해주세요.');
       return;
     }
@@ -970,9 +1002,13 @@
     const original = btn.textContent;
     btn.textContent = '준비 중...';
     try {
-      const canvas = await html2canvas(card, {
-        backgroundColor: '#141d35',
-        scale: 2,
+      const target = buildStoryCanvas();
+      if (!target) throw new Error('story canvas build failed');
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#0a0f1e',
+        width: 1080,
+        height: 1920,
+        scale: 1,
         useCORS: true,
         logging: false,
       });
