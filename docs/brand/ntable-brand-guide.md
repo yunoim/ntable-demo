@@ -106,8 +106,33 @@
 - 배경 팔레트: 파스텔 또는 대비색 (주제 감성 맞게)
 - 상세 시각 가이드는 별도 Gemini Gem 에서 관리
 
-## 8. 변경 로그
+## 8. UI 마이크로카피 (2026-04-22 신설)
+
+게스트 온보딩·진행 중 안내·성공 피드백 같은 마이크로카피는 `brand.json` 의 `ui_copy` / `error_copy` 블록으로 분리해 관리. 장식 이모지 프리픽스는 시맨틱 고정 (`✓` 성공 · `⚠️` 경고 · `✨` 초대).
+
+### 대표 사례 (Batch 1+2 도입)
+
+| 상황 | 카피 | brand.json 키 |
+| --- | --- | --- |
+| 프로필 lazy prompt 카드 제목 | "✨ 프로필 더 채우기" + "2분" | `ui_copy.profile_lazy_prompt_title` · `profile_lazy_prompt_duration` |
+| 프로필 저장 성공 토스트 | "✓ 프로필이 저장됐어요" | `ui_copy.profile_saved_success` |
+| 닉네임 중복 실시간 경고 (inline) | "⚠️ 이 모임에서 '{nick}' 은 이미 사용 중이에요" | `error_copy.nickname_taken_inline` |
+| 닉네임 이어받기 CTA | "이전에 이 닉으로 참여했다면 이어받기" | `ui_copy.nick_resume_cta` |
+
+### 용어 통일
+
+사용자 대면 텍스트에서 세션/공간을 가리킬 때는 **"모임"** 을 사용. "방"(room) 은 코드·DB 스키마 내부에서만 사용 (변수명 `room_code` 등). 톤을 따뜻하게 유지하기 위함.
+
+### 변경 절차 (R0 재확인)
+
+1. 이 가이드 원본 (Notion `ntable-brand-guide`) 수정
+2. `docs/brand/ntable-brand-guide.md` 동기화
+3. `docs/brand/brand.json` 의 `ui_copy` · `error_copy` 블록 갱신
+4. 코드 하드코딩 위치 일치 확인 (키 주석 달아두면 grep 수월)
+
+## 9. 변경 로그
 
 | 일자 | 내용 |
 | --- | --- |
 | 2026-04-21 | 초기 버전. 태그라인·톤·표기 규칙·시리즈 구조 정립. |
+| 2026-04-22 | §8 UI 마이크로카피 섹션 신설. `brand.json` 에 `ui_copy` 블록 + `error_copy.nickname_taken_inline` 추가. 공개 텍스트에서 "방"→"모임" 용어 통일 (`public/join.html` 4곳). |
