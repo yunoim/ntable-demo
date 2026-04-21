@@ -80,6 +80,12 @@ app.get('/api/share-config', (req, res) => {
   });
 });
 
+// brand.json SoT — docs/brand/brand.json 을 클라이언트 런타임 로더(public/js/brand.js)에 노출
+app.get('/brand.json', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.sendFile(path.join(__dirname, 'docs', 'brand', 'brand.json'));
+});
+
 // Routes
 app.use('/api', authRouter);
 app.use('/api', roomsRouter);
