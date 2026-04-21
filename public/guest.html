@@ -3222,10 +3222,19 @@ async function loadClosingData() {
     } catch(_) {}
   }
   document.getElementById('closingRoomTag').textContent = STATE.roomCode;
-  // 로컬에 기록된 투표 완료 상태 복원 — 재접속 시 중복 투표 방지
+  // 서버에서 본인 MVP/작대기 선택 복원 (재접속·화면 꺼짐 복귀 대비)
   try {
-    if (localStorage.getItem(`ntable_mvp_voted_${STATE.roomCode}`) === '1') STATE.mvpVoted = true;
-    if (localStorage.getItem(`ntable_match_voted_${STATE.roomCode}`) === '1') STATE.matchVoted = true;
+    const pr = await fetch(`/api/rooms/${STATE.roomCode}/my-picks?uuid=${encodeURIComponent(STATE.uuid)}`);
+    if (pr.ok) {
+      const p = await pr.json();
+      if (p.mvp_pick) { STATE.mvpPending = p.mvp_pick; STATE.mvpVoted = true; }
+      if (p.match_pick) { STATE.matchPending = p.match_pick; STATE.matchVoted = true; }
+    }
+  } catch (_) {}
+  // localStorage fallback (서버 응답 실패 시 중복 투표 방지만이라도)
+  try {
+    if (!STATE.mvpVoted && localStorage.getItem(`ntable_mvp_voted_${STATE.roomCode}`) === '1') STATE.mvpVoted = true;
+    if (!STATE.matchVoted && localStorage.getItem(`ntable_match_voted_${STATE.roomCode}`) === '1') STATE.matchVoted = true;
   } catch (_) {}
   // 1:1 모임 특수 처리 폐기 (2026-04-19) — 인원 수 무관하게 MVP/사랑의작대기 항상 노출
   renderVoteList('mvpList', 'mvp');
@@ -3352,18 +3361,20 @@ function renderVoteList(containerId, type) {
   }
 
   const alreadyDone = type === 'mvp' ? STATE.mvpVoted : STATE.matchVoted;
+  const picked = type === 'mvp' ? STATE.mvpPending : STATE.matchPending;
 
   candidates.forEach(m => {
       const age = ageOf(m.birth_year);
       const item = document.createElement('div');
-      item.className = 'member-vote-item' + (alreadyDone ? ' done' : '');
+      const isPicked = picked === m.uuid;
+      item.className = 'member-vote-item' + (alreadyDone ? ' done' : '') + (isPicked ? ' selected' : '');
       item.dataset.uuid = m.uuid;
       item.innerHTML = `
         <div>
           <div class="member-vote-name">${escHtml(m.nickname)}</div>
           <div class="member-vote-meta">${[age, m.mbti].filter(Boolean).join(' · ')}</div>
         </div>
-        <div class="vote-check">○</div>`;
+        <div class="vote-check">${isPicked ? '●' : '○'}</div>`;
       if (!alreadyDone) item.onclick = () => selectVote(item, type, m.uuid);
       container.appendChild(item);
     });

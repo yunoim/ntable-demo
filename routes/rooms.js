@@ -402,6 +402,24 @@ router.get('/rooms/:code/my-votes', async (req, res) => {
   res.json({ votes });
 });
 
+// GET /api/rooms/:code/my-picks?uuid=X — closing 단계 MVP/작대기 본인 선택 복원용
+router.get('/rooms/:code/my-picks', async (req, res) => {
+  const { code } = req.params;
+  const uuid = req.query.uuid;
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const r = await pool.query(
+    'SELECT match_json FROM member_results WHERE uuid = $1 AND room_id = $2',
+    [uuid, room.rows[0].id]
+  );
+  const m = (r.rows[0] && r.rows[0].match_json) || {};
+  res.json({
+    mvp_pick: m.mvp_pick || null,
+    match_pick: m.pick || null,
+  });
+});
+
 // GET /api/rooms/:code/me?uuid=X — 본인이 이 방에 join 했는지 확인 (200 + joined boolean)
 router.get('/rooms/:code/me', async (req, res) => {
   const { code } = req.params;

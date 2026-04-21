@@ -377,6 +377,29 @@ router.post('/rooms/:code/vote/mvp', async (req, res) => {
     if (!roomRes.rows.length) return res.status(404).json({ error: '방 없음' });
     const room_id = roomRes.rows[0].id;
 
+    // voter 자기 row upsert — 투표 이력(mvp_pick) 기록용
+    await pool.query(
+      `INSERT INTO member_results (uuid, room_id, room_code, votes_json, match_json, fi_count)
+       VALUES ($1, $2, $3, '{}', '{}', 0)
+       ON CONFLICT (uuid, room_id) DO NOTHING`,
+      [uuid, room_id, code]
+    );
+    const voterMr = await pool.query(
+      'SELECT match_json FROM member_results WHERE uuid = $1 AND room_id = $2',
+      [uuid, room_id]
+    );
+    const voterMatch = voterMr.rows[0].match_json || {};
+    // 이미 투표한 경우 — 같은 대상이면 idempotent, 다른 대상이면 거부 (no-cancel 정책)
+    if (voterMatch.mvp_pick) {
+      if (voterMatch.mvp_pick === target_uuid) return res.json({ success: true, already_voted: true });
+      return res.status(409).json({ error: 'already voted', previous: voterMatch.mvp_pick });
+    }
+    voterMatch.mvp_pick = target_uuid;
+    await pool.query(
+      'UPDATE member_results SET match_json = $1 WHERE uuid = $2 AND room_id = $3',
+      [JSON.stringify(voterMatch), uuid, room_id]
+    );
+
     // target upsert 후 fi_count ++
     await pool.query(
       `INSERT INTO member_results (uuid, room_id, room_code, votes_json, match_json, fi_count)
@@ -578,6 +601,11 @@ router.post('/rooms/:code/vote/match', async (req, res) => {
       [uuid, room_id]
     );
     const matchData = mr.rows[0].match_json || {};
+    // no-cancel 정책 — 이미 선택이면 idempotent/reject
+    if (matchData.pick) {
+      if (matchData.pick === target_uuid) return res.json({ success: true, already_voted: true });
+      return res.status(409).json({ error: 'already voted', previous: matchData.pick });
+    }
     matchData.pick = target_uuid;
 
     await pool.query(
