@@ -11,6 +11,7 @@
 <script src="/oauth-redirect.js"></script>
 <script src="/auth-header.js" defer></script>
 <script src="/remember-toggle.js" defer></script>
+<script src="/js/brand.js"></script>
 <title>ntable — 모임 입장</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -426,6 +427,11 @@ async function init() {
 
     rebuildSteps();
 
+    // T-19 (2026-04-22): brand.json 런타임 로드 — 위저드 카피 data-copy 치환 준비
+    if (typeof loadBrand === 'function') {
+      try { await loadBrand(); } catch (e) { /* 실패해도 HTML 폴백 카피 사용 */ }
+    }
+
     await prefillFromCache();
     // T-01 (2026-04-21): 이모지 미설정 시 랜덤 기본값 배정 — 카드 허전함 방지 (lazy prompt 에서 재선택 가능)
     if (!data.emoji) {
@@ -536,10 +542,10 @@ function renderStep() {
       body = `
         <div class="step-num">${stepNum} · 시작</div>
         ${packBadge}
-        <h2 class="step-title">닉네임을 정해주세요</h2>
-        <p class="step-sub">모임 안에서만 사용하는 닉네임이에요.</p>
+        <h2 class="step-title" data-copy="wizard.nickname.q">닉네임을 정해주세요</h2>
+        <p class="step-sub" data-copy="wizard.nickname.helper">모임 안에서만 사용하는 닉네임이에요.</p>
         <div class="field">
-          <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" autocomplete="off" autocapitalize="off" autocorrect="off" value="${escHtml(data.nickname)}">
+          <input type="text" id="nicknameInput" maxlength="20" placeholder="예: 별빛, lemon, J" data-copy="wizard.nickname.placeholder" data-copy-attr="placeholder" autocomplete="off" autocapitalize="off" autocorrect="off" value="${escHtml(data.nickname)}">
           <div id="nickConflict" class="nick-conflict-slot"></div>
         </div>
         <div class="actions">
@@ -623,8 +629,8 @@ function renderStep() {
         </div>`;
       body = `
         <div class="step-num">${stepNum} · 지역 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
-        <h2 class="step-title">주로 활동하는 지역</h2>
-        <p class="step-sub">근처에 사는 분과 인연이 생길 수도.</p>
+        <h2 class="step-title" data-copy="wizard.region.q">주로 활동하는 지역</h2>
+        <p class="step-sub" data-copy="wizard.region.helper">근처에 사는 분과 인연이 생길 수도.</p>
         <div class="step-tip"><span class="step-tip-icon">📍</span><span>같은 동네 사람과 매칭되면 <strong>다음 만남으로 이어질 확률</strong>이 훨씬 높아져요.</span></div>
         <div class="field">
           <div class="chip-row">${REGIONS.map(v => {
@@ -648,8 +654,8 @@ function renderStep() {
     case 'industry':
       body = `
         <div class="step-num">${stepNum} · 업종 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
-        <h2 class="step-title">주로 어떤 분야</h2>
-        <p class="step-sub">대화 거리가 생겨요.</p>
+        <h2 class="step-title" data-copy="wizard.industry.q">주로 어떤 분야</h2>
+        <p class="step-sub" data-copy="wizard.industry.helper">대화 거리가 생겨요.</p>
         <div class="step-tip"><span class="step-tip-icon">💼</span><span>비슷한 분야 사람과 만나면 <strong>일·고민이 통하는 대화</strong>가 자연스럽게 풀려요.</span></div>
         <div class="field">
           <div class="chip-row">${INDUSTRIES.map(v => `<button type="button" class="chip${data.industry===v?' selected':''}" data-group="industry" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
@@ -666,8 +672,8 @@ function renderStep() {
     case 'mbti':
       body = `
         <div class="step-num">${stepNum} · MBTI <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
-        <h2 class="step-title">MBTI는요?</h2>
-        <p class="step-sub">매칭 정확도가 올라가요.</p>
+        <h2 class="step-title" data-copy="wizard.mbti.q">MBTI는요?</h2>
+        <p class="step-sub" data-copy="wizard.mbti.helper">매칭 정확도가 올라가요.</p>
         <div class="step-tip"><span class="step-tip-icon">✨</span><span>MBTI를 입력하면 <strong>AI 성향 분석 카드</strong>가 더 정확해지고, 결과 페이지에서 받을 카드가 풍부해져요.</span></div>
         <div class="field">
           <div class="chip-row mbti">${MBTIS.map(v => `<button type="button" class="chip${data.mbti===v?' selected':''}" data-group="mbti" data-value="${v}">${v}</button>`).join('')}</div>
@@ -708,8 +714,8 @@ function renderStep() {
       const interestSet = new Set(presetTokens);
       body = `
         <div class="step-num">${stepNum} · 관심사 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
-        <h2 class="step-title">뭘 좋아하세요?</h2>
-        <p class="step-sub">아래에서 골라도 되고, 없으면 직접 적어도 돼요. (같은 단어는 자동으로 합쳐져요)</p>
+        <h2 class="step-title" data-copy="wizard.interest.q">뭘 좋아하세요?</h2>
+        <p class="step-sub" data-copy="wizard.interest.helper">아래에서 골라도 되고, 없으면 직접 적어도 돼요. (같은 단어는 자동으로 합쳐져요)</p>
         <div class="step-tip"><span class="step-tip-icon">🎯</span><span>겹치는 관심사 <strong>1개만 있어도</strong> 자유대화에서 침묵이 사라져요. 여러 개 고르는 걸 추천.</span></div>
         <div class="field">
           <div class="chip-row">${INTERESTS.map(v => `<button type="button" class="chip${interestSet.has(v)?' selected':''}" data-group="interest" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>
@@ -736,10 +742,10 @@ function renderStep() {
         : '서로 입력했을 때만 양쪽에게 바로 보여요.';
       body = `
         <div class="step-num">${stepNum} · 인스타그램 ${badge}</div>
-        <h2 class="step-title">매칭된 사람에게만<br>공개돼요 💌</h2>
-        <p class="step-sub">${subLine}</p>
+        <h2 class="step-title" data-copy="wizard.instagram.q">매칭된 사람에게만<br>공개돼요 💌</h2>
+        <p class="step-sub" data-copy="wizard.instagram.helper">${subLine}</p>
         <div class="field">
-          <input type="text" id="instaInput" maxlength="50" placeholder="@your_instagram" value="${escHtml(data.instagram || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" style="text-align:center;font-size:18px;letter-spacing:0.04em;">
+          <input type="text" id="instaInput" maxlength="50" placeholder="@your_instagram" data-copy="wizard.instagram.placeholder" data-copy-attr="placeholder" value="${escHtml(data.instagram || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" style="text-align:center;font-size:18px;letter-spacing:0.04em;">
           <div class="hint">영문·숫자·점·언더바만 가능. @ 는 자동으로 처리</div>
         </div>
         <div class="actions">
@@ -878,6 +884,8 @@ function renderStep() {
   }
 
   main.innerHTML = body;
+  // T-19 (2026-04-22): data-copy 치환 — brand.json 로드됐으면 위저드 카피 교체
+  if (typeof applyCopyToDOM === 'function') applyCopyToDOM(main);
   bindStep(key);
   renderProgress();
 }
