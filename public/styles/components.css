@@ -1,0 +1,217 @@
+/* ntable 공용 컴포넌트 — T-05 (2026-04-21)
+ * tokens.css 의 토큰에 의존. 페이지 고유 레이아웃은 각 HTML <style> 유지.
+ */
+
+/* ─── Card ─────────────────────────────────────────── */
+.card {
+  background: var(--surface-base);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+.card-lg {
+  background: var(--surface-base);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+}
+.card-elev {
+  background: var(--surface-elev);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+
+/* ─── Button ───────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  background: transparent;
+  color: var(--white);
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-action), #a07828);
+  color: var(--navy);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(212,168,67,0.3);
+}
+.btn-primary:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(212,168,67,0.45); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--gold-light);
+  border-color: var(--gold-border);
+}
+.btn-outline:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) { color: var(--white); background: var(--surface-base); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--state-danger);
+  border-color: rgba(232,126,126,0.3);
+}
+.btn-danger:hover:not(:disabled) { background: rgba(232,126,126,0.08); }
+
+/* ─── Chip ─────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: var(--surface-base);
+  border: 1px solid var(--gold-border);
+  color: var(--white-dim);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.chip:hover { color: var(--gold-light); border-color: var(--gold); }
+.chip.selected {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+/* ─── Input ────────────────────────────────────────── */
+.input,
+input.input,
+textarea.input,
+select.input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.input:focus { border-color: var(--gold); background: var(--surface-base); }
+.input::placeholder { color: var(--placeholder); opacity: 1; }
+
+/* ─── Modal ────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,15,30,0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 2000;
+}
+.modal-card {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 420px);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: var(--surface-elev);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  z-index: 2010;
+}
+
+/* ─── Toast ────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  background: var(--surface-elev);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-pill);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  pointer-events: none;
+  z-index: 3000;
+}
+.toast.show { opacity: 1; }
+.toast-success { border-color: rgba(126,232,162,0.4); color: var(--state-success); }
+.toast-danger  { border-color: rgba(232,126,126,0.4); color: var(--state-danger); }
+
+/* ─── Phase bar (host) ─────────────────────────────── */
+.phase-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.phase-step-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunk);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.phase-step-compact.active {
+  background: var(--gold-dim);
+  color: var(--gold-light);
+  font-weight: 600;
+  padding: 8px 16px;
+}
+.phase-step-compact.done {
+  color: var(--state-success);
+}
+
+/* ─── Divider ──────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  border: 0;
+  margin: 18px 0;
+}
+.divider-gold {
+  height: 1px;
+  background: var(--gold-border);
+  border: 0;
+  margin: 18px 0;
+}
+
+/* ─── Summary row (wizard confirm·profile 표시) ───── */
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-body);
+}
+.summary-row:last-child { border-bottom: 0; }
+.summary-row .key { color: var(--text-muted); font-size: 12px; letter-spacing: 0.04em; }
+.summary-row .val { color: var(--white); font-size: 14px; font-weight: 500; }

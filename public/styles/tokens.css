@@ -1,0 +1,73 @@
+/* ntable 디자인 토큰 — SoT (Single Source of Truth)
+ * 변경 순서: Notion 브랜드 가이드 → docs/brand/brand.json → 이 파일 → HTML <style>
+ * Batch 2 T-05·T-06·T-07 (2026-04-21)
+ */
+
+:root {
+  /* ─── Navy (배경 · 페이지) ─────────────────────── */
+  --navy:        #0a0f1e;
+  --navy-light:  #0f1628;
+  --navy-mid:    #141d35;
+
+  /* ─── Surface 3단 위계 (T-07) ────────────────────
+   * sunk  = 페이지 배경 위 입력 영역·리스트 아이템
+   * base  = 기본 카드
+   * elev  = 모달·hover·강조 카드
+   */
+  --surface-sunk: rgba(245,242,236,0.02);
+  --surface-base: rgba(212,168,67,0.06);
+  --surface-elev: rgba(212,168,67,0.12);
+  /* 기존 호환 별칭 (점진 마이그레이션용) */
+  --surface:     #141d35;
+  --surface-2:   #1a2442;
+  --surface-3:   #223056;
+
+  /* ─── Gold (브랜드·액션) ────────────────────────── */
+  --gold:        #d4a843;
+  --gold-light:  #f0ca60;
+  --gold-dim:    rgba(212,168,67,0.18);
+  --gold-dim-2:  rgba(212,168,67,0.08);
+  --gold-border: rgba(212,168,67,0.35);
+
+  /* ─── 역할 토큰 (T-06) ─────────────────────────── */
+  --accent-brand:  var(--gold);           /* 로고·hero·브랜드 강조 */
+  --accent-action: var(--gold);           /* CTA·선택 chip·활성 버튼 */
+
+  /* ─── 상태색 (T-06) ────────────────────────────── */
+  --state-success: #7ee8a2;  /* 완료·연결됨·✓ */
+  --state-danger:  #e87e7e;  /* 에러·NICKNAME_TAKEN·삭제 */
+  --state-warn:    #f0b74b;  /* 대기 중·주의 */
+  --state-info:    #8ab4f0;  /* 정보 메시지 */
+  /* 기존 호환 별칭 */
+  --success: var(--state-success);
+  --danger:  var(--state-danger);
+
+  /* ─── 텍스트 ────────────────────────────────────── */
+  --white:       #f5f2ec;
+  --white-dim:   rgba(245,242,236,0.88);
+  --white-muted: rgba(245,242,236,0.72);
+  --text:        #ddd5bc;
+  --text-muted:  rgba(216,208,187,0.78);
+  --text-dim:    rgba(216,208,187,0.65);
+  --subtext:     rgba(216,208,187,0.78);
+
+  /* ─── UI ────────────────────────────────────────── */
+  --border:       rgba(255,255,255,0.14);
+  --input-border: #5a6178;
+  --placeholder:  rgba(216,208,187,0.65);
+
+  /* ─── 반경 (T-05 정리: card=14 / card-lg=18 / pill=999) ─── */
+  --radius-sm:   8px;
+  --radius:      10px;
+  --radius-md:   14px;   /* 기본 카드 */
+  --radius-lg:   18px;   /* 강조 카드·모달 */
+  --radius-pill: 999px;
+
+  /* ─── 타이포 ───────────────────────────────────── */
+  --font-heading: 'Cormorant Garamond', 'Noto Serif KR', serif;
+  --font-body:    'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+
+  /* ─── 모션 ─────────────────────────────────────── */
+  --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
+  --transition-fast: 0.18s cubic-bezier(0.4,0,0.2,1);
+}
