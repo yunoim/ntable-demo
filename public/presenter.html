@@ -927,6 +927,7 @@ function renderClosingVote(type) {
 
 // T-11 (2026-04-22): 재렌더 시 같은 MVP 면 reveal 스킵 — 카운트다운 무한 반복 방지
 let _mvpRevealedUuid = null;
+let _mvpCountdownIv = null;
 function renderMVPResult() {
   const mvp = STATE.mvp;
   if (!mvp) {
@@ -947,20 +948,22 @@ function renderMVPResult() {
       ${countdownHtml}
     </div>`;
   if (alreadyRevealed) return;
-  // 카운트다운 3 → 2 → 1 → reveal
+  // 카운트다운 3 → 2 → 1 → reveal. 중복 interval 방지 (재렌더 중첩 시).
+  if (_mvpCountdownIv) clearInterval(_mvpCountdownIv);
   const disp = document.querySelector('.mvp-display');
   const cd = document.getElementById('mvpCountdown');
   let n = 3;
-  const iv = setInterval(() => {
+  _mvpCountdownIv = setInterval(() => {
     n -= 1;
-    if (!disp) { clearInterval(iv); return; }
+    if (!disp) { clearInterval(_mvpCountdownIv); _mvpCountdownIv = null; return; }
     if (n > 0 && cd) {
       cd.textContent = String(n);
       cd.classList.remove('beat');
       void cd.offsetWidth; // reflow — beat animation 재시작
       cd.classList.add('beat');
     } else {
-      clearInterval(iv);
+      clearInterval(_mvpCountdownIv);
+      _mvpCountdownIv = null;
       if (cd) cd.remove();
       disp.classList.remove('reveal-pending');
       _mvpRevealedUuid = mvp.uuid;
