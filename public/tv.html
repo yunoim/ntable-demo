@@ -20,6 +20,7 @@
     font-family: var(--font-body);
     overflow: hidden;
   }
+  body { position: relative; }
   .root {
     width: 100%; height: 100%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -75,6 +76,63 @@
     font-size: 18px;
     margin-top: 20px;
   }
+
+  /* T-12 (2026-04-22): 브랜드 캐러셀 — 페어링 대기 시간을 브랜드 기회로 활용 */
+  .brand-carousel {
+    position: absolute;
+    left: 0; right: 0; bottom: clamp(40px, 5vh, 72px);
+    min-height: clamp(100px, 12vh, 160px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 40px;
+    pointer-events: none;
+  }
+  .bc-slide {
+    position: absolute;
+    inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: clamp(12px, 1.2vh, 20px);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .bc-slide.active { opacity: 1; transform: translateY(0); }
+  .bc-eyebrow {
+    font-family: var(--font-body);
+    font-size: clamp(14px, 1.1vw, 20px);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold-light, #f0ca60);
+    opacity: 0.75;
+  }
+  .bc-text {
+    font-family: var(--font-heading);
+    font-size: clamp(28px, 3.2vw, 56px);
+    font-weight: 600;
+    color: #f5f2ec;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+  }
+  .bc-text em { font-style: italic; color: var(--gold-light, #f0ca60); }
+  .bc-steps {
+    display: flex; gap: clamp(18px, 2vw, 40px);
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: clamp(16px, 1.4vw, 26px);
+    color: #ddd5bc;
+    letter-spacing: 0.03em;
+  }
+  .bc-steps .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(28px, 2.2vw, 40px); height: clamp(28px, 2.2vw, 40px);
+    border-radius: 50%;
+    background: rgba(212,168,67,0.18);
+    border: 1px solid rgba(212,168,67,0.45);
+    color: var(--gold-light, #f0ca60);
+    font-weight: 700;
+    margin-right: 8px;
+  }
+  .bc-arrow { color: rgba(212,168,67,0.5); font-size: clamp(14px, 1.1vw, 20px); }
 </style>
 </head>
 <body>
@@ -89,6 +147,29 @@
   <div class="ttl"><strong id="ttlSec">300</strong>초 후 코드가 만료됩니다</div>
   <div class="status" id="status">서버 연결 중…</div>
   <div class="err" id="err" hidden></div>
+</div>
+
+<!-- T-12 (2026-04-22): 브랜드 캐러셀 — 8초 주기 순환 -->
+<div class="brand-carousel" aria-hidden="true">
+  <div class="bc-slide active" data-slide="0">
+    <span class="bc-eyebrow">모임 진행 도우미</span>
+    <span class="bc-text"><em>ntable</em></span>
+  </div>
+  <div class="bc-slide" data-slide="1">
+    <div class="bc-steps">
+      <span><span class="step-num">1</span>QR 스캔</span>
+      <span class="bc-arrow">→</span>
+      <span><span class="step-num">2</span>한 문장 입력</span>
+      <span class="bc-arrow">→</span>
+      <span><span class="step-num">3</span>입장</span>
+    </div>
+  </div>
+  <div class="bc-slide" data-slide="2">
+    <span class="bc-text">누구나 <em>모임장</em>이 되는 모임</span>
+  </div>
+  <div class="bc-slide" data-slide="3">
+    <span class="bc-text">QR 하나로 시작되는 <em>모임 툴킷</em></span>
+  </div>
 </div>
 
 <script>
@@ -153,6 +234,18 @@ function showErr(msg) {
 setInterval(() => {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }));
 }, 30000);
+
+// T-12 (2026-04-22): 브랜드 캐러셀 8초 주기 순환
+(function initCarousel() {
+  var slides = document.querySelectorAll('.bc-slide');
+  if (slides.length < 2) return;
+  var idx = 0;
+  setInterval(function () {
+    slides[idx].classList.remove('active');
+    idx = (idx + 1) % slides.length;
+    slides[idx].classList.add('active');
+  }, 8000);
+})();
 
 connect();
 </script>

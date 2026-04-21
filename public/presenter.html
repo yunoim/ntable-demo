@@ -408,6 +408,32 @@
   }
   .mvp-display .photo {
     animation: fadeUp 0.5s ease, mvpGlowPulse 3.4s ease-in-out 0.5s infinite;
+    transition: filter 1.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  /* T-11 (2026-04-22): MVP 2-phase reveal — 3초 블러·카운트다운 → 해제 */
+  .mvp-display { position: relative; }
+  .mvp-display .name,
+  .mvp-display .sub { transition: opacity 0.9s ease 0.4s; }
+  .mvp-display.reveal-pending .photo { filter: blur(30px); }
+  .mvp-display.reveal-pending .name,
+  .mvp-display.reveal-pending .sub { opacity: 0; }
+  .mvp-countdown {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-heading);
+    font-size: var(--size-mega, clamp(96px, 12vw, 220px));
+    font-weight: 700;
+    color: var(--gold, #d4a843);
+    text-shadow: 0 0 40px rgba(232,184,75,0.55);
+    pointer-events: none;
+    z-index: 2;
+    line-height: 1;
+  }
+  .mvp-countdown.beat { animation: countdownBeat 1s ease; }
+  @keyframes countdownBeat {
+    0%   { transform: scale(1.5); opacity: 0; }
+    30%  { transform: scale(1);   opacity: 1; }
+    100% { transform: scale(0.7); opacity: 0; }
   }
   @keyframes pairGlowPulse {
     0%, 100% { box-shadow: 0 0 24px rgba(232,184,75,0.25); }
@@ -899,20 +925,47 @@ function renderClosingVote(type) {
   document.getElementById('main').innerHTML = `<div class="big-msg"><div class="icon">${labels.icon}</div><h1>${labels.title}</h1><p>${labels.sub}</p></div>`;
 }
 
+// T-11 (2026-04-22): 재렌더 시 같은 MVP 면 reveal 스킵 — 카운트다운 무한 반복 방지
+let _mvpRevealedUuid = null;
 function renderMVPResult() {
   const mvp = STATE.mvp;
   if (!mvp) {
     document.getElementById('main').innerHTML = `<div class="big-msg"><div class="icon">🏆</div><h1>MVP 발표 대기 중</h1></div>`;
+    _mvpRevealedUuid = null;
     return;
   }
   const photo = mvp.uuid && STATE.photos[mvp.uuid];
+  const alreadyRevealed = _mvpRevealedUuid === mvp.uuid;
+  const pendingClass = alreadyRevealed ? '' : ' reveal-pending';
+  const countdownHtml = alreadyRevealed ? '' : `<div class="mvp-countdown beat" id="mvpCountdown">3</div>`;
   document.getElementById('main').innerHTML = `
-    <div class="mvp-display">
+    <div class="mvp-display${pendingClass}">
       <div class="label">🏆 오늘의 MVP</div>
       <div class="photo">${photo ? `<img src="${escHtml(photo)}" alt="">` : '🏆'}</div>
       <div class="name">${escHtml(mvp.nickname)}</div>
       <div class="sub">${mvp.fi_count != null ? `투표 ${mvp.fi_count}표` : ''} · 가장 인상적인 사람</div>
+      ${countdownHtml}
     </div>`;
+  if (alreadyRevealed) return;
+  // 카운트다운 3 → 2 → 1 → reveal
+  const disp = document.querySelector('.mvp-display');
+  const cd = document.getElementById('mvpCountdown');
+  let n = 3;
+  const iv = setInterval(() => {
+    n -= 1;
+    if (!disp) { clearInterval(iv); return; }
+    if (n > 0 && cd) {
+      cd.textContent = String(n);
+      cd.classList.remove('beat');
+      void cd.offsetWidth; // reflow — beat animation 재시작
+      cd.classList.add('beat');
+    } else {
+      clearInterval(iv);
+      if (cd) cd.remove();
+      disp.classList.remove('reveal-pending');
+      _mvpRevealedUuid = mvp.uuid;
+    }
+  }, 1000);
 }
 
 function renderMatchResult() {
