@@ -1,11 +1,16 @@
-// ntable 공통 '내 정보 기억' 플로팅 토글
-// 로그인 상태(OAuth)와 무관하게 모든 주요 페이지(create/join/host/guest/result/insta-exchange/survey)에 주입.
-// localStorage.login_remember 를 직접 토글 — true 면 닉네임·프로필을 localStorage 에 보관, false 면 세션마다 새로 입력.
-// login.html 은 자체 토글이 있어 중복 주입 스킵. auth-header.js pill 과 동일 우상단이지만 분리된 컴포넌트.
+// ntable 공통 '내 정보 기억' 플로팅 토글 — 익명(OAuth 미인증) 사용자 전용.
+// OAuth 인증 상태에서는 auth-header.js 의 #ntAuthPill 이 동일 역할(토글 OFF = 로그아웃)을 맡으므로 여기선 주입하지 않는다.
+// login.html 은 자체 토글 사용, 호스트 페이지는 #host-remember-slot 에 인라인 배치.
 
 (function () {
   if (document.getElementById('loginToggle')) return;           // login 페이지는 자체 토글 사용
   if (document.getElementById('ntRememberToggle')) return;      // 중복 방지
+  // 호스트 페이지처럼 인라인 슬롯이 있으면 OAuth 여부와 무관하게 주입 (auth-pill 은 host.html CSS 로 숨김 처리).
+  // 슬롯이 없는 플로팅 모드일 때만, OAuth 인증자는 #ntAuthPill 이 동일 역할을 하므로 중복 주입 금지.
+  const hasInlineSlot = !!document.getElementById('host-remember-slot');
+  if (!hasInlineSlot) {
+    try { if (localStorage.getItem('user_token')) return; } catch (_) {}
+  }
 
   const KEY = 'login_remember';
   const read = () => { try { return localStorage.getItem(KEY) === 'true'; } catch (_) { return false; } };
