@@ -16,7 +16,7 @@
 <title>오늘의 결과 — ntable</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
 <style>
@@ -60,7 +60,7 @@
   body {
     background: var(--navy);
     color: var(--text);
-    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    font-family: var(--font-body);
     min-height: 100vh;
     min-height: 100dvh;
     display: flex;
@@ -86,7 +86,7 @@
   .container { width: 100%; max-width: 460px; position: relative; z-index: 1; }
 
   .brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 20px;
     font-weight: 600;
     letter-spacing: 0.14em;
@@ -95,7 +95,7 @@
     margin-bottom: 20px;
   }
   h1 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 32px;
     font-weight: 600;
     color: var(--white);
@@ -254,7 +254,7 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.28);
   }
   .card-title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -305,7 +305,7 @@
     pointer-events: none;
   }
   .share-card-brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 13px; font-weight: 600;
     letter-spacing: 0.28em;
     color: var(--gold);
@@ -346,7 +346,7 @@
   .photo-include-toggle input { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
   .photo-include-toggle small { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }
   .share-card-type {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 34px; font-weight: 600;
     color: var(--gold);
     margin-bottom: 16px;
@@ -454,7 +454,7 @@
   }
   .match-eyebrow {
     position: relative;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 11px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
@@ -486,7 +486,7 @@
   }
   .match-name {
     position: relative;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 32px;
     font-weight: 600;
     color: var(--gold);
@@ -610,7 +610,7 @@
     opacity: 0.85;
   }
   .match-fallback-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 22px;
     font-weight: 600;
     color: var(--gold-light);
@@ -628,7 +628,7 @@
     text-align: center;
   }
   .stat-num {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 30px;
     font-weight: 600;
     color: var(--gold);
@@ -671,7 +671,7 @@
   .insta-btn:hover { background: var(--gold-dim); border-color: var(--gold); }
   .insta-btn:disabled { opacity: 0.55; cursor: not-allowed; }
   .insta-reveal {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 22px;
     font-weight: 600;
     color: var(--gold);
@@ -750,7 +750,7 @@
             <button type="button" id="save-image-btn" class="share-btn" aria-label="이미지 저장">📷 이미지 저장</button>
             <button type="button" id="insta-share-btn" class="share-btn outline" aria-label="공유하기">📸 공유하기</button>
             <!-- T-09 (2026-04-22): Instagram Story 9:16 캡처 전용 off-screen 컨테이너. shareToInstagram 에서만 사용. -->
-            <div id="storyCanvas" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1080px;height:1920px;background:linear-gradient(180deg,#0a0f1e 0%,#141d35 100%);color:#f5f2ec;font-family:'Cormorant Garamond','Noto Serif KR',serif;display:flex;flex-direction:column;justify-content:space-between;padding:120px 80px;box-sizing:border-box;"></div>
+            <div id="storyCanvas" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1080px;height:1920px;background:linear-gradient(180deg,#0a0f1e 0%,#141d35 100%);color:#f5f2ec;font-family: var(--font-heading);display:flex;flex-direction:column;justify-content:space-between;padding:120px 80px;box-sizing:border-box;"></div>
           </div>
         </div>
       </div>
@@ -817,16 +817,16 @@
 </div>
 
 <!-- 커플 공유 카드 (html2canvas 캡처 타깃 — 오프스크린) -->
-<div id="couple-card-capture" aria-hidden="true" style="position:absolute;left:-10000px;top:0;width:360px;height:640px;background:#141d35;color:#f5f2ec;padding:32px 26px;box-sizing:border-box;font-family:'DM Sans','Noto Sans KR','Apple SD Gothic Neo',sans-serif;overflow:hidden;">
+<div id="couple-card-capture" aria-hidden="true" style="position:absolute;left:-10000px;top:0;width:360px;height:640px;background:#141d35;color:#f5f2ec;padding:32px 26px;box-sizing:border-box;font-family: var(--font-body);overflow:hidden;">
   <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 20% 15%, rgba(212,168,67,0.18), transparent 55%), radial-gradient(circle at 80% 90%, rgba(80,100,180,0.12), transparent 50%);pointer-events:none;"></div>
   <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;">
-    <div style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:0.3em;color:#d4a843;margin-bottom:20px;">ntable</div>
-    <div style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:24px;line-height:1.35;color:#f5f2ec;margin-bottom:4px;" id="cc-nicks">— 💘 —</div>
+    <div style="text-align:center;font-family: var(--font-heading);font-size:13px;letter-spacing:0.3em;color:#d4a843;margin-bottom:20px;">ntable</div>
+    <div style="text-align:center;font-family: var(--font-heading);font-size:24px;line-height:1.35;color:#f5f2ec;margin-bottom:4px;" id="cc-nicks">— 💘 —</div>
     <div style="text-align:center;font-size:10.5px;color:rgba(245,242,236,0.5);letter-spacing:0.22em;margin-bottom:18px;">OUR MATCH</div>
     <div id="cc-rows" style="flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden;"></div>
     <div style="margin-top:16px;text-align:center;border-top:1px solid rgba(212,168,67,0.2);padding-top:14px;">
       <div style="font-size:10px;color:rgba(245,242,236,0.45);letter-spacing:0.22em;margin-bottom:4px;">TODAY'S MATCH</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;color:#f0ca60;font-weight:700;line-height:1;" id="cc-pct">0%</div>
+      <div style="font-family: var(--font-heading);font-size:36px;color:#f0ca60;font-weight:700;line-height:1;" id="cc-pct">0%</div>
       <div style="font-size:10px;color:rgba(212,168,67,0.55);letter-spacing:0.22em;margin-top:6px;">NTABLE.KR</div>
     </div>
   </div>
@@ -975,17 +975,17 @@
       : `<div style="font-size:340px;line-height:1;text-align:center;">${escHtml(emoji)}</div>`;
     sc.innerHTML = `
       <div style="text-align:center;">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:72px;font-weight:600;color:#d4a843;letter-spacing:0.3em;">ntable</div>
-        <div style="font-family:'DM Sans',sans-serif;font-size:26px;letter-spacing:0.24em;color:#c0c0c0;margin-top:16px;text-transform:uppercase;">Today's Type</div>
+        <div style="font-family: var(--font-heading);font-size:72px;font-weight:600;color:#d4a843;letter-spacing:0.3em;">ntable</div>
+        <div style="font-family: var(--font-body);font-size:26px;letter-spacing:0.24em;color:#c0c0c0;margin-top:16px;text-transform:uppercase;">Today's Type</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:60px;">
         ${mediaBlock}
-        <div style="font-family:'Cormorant Garamond',serif;font-size:140px;font-weight:600;color:#f5e7b5;line-height:1.1;text-align:center;">${escHtml(type)}</div>
+        <div style="font-family: var(--font-heading);font-size:140px;font-weight:600;color:#f5e7b5;line-height:1.1;text-align:center;">${escHtml(type)}</div>
         <div style="font-family:'Noto Sans KR',sans-serif;font-size:38px;line-height:1.55;color:#c0c0c0;text-align:center;max-width:800px;">${escHtml(text)}</div>
       </div>
       <div style="text-align:center;">
-        <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:34px;color:#d4a843;">누구나 모임장이 되는 모임</div>
-        <div style="font-family:'DM Sans',sans-serif;font-size:26px;color:#c0c0c0;margin-top:12px;letter-spacing:0.08em;">ntable.kr</div>
+        <div style="font-family: var(--font-heading);font-style:italic;font-size:34px;color:#d4a843;">누구나 모임장이 되는 모임</div>
+        <div style="font-family: var(--font-body);font-size:26px;color:#c0c0c0;margin-top:12px;letter-spacing:0.08em;">ntable.kr</div>
       </div>`;
     return sc;
   }
@@ -1269,7 +1269,7 @@
               <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(135deg, rgba(212,168,67,0.22), rgba(212,168,67,0.06));border:1px solid var(--gold-border);border-radius:14px;margin-bottom:14px;">
                 <div>
                   <div style="font-size:10.5px;letter-spacing:0.2em;color:var(--gold);font-weight:600;">MY PICKS</div>
-                  <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--white);font-weight:600;margin-top:2px;line-height:1;">${answered} <span style="opacity:0.55;font-size:17px;">/ ${totalQs}</span></div>
+                  <div style="font-family: var(--font-heading);font-size:24px;color:var(--white);font-weight:600;margin-top:2px;line-height:1;">${answered} <span style="opacity:0.55;font-size:17px;">/ ${totalQs}</span></div>
                   <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;letter-spacing:0.04em;">오늘 답한 문항</div>
                 </div>
                 <div style="font-size:32px;line-height:1;">🎯</div>
@@ -1540,7 +1540,7 @@
     const compatHtml = compat ? `
       <div style="padding:16px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:12px;margin-bottom:14px;">
         <div style="font-size:11px;letter-spacing:0.18em;color:var(--gold);margin-bottom:8px;">MBTI 궁합</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);margin-bottom:6px;">${esc(compat.label)}</div>
+        <div style="font-family: var(--font-heading);font-size:22px;color:var(--white);margin-bottom:6px;">${esc(compat.label)}</div>
         <div style="font-size:13px;color:var(--text);line-height:1.55;margin-bottom:10px;">${esc(compat.sub)}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;">
           ${(compat.axes || []).map(ax => `
@@ -1554,7 +1554,7 @@
     const matchHtml = d.total > 0 ? `
       <div style="padding:16px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:12px;margin-bottom:14px;text-align:center;">
         <div style="font-size:11px;letter-spacing:0.18em;color:var(--gold);margin-bottom:6px;">탐구 문항 일치도</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:700;color:${pctColor};line-height:1;">${d.pct}%</div>
+        <div style="font-family: var(--font-heading);font-size:38px;font-weight:700;color:${pctColor};line-height:1;">${d.pct}%</div>
         <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">${d.total}문항 중 ${d.matched}개 같은 선택</div>
       </div>` : '';
 
@@ -1581,7 +1581,7 @@
     const pEmoji = esc(d.partner?.emoji || genderDefault(d.partner?.gender));
     return `
       <div style="text-align:center;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-family:'Cormorant Garamond',serif;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-family: var(--font-heading);">
           <span style="display:inline-flex;align-items:center;gap:6px;"><span style="font-size:26px;line-height:1;">${meEmoji}</span><span style="font-size:22px;color:var(--white);">${meName}</span></span>
           <span style="color:var(--gold-light);font-size:20px;">💘</span>
           <span style="display:inline-flex;align-items:center;gap:6px;"><span style="font-size:26px;line-height:1;">${pEmoji}</span><span style="font-size:22px;color:var(--white);">${partnerName}</span></span>

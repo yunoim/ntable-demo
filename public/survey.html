@@ -15,7 +15,7 @@
 <title>모임 후기 — ntable</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -57,7 +57,7 @@
   body {
     background: var(--navy);
     color: var(--text);
-    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    font-family: var(--font-body);
     min-height: 100vh;
     min-height: 100dvh;
     display: flex;
@@ -84,7 +84,7 @@
   .container { width: 100%; max-width: 460px; position: relative; z-index: 1; }
 
   .brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 20px;
     font-weight: 600;
     letter-spacing: 0.14em;
@@ -93,7 +93,7 @@
     margin-bottom: 18px;
   }
   h1 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 28px;
     font-weight: 600;
     color: var(--white);
@@ -179,7 +179,7 @@
     letter-spacing: 0.04em;
   }
   .nps-val {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     text-align: center;
     font-size: 36px;
     font-weight: 600;
@@ -296,7 +296,7 @@
     width: 100%;
   }
   .done-card h2 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 28px; font-weight: 600;
     color: var(--gold-light);
     margin-bottom: 10px;

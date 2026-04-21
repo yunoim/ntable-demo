@@ -14,7 +14,7 @@
 <title>ntable — 모임장 프레젠테이션</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -56,7 +56,7 @@
   body {
     background: var(--navy);
     color: var(--text);
-    font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    font-family: var(--font-body);
     font-size: 16px;
     min-height: 100dvh;
     display: flex;
@@ -96,7 +96,7 @@
     border-bottom: 1px solid rgba(212,168,67,0.12);
   }
   .brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 26px;
     font-weight: 600;
     color: var(--gold);
@@ -187,7 +187,7 @@
   }
   .settings-close:hover { color: var(--gold); background: var(--gold-dim-2); }
   .settings-card h3 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 22px; font-weight: 600;
     color: var(--gold-light);
     margin-bottom: 4px;
@@ -367,7 +367,7 @@
   }
   .qr-modal-close:hover { color: var(--gold); background: var(--gold-dim-2); }
   .qr-modal-brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 16px; font-weight: 600;
     letter-spacing: 0.16em;
     color: var(--gold);
@@ -385,7 +385,7 @@
     margin: 0 auto 22px;
   }
   .qr-modal-code {
-    font-family: 'DM Sans', monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 26px; font-weight: 700;
     color: var(--gold);
     letter-spacing: 0.32em;
@@ -417,7 +417,7 @@
     .qr-modal-code { font-size: 22px; letter-spacing: 0.22em; }
   }
   #room-code {
-    font-family: 'DM Sans', monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 20px;
     font-weight: 700;
     color: var(--gold);
@@ -549,7 +549,7 @@
     cursor: pointer; padding: 4px 8px;
   }
   .tv-modal-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 24px;
     font-weight: 600;
     color: var(--gold);
@@ -581,7 +581,7 @@
     border: 1px solid var(--gold-border);
     border-radius: 10px;
     color: var(--white);
-    font-family: 'DM Sans', monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 22px;
     font-weight: 700;
     letter-spacing: 0.2em;
@@ -632,7 +632,7 @@
   }
   .section-count {
     margin-left: auto;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 12px;
     color: var(--gold);
     letter-spacing: 0.03em;
@@ -952,7 +952,7 @@
     background: transparent;
     border: none;
     color: var(--text-muted);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 15px;
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -974,7 +974,7 @@
     border-radius: 50%;
     background: rgba(212,168,67,0.08);
     color: var(--text-muted);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 10.5px;
     font-weight: 700;
     transition: all 0.25s;
@@ -1122,7 +1122,7 @@
 
   /* Big stage typography */
   .stage-tag {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 13px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
@@ -1138,7 +1138,7 @@
     background: var(--gold);
   }
   .stage-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: clamp(40px, 5vw, 68px);
     font-weight: 600;
     color: var(--white);
@@ -1236,7 +1236,7 @@
     text-align: left;
   }
   .profile-card .name {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 24px;
     font-weight: 600;
     color: var(--white);
@@ -1266,7 +1266,7 @@
 
   /* ── EXPLORE: BIG QUESTION ─────────────────────── */
   .q-number {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 16px;
     letter-spacing: 0.18em;
     color: var(--gold);
@@ -1275,7 +1275,7 @@
     margin-bottom: 20px;
   }
   .q-text {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: clamp(34px, 4.2vw, 56px);
     font-weight: 600;
     line-height: 1.16;
@@ -1290,7 +1290,7 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    font-family: 'DM Sans', 'Noto Sans KR', sans-serif;
+    font-family: var(--font-body);
   }
   .vote-option {
     font-size: 22px;
@@ -1299,12 +1299,12 @@
     line-height: 1.5;
   }
   .vote-count {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 28px;
     font-weight: 600;
     color: var(--gold);
   }
-  .vote-count .pct { font-size: 18px; color: var(--text-muted); margin-left: 8px; font-family: 'DM Sans', sans-serif; font-weight: 500; }
+  .vote-count .pct { font-size: 18px; color: var(--text-muted); margin-left: 8px; font-family: var(--font-body); font-weight: 500; }
   .vote-bar-bg {
     background: rgba(255,255,255,0.05);
     border-radius: 8px;
@@ -1325,7 +1325,7 @@
   .winner-badge {
     display: inline-block;
     margin-left: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 11px; font-weight: 700;
     color: var(--gold);
     letter-spacing: 0.14em;
@@ -1371,7 +1371,7 @@
     border-radius: 50%;
     background: var(--surface-2);
     border: 1px solid var(--border, rgba(255,255,255,0.14));
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 12px;
     font-weight: 700;
     margin-right: 12px;
@@ -1399,7 +1399,7 @@
     padding: 28px 26px;
   }
   .card-head {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 12px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -1473,14 +1473,14 @@
     width: 28px; height: 28px;
     text-align: center;
     line-height: 28px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
     margin-right: 12px;
   }
   .mvp-row .name { color: var(--white); font-weight: 500; }
-  .fi-count { color: var(--gold); font-weight: 600; font-family: 'Cormorant Garamond', serif; font-size: 22px; }
+  .fi-count { color: var(--gold); font-weight: 600; font-family: var(--font-heading); font-size: 22px; }
 
   .match-pair {
     background: var(--surface-2);
@@ -1499,7 +1499,7 @@
     margin-bottom: 10px;
   }
   .match-pair .pair-names {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 24px;
     font-weight: 600;
     color: var(--white);
@@ -2099,7 +2099,7 @@
   <div onclick="closeMyInfo()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
   <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:24px;max-width:440px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;">
     <button type="button" onclick="closeMyInfo()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#c0c0c0;font-size:24px;cursor:pointer;">×</button>
-    <h3 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);">👤 내 정보</h3>
+    <h3 style="margin:0 0 4px;font-family: var(--font-heading);font-size:22px;color:var(--white);">👤 내 정보</h3>
     <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px;">현재 모임에 저장된 내 카드 정보입니다.</div>
 
     <!-- 1. 계정 연동 -->
@@ -2139,7 +2139,7 @@
   <div onclick="closeRoomSettings()" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
   <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:24px;max-width:420px;width:calc(100% - 32px);max-height:85vh;overflow-y:auto;">
     <button type="button" onclick="closeRoomSettings()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:#c0c0c0;font-size:24px;cursor:pointer;">×</button>
-    <h3 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);">⚙ 모임 운영</h3>
+    <h3 style="margin:0 0 4px;font-family: var(--font-heading);font-size:22px;color:var(--white);">⚙ 모임 운영</h3>
     <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:18px;">모임 생성 후 언제든 변경 가능합니다.</div>
 
     <!-- 탐구 문항 수는 ⚙ 설정(콘텐츠) 모달에서 관리 — 단일 source of truth (2026-04-19) -->
@@ -2894,7 +2894,7 @@ function showRecoverApprovalModal(msg) {
     <div style="background:#141d35;border:1px solid var(--gold-border);border-radius:14px;padding:22px;max-width:380px;width:100%;">
       <div style="text-align:center;margin-bottom:14px;">
         <div style="font-size:42px;line-height:1;margin-bottom:8px;">${escHtml(emoji)}</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:#f5f2ec;font-weight:600;">${escHtml(nick)}</div>
+        <div style="font-family: var(--font-heading);font-size:20px;color:#f5f2ec;font-weight:600;">${escHtml(nick)}</div>
       </div>
       <div style="font-size:13px;color:#c9cdd6;line-height:1.6;text-align:center;margin-bottom:16px;padding:10px;background:rgba(212,168,67,0.08);border-radius:8px;">
         <strong>"${escHtml(nick)}"</strong> 님이 다른 기기에서<br>복구를 요청했어요.

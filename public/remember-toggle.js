@@ -34,7 +34,7 @@
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(212,168,67,0.35);
       border-radius: 999px;
-      font-family: 'DM Sans','Noto Sans KR','Apple SD Gothic Neo',sans-serif;
+      font-family: var(--font-body);
       font-size: 11px;
       color: rgba(245,242,236,0.85);
       box-shadow: 0 2px 8px rgba(0,0,0,0.22);

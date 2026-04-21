@@ -48,7 +48,7 @@
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(212,168,67,0.35);
       border-radius: 16px;
-      font-family: 'DM Sans','Noto Sans KR',sans-serif;
+      font-family: var(--font-body);
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
       pointer-events: auto;
     }

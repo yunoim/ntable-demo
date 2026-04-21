@@ -13,14 +13,14 @@
 <title>ntable — 누구나 모임장이 되는 모임</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; min-height: 100vh; }
   body {
     background: #0e1628;
     color: #ffffff;
-    font-family: 'DM Sans', 'Noto Sans KR', sans-serif;
+    font-family: var(--font-body);
     line-height: 1.6;
     padding: 0 24px;
     padding-top: calc(82px + env(safe-area-inset-top));
@@ -47,7 +47,7 @@
     .nav-inner { padding: 0 20px; }
   }
   .h-brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 22px; font-weight: 600;
     color: #d4a843; letter-spacing: 0.08em;
     text-decoration: none;
@@ -165,7 +165,7 @@
   .root { width: 100%; max-width: 420px; text-align: center; }
   .hero { margin-top: 24px; margin-bottom: 36px; }
   .hero h1 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-heading);
     font-size: 38px; font-weight: 600;
     color: #ffffff; line-height: 1.25;
     margin-bottom: 16px;
@@ -243,7 +243,7 @@
     <div style="font-size:14px;color:#ffffff;margin-bottom:10px;font-weight:600;">참가자이신가요?</div>
     QR·링크를 받으셨다면 바로 입장돼요.<br>참여 코드만 받으셨다면 아래에 입력해주세요.
     <div style="display:flex;gap:8px;margin-top:14px;">
-      <input type="text" id="joinCodeInput" maxlength="6" placeholder="ABC123" autocapitalize="characters" autocomplete="off" aria-label="참여 코드 6자리" style="flex:1;min-width:0;padding:12px;background:rgba(212,168,67,0.06);border:1px solid rgba(212,168,67,0.4);border-radius:10px;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.04em;text-align:center;font-family:'DM Sans',monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); document.getElementById('joinCodeBtn').disabled = this.value.length !== 6;" />
+      <input type="text" id="joinCodeInput" maxlength="6" placeholder="ABC123" autocapitalize="characters" autocomplete="off" aria-label="참여 코드 6자리" style="flex:1;min-width:0;padding:12px;background:rgba(212,168,67,0.06);border:1px solid rgba(212,168,67,0.4);border-radius:10px;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.04em;text-align:center;font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); document.getElementById('joinCodeBtn').disabled = this.value.length !== 6;" />
       <button type="button" id="joinCodeBtn" disabled style="flex-shrink:0;white-space:nowrap;padding:0 18px;background:#e8b84b;color:#0a0f1e;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;">입장</button>
     </div>
     <div style="font-size:11px;color:#9aa0ac;margin-top:8px;letter-spacing:0.02em;">참여 코드 6자리 (영문·숫자, 대소문자 무관)</div>
@@ -369,12 +369,16 @@ function setProviderLabel(me) {
     setToggle(false);
   }
 
-  // ?role=guest 자동 스크롤
+  // ?role=guest 자동 스크롤 — iOS Safari safe-area 호환 (scrollIntoView 회피)
   try {
     if (new URLSearchParams(location.search).get('role') === 'guest') {
       const guest = document.getElementById('guestSection');
       const input = document.getElementById('joinCodeInput');
-      if (guest) guest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (guest) {
+        const rect = guest.getBoundingClientRect();
+        const offsetY = window.scrollY + rect.top - window.innerHeight / 2 + rect.height / 2;
+        window.scrollTo({ top: Math.max(0, offsetY), behavior: 'smooth' });
+      }
       if (input) setTimeout(() => input.focus(), 400);
     }
   } catch (_) {}

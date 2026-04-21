@@ -16,7 +16,7 @@
   <title>모임 만들기 · ntable</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -58,7 +58,7 @@
     body {
       background: var(--navy);
       color: var(--text);
-      font-family: 'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+      font-family: var(--font-body);
       min-height: 100vh;
       min-height: 100dvh;
       display: flex;
@@ -88,7 +88,7 @@
       .nav-inner { padding: 0 20px; }
     }
     .h-brand {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-heading);
       font-size: 22px; font-weight: 600;
       color: #d4a843; letter-spacing: 0.08em;
       text-decoration: none;
@@ -134,7 +134,7 @@
     }
 
     .section-title {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-heading);
       font-size: 22px;
       font-weight: 600;
       color: var(--white);
@@ -264,7 +264,7 @@
     }
     .couples-hero-eyebrow {
       display: inline-block;
-      font-family: 'DM Sans', sans-serif;
+      font-family: var(--font-body);
       font-size: 10px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -276,7 +276,7 @@
       margin-bottom: 10px;
     }
     .couples-hero h3 {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-heading);
       font-size: 24px;
       font-weight: 600;
       color: var(--white);
@@ -357,7 +357,7 @@
     /* 모임 카드 — 시리즈별 섹션 그루핑 + 섹션 내 2x2 grid */
     .pack-grid { display: flex; flex-direction: column; gap: 26px; }
     .pack-group-title {
-      font-family: 'DM Sans', sans-serif;
+      font-family: var(--font-body);
       font-size: 11px;
       color: var(--gold-light);
       letter-spacing: 0.14em;
@@ -395,7 +395,7 @@
     .confirm-head { text-align: center; margin-bottom: 18px; }
     .confirm-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
     .confirm-title {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: var(--font-heading);
       font-size: 20px; font-weight: 600; color: var(--white);
       margin-bottom: 4px;
     }

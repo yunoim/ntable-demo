@@ -64,8 +64,8 @@
   --radius-pill: 999px;
 
   /* ─── 타이포 ───────────────────────────────────── */
-  --font-heading: 'Cormorant Garamond', 'Noto Serif KR', serif;
-  --font-body:    'DM Sans', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+  --font-heading: 'Cormorant Garamond', 'Noto Sans KR', 'Apple SD Gothic Neo', serif;
+  --font-body:    'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
 
   /* ─── 모션 ─────────────────────────────────────── */
   --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
