@@ -89,6 +89,16 @@
 - **모임장 자격**: 누구나 (prod에서는 게스트 3회 이상 시 자동 부여)
 - **관리자 페이지**: `/admin` (Google OAuth + admin_users 화이트리스트, super_admin: skb.yunho.im@gmail.com)
 
+## 프론트엔드 스타일 정책 (2026-04-21 개정)
+
+> 이전: "단일 HTML · 외부 CSS 없음 · 인라인 스타일". 솔로 개발 + 컴포넌트 라이브러리 일관성 요구로 전환.
+
+- **공통 스타일**: 외부 CSS 파일 — `public/styles/theme.css`(토큰·색·폰트), `public/styles/components.css`(버튼·카드·입력·칩·모달)
+- **화면별 특화**: 해당 HTML 파일 내 `<style>` 블록 허용 (공통 컴포넌트로 감당 안 되는 1회성 레이아웃만)
+- **인라인 `style="..."` 속성**: 지양. 동적 값(JS 연산 결과)·1회성 미세 조정만 예외
+- **변경 SoT 순서**: Notion 브랜드 가이드 → `docs/brand/brand.json` → `public/styles/*.css` → HTML `<style>` → 인라인
+- **이전 정책 배경**: 초기 병렬 개발 + Claude 프롬프트 파일 단위 공유 편의. 현재는 해당 없음.
+
 ## 파일 구조 (병렬 개발 — 담당 파일만 수정)
 
 ```
