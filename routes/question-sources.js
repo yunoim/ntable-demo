@@ -256,6 +256,7 @@ const PACK_FLOW_DEFAULTS = {
   'friends-reunion': ['explore-result'],      // 오랜만 — 탐구 결과 카드
   dating: ['mvp', 'match'],                   // 연애 — MVP + 작대기
   teambuilding: ['mvp', 'explore-result'],    // 팀빌딩 — MVP + 결과
+  'playlist-share': ['mvp', 'explore-result'],// 플리 공유회 — BEST 플리 투표 + 탐구 결과
 };
 
 function getPackFlow(packId) {
@@ -321,7 +322,8 @@ const PACK_DEFAULTS = {
       best_match_eyebrow: '나와 가장 잘 맞았던 사람',
     },
   },
-  // 오랜만 — 이미 아는 사이. 최소 필드 + 탐구 결과만.
+  // 오랜만 — 이미 아는 사이. (2026-04-24 남산엔테이블 '나만의 플리 공유회' 를 위해 create 노출 일시 중단.
+  //  코드는 유지 — create.html ROOM_KITS 주석만 처리해서 UI 에서만 제외.)
   'friends-reunion': {
     wizard_fields: ['nickname', 'emoji', 'birth_year', 'mbti'],
     display_fields_default: ['birth_year', 'mbti'],
@@ -334,6 +336,22 @@ const PACK_DEFAULTS = {
     labels: {
       page2_card_title: '✨ 오늘 또 가까워진 사람',
       best_match_eyebrow: '오늘 다시 통한 사람',
+    },
+  },
+  // 나만의 플리 공유회 — 대회형 포맷. interest 필드를 플레이리스트 URL 로 재용도, instagram 은 본래 인스타 ID.
+  // BEST 플리 투표(MVP 재활용) + 인스타 교환 + 음악 테마 5문항 탐구.
+  'playlist-share': {
+    wizard_fields: ['nickname', 'emoji', 'mbti', 'interest', 'instagram'],
+    display_fields_default: ['mbti', 'interest'],
+    result_sections: ['ai_personality', 'best_match', 'mvp', 'explore_result', 'summary'],
+    skip_free_chat: false,
+    insta_exchange_enabled: true,
+    best_match_enabled: true,
+    mvp_enabled: true,
+    match_pairs_enabled: false,
+    labels: {
+      page2_card_title: '🎵 오늘의 BEST 플리',
+      best_match_eyebrow: '음악 취향이 비슷한 사람',
     },
   },
   // 팀빌딩 — 업종·관심사 중심. MVP 만. 매칭·인스타 없음.

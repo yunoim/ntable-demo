@@ -657,7 +657,25 @@ function renderStep() {
       `;
       break;
     case 'interest': {
-      // 분리된 모델: chip selected + 직접 입력 텍스트 (chip 단어 제외)
+      // playlist-share 팩 — interest 필드를 '플레이리스트 URL' 로 재용도. chip·해시 선택 UI 숨기고 URL 단일 입력만.
+      const isPlaylistShare = ROOM.pack_id === 'playlist-share';
+      if (isPlaylistShare) {
+        body = `
+          <div class="step-num">${stepNum} · 플레이리스트 <span style="opacity:0.85;font-weight:500;color:var(--gold-light);">(권장)</span></div>
+          <h2 class="step-title">오늘 공유할<br>플레이리스트 링크 🎵</h2>
+          <p class="step-sub">유튜브 또는 스포티파이 플레이리스트 URL. 15분 분량 추천.</p>
+          <div class="step-tip"><span class="step-tip-icon">🎧</span><span>참가자 카드에 플리 링크 버튼이 노출돼요. 모임 중 스피커로 재생·익명 채팅 반응까지.</span></div>
+          <div class="field">
+            <input type="url" id="interestInput" maxlength="200" placeholder="https://music.youtube.com/... 또는 https://open.spotify.com/..." value="${escHtml(data.interest || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" style="font-size:14px;">
+          </div>
+          <div class="actions">
+            ${prevBtn}
+            <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+          </div>
+        `;
+        break;
+      }
+      // 일반 팩 — 관심사 태그 + 직접 입력
       const allTokens = (data.interest || '').split(',').map(s => s.trim()).filter(Boolean);
       const presetTokens = allTokens.filter(t => INTERESTS.includes(t));
       const extraTokens = allTokens.filter(t => !INTERESTS.includes(t));
@@ -665,7 +683,7 @@ function renderStep() {
       body = `
         <div class="step-num">${stepNum} · 관심사 <span style="opacity:0.6;font-weight:400;">(선택)</span></div>
         <h2 class="step-title">뭘 좋아하세요?</h2>
-        <p class="step-sub">아래에서 골라도 되고, 다른 게 있으면 직접 입력도 OK. (중복은 자동 합쳐져요)</p>
+        <p class="step-sub">아래에서 골라도 되고, 없으면 직접 적어도 돼요. (같은 단어는 자동으로 합쳐져요)</p>
         <div class="step-tip"><span class="step-tip-icon">🎯</span><span>겹치는 관심사 <strong>1개만 있어도</strong> 자유대화에서 침묵이 사라져요. 여러 개 고르는 걸 추천.</span></div>
         <div class="field">
           <div class="chip-row">${INTERESTS.map(v => `<button type="button" class="chip${interestSet.has(v)?' selected':''}" data-group="interest" data-value="${escHtml(v)}">${escHtml(v)}</button>`).join('')}</div>

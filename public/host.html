@@ -1958,6 +1958,8 @@
       <div class="free-card" id="free-chat-card">
         <div class="card-head">💬 익명 채팅</div>
         <div id="chat-log"><div class="empty-msg">대화가 시작되면 여기 표시돼요</div></div>
+        <!-- 플리 공유회 전용 빠른 반응 템플릿 (pack_id=playlist-share 일 때만 JS 로 노출) -->
+        <div id="chat-templates" hidden style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
         <div style="display:flex;gap:8px;margin-top:12px;">
           <input type="text" id="host-chat-input" maxlength="500" placeholder="익명으로 보내기 (Enter)" style="flex:1;padding:10px 14px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;color:#fff;font-family:inherit;font-size:14px;">
           <button type="button" id="host-chat-send" style="padding:0 16px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;">보내기</button>
@@ -2266,6 +2268,8 @@ async function loadRoomInfo() {
     }
     state.room = room;
     state.packDefaults = (room.pack_defaults && typeof room.pack_defaults === 'object') ? room.pack_defaults : {};
+    // 플리 공유회 팩 — 채팅 템플릿 버튼 노출
+    if (room.pack_id === 'playlist-share') setupPlaylistChatTemplates();
     if (state.packDefaults.skip_free_chat === true) {
       document.body.classList.add('skip-free-chat');
       // free 단계가 숨겨지면 phase-bar 번호·라벨 재매핑 (01·02·(03 ending="결과"))
@@ -2686,7 +2690,11 @@ function renderProfiles() {
       <div class="tags">
         ${u.mbti ? `<span class="tag-chip gold">${escHtml(u.mbti)}</span>` : ''}
         ${showIndustry && u.industry ? `<span class="tag-chip">${escHtml(u.industry)}</span>` : ''}
-        ${showInterest && u.interest ? u.interest.split(',').map(s => s.trim()).filter(Boolean).map(s => `<span class="tag-chip">${escHtml(s)}</span>`).join('') : ''}
+        ${showInterest && u.interest ? (
+          /^https?:\/\//.test(u.interest)
+            ? `<a href="${escHtml(u.interest)}" target="_blank" rel="noopener" class="tag-chip gold" style="text-decoration:none;">🎵 플리 열기</a>`
+            : u.interest.split(',').map(s => s.trim()).filter(Boolean).map(s => `<span class="tag-chip">${escHtml(s)}</span>`).join('')
+        ) : ''}
       </div>
       ${introHtml}`;
     carousel.appendChild(card);
@@ -2780,6 +2788,24 @@ function openMpCard(uuid) {
 function closeMpCard() {
   const modal = document.getElementById('mp-card-modal');
   if (modal) modal.hidden = true;
+}
+
+// 플리 공유회 전용 — 빠른 반응 템플릿 버튼 (탭 시 바로 채팅 전송)
+function setupPlaylistChatTemplates() {
+  const wrap = document.getElementById('chat-templates');
+  if (!wrap) return;
+  const templates = ['🔥 이 곡 뭐죠?','🎧 플리 추가','💔 눈물 주의','🕺 춤추게 됨','😌 힐링됨','🎵 가사 궁금'];
+  wrap.innerHTML = templates.map(t => `<button type="button" class="chat-template-btn" data-tmpl="${escHtml(t)}" style="padding:7px 10px;background:rgba(212,168,67,0.1);border:1px solid var(--gold-border);color:var(--gold-light);border-radius:999px;font-family:inherit;font-size:11.5px;cursor:pointer;letter-spacing:0.02em;">${escHtml(t)}</button>`).join('');
+  wrap.hidden = false;
+  wrap.querySelectorAll('.chat-template-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.dataset.tmpl;
+      if (!text) return;
+      if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        state.ws.send(JSON.stringify({ type: 'chat', message: text }));
+      }
+    });
+  });
 }
 
 // 공통 Esc 키로 열려있는 모달 닫기 (a11y)

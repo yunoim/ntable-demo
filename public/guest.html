@@ -1606,6 +1606,8 @@
     <button type="button" class="qc-close" onclick="closeQuestionBanner()" aria-label="닫기">×</button>
   </div>
   <div class="chat-area" id="chatArea"></div>
+  <!-- 플리 공유회 전용 빠른 반응 템플릿 (pack_id=playlist-share 일 때만 노출) -->
+  <div id="guestChatTemplates" hidden style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0;"></div>
   <div class="chat-input-bar">
     <input class="chat-input" id="chatInput" type="text" placeholder="메시지 입력..." maxlength="200" aria-label="채팅 메시지"
            onkeydown="if(event.key==='Enter') sendChat()">
@@ -1784,6 +1786,8 @@ const STATE = {
     if (!res.ok) { showError('모임 정보를 불러올 수 없어요. 새로고침하거나 잠시 후 다시 시도해주세요.'); return; }
     const room = await res.json();
     STATE.room = room;
+    // 플리 공유회 팩 — 채팅 템플릿 버튼 노출
+    if (room.pack_id === 'playlist-share') setupPlaylistChatTemplates();
 
     if (room.status === 'closed') { switchScreen('closed'); return; }
 
@@ -2557,7 +2561,11 @@ function renderCarousel() {
         <div class="member-meta">${meta}</div>
         <div class="member-tags">
           ${m.mbti ? `<span class="tag gold">${escHtml(m.mbti)}</span>` : ''}
-          ${showInterest && m.interest ? `<span class="tag">${escHtml(m.interest)}</span>` : ''}
+          ${showInterest && m.interest ? (
+            /^https?:\/\//.test(m.interest)
+              ? `<a href="${escHtml(m.interest)}" target="_blank" rel="noopener" class="tag gold" style="text-decoration:none;">🎵 플리 열기</a>`
+              : `<span class="tag">${escHtml(m.interest)}</span>`
+          ) : ''}
           ${showRegion && m.region ? `<span class="tag">${escHtml(m.region)}</span>` : ''}
           ${showIndustry && m.industry ? `<span class="tag">${escHtml(m.industry)}</span>` : ''}
         </div>
@@ -2712,6 +2720,22 @@ function openGuestMemberModal(uuid) {
 function closeGuestMemberModal() {
   const m = document.getElementById('guest-card-modal');
   if (m) m.hidden = true;
+}
+
+// 플리 공유회 전용 — 빠른 반응 템플릿 버튼 (탭 시 바로 채팅 전송)
+function setupPlaylistChatTemplates() {
+  const wrap = document.getElementById('guestChatTemplates');
+  if (!wrap) return;
+  const templates = ['🔥 이 곡 뭐죠?','🎧 플리 추가','💔 눈물 주의','🕺 춤추게 됨','😌 힐링됨','🎵 가사 궁금'];
+  wrap.innerHTML = templates.map(t => `<button type="button" class="chat-template-btn" data-tmpl="${escHtml(t)}" style="padding:6px 10px;background:rgba(212,168,67,0.1);border:1px solid var(--gold-border);color:var(--gold-light);border-radius:999px;font-family:inherit;font-size:11.5px;cursor:pointer;letter-spacing:0.02em;">${escHtml(t)}</button>`).join('');
+  wrap.hidden = false;
+  wrap.querySelectorAll('.chat-template-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.dataset.tmpl;
+      if (!text || !STATE.ws || STATE.ws.readyState !== WebSocket.OPEN) return;
+      STATE.ws.send(JSON.stringify({ type: 'chat', message: text }));
+    });
+  });
 }
 
 // Esc 키 모달 닫기 (a11y)
