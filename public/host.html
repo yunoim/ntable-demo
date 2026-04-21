@@ -2206,6 +2206,7 @@ const state = {
   myVotes: {},
   waitingUsers: [],
   approvedUsers: [],
+  playlistByUuid: {}, // playlist-share 팩 전용 — /api/rooms/:code/playlist 응답 캐시
   photos: {}, // uuid → dataURL (서버 미저장, WS broadcast 휘발성)
   intros: {}, // uuid → 한줄 자기소개 (서버 미저장)
   bannedPhotos: new Set(), // photo_kick 한 uuid (서버에서도 추적, host UI 반영용)
@@ -2284,6 +2285,8 @@ async function loadRoomInfo() {
       }
     }
     state.displayFields = Array.isArray(room.display_fields) ? room.display_fields : ['birth_year','region','industry','interest'];
+    // playlist-share 팩 — 플레이리스트 URL 맵 초기 로드
+    if (room.pack_id === 'playlist-share') refreshPlaylistMap();
     state.birthYearFormat = room.birth_year_format || 'exact';
     state.hostRole = room.host_role || 'host_only';
     state.questionCount = Number.isFinite(room.question_count) ? room.question_count : 10;
@@ -2428,6 +2431,7 @@ function handleWSMessage(msg) {
           }
         });
       }
+      if (state.room && state.room.pack_id === 'playlist-share') refreshPlaylistMap();
       break;
     }
     case 'vote_result':
@@ -2519,6 +2523,18 @@ async function fetchUserProfile(uuid) {
     const res = await api(`/api/me?uuid=${uuid}`);
     return res.ok ? await res.json() : {};
   } catch { return {}; }
+}
+
+// playlist_links 테이블에서 방 전체의 플레이리스트 URL 맵 가져오기 (playlist-share 팩 전용)
+async function refreshPlaylistMap() {
+  try {
+    const res = await fetch(`/api/rooms/${state.roomCode}/playlist`);
+    if (res.ok) {
+      const j = await res.json();
+      state.playlistByUuid = (j && j.links) || {};
+      renderProfiles();
+    }
+  } catch (_) {}
 }
 
 // ── RENDER ────────────────────────────────────────
@@ -2662,6 +2678,8 @@ function renderProfiles() {
   const showRegion = df.includes('region');
   const showIndustry = df.includes('industry');
   const showInterest = df.includes('interest');
+  const showPlaylist = df.includes('playlist');
+  const playlistByUuid = state.playlistByUuid || {};
 
   for (const u of state.approvedUsers) {
     const genderLabel = (u.gender === 'M' || u.gender === 'male') ? '남'
@@ -2691,11 +2709,8 @@ function renderProfiles() {
       <div class="tags">
         ${u.mbti ? `<span class="tag-chip gold">${escHtml(u.mbti)}</span>` : ''}
         ${showIndustry && u.industry ? `<span class="tag-chip">${escHtml(u.industry)}</span>` : ''}
-        ${showInterest && u.interest ? (
-          /^https?:\/\//.test(u.interest)
-            ? `<a href="${escHtml(u.interest)}" target="_blank" rel="noopener" class="tag-chip gold" style="text-decoration:none;">🎵 플리 열기</a>`
-            : u.interest.split(',').map(s => s.trim()).filter(Boolean).map(s => `<span class="tag-chip">${escHtml(s)}</span>`).join('')
-        ) : ''}
+        ${showInterest && u.interest ? u.interest.split(',').map(s => s.trim()).filter(Boolean).map(s => `<span class="tag-chip">${escHtml(s)}</span>`).join('') : ''}
+        ${showPlaylist && playlistByUuid[u.uuid] ? `<a href="${escHtml(playlistByUuid[u.uuid])}" target="_blank" rel="noopener" class="tag-chip gold" style="text-decoration:none;">🎵 플리 열기</a>` : ''}
       </div>
       ${introHtml}`;
     carousel.appendChild(card);
@@ -4302,6 +4317,10 @@ async function loadMiProfile() {
     const res = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(state.uuid)}?viewer=${encodeURIComponent(state.uuid)}`);
     if (!res.ok) throw new Error('fetch failed');
     _miCurrent = await res.json();
+    // playlist-share 팩 — 내 플리 URL 병합 (별도 테이블)
+    if (state.room && state.room.pack_id === 'playlist-share') {
+      _miCurrent.playlist = (state.playlistByUuid && state.playlistByUuid[state.uuid]) || '';
+    }
     renderMiProfile();
   } catch (e) {
     content.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px 0;">정보를 불러오지 못했어요.</div>';
@@ -4312,6 +4331,7 @@ function renderMiProfile() {
   const me = _miCurrent || {};
   const content = document.getElementById('mi-content');
   const photo = state.photos[state.uuid] || (() => { try { return localStorage.getItem(`ntable_photo_${state.roomCode}`) || ''; } catch (_) { return ''; } })();
+  const isPlaylistPack = state.room && state.room.pack_id === 'playlist-share';
   if (_miEditMode) {
     content.innerHTML = `
       ${photo ? `<div style="text-align:center;margin-bottom:14px;"><img src="${escHtml(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-border);"></div>` : ''}
@@ -4322,6 +4342,7 @@ function renderMiProfile() {
       ${miEditText('업종', 'industry', me.industry, 'hide_industry', me.hide_industry)}
       ${miEditText('MBTI', 'mbti', me.mbti, null, false)}
       ${miEditText('관심사', 'interest', me.interest, 'hide_interest', me.hide_interest)}
+      ${isPlaylistPack ? miEditText('플리 링크', 'playlist', me.playlist, null, false) : ''}
       ${miEditText('인스타그램', 'instagram', me.instagram, 'hide_instagram', me.hide_instagram)}
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button type="button" onclick="cancelMiEdit()" style="flex:1;padding:11px;background:transparent;border:1px solid var(--border);color:var(--white-dim);border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;">취소</button>
@@ -4335,6 +4356,11 @@ function renderMiProfile() {
       return `<div class="mi-view-row"><span class="mi-k">${k}</span><span class="mi-v" style="color:var(--white);font-weight:500;">${escHtml(v)}</span></div>`;
     };
     const genderLabel = me.gender === 'male' ? '남성' : me.gender === 'female' ? '여성' : me.gender === 'unspecified' ? '선택 안 함' : '';
+    const playlistRow = isPlaylistPack ? (
+      me.playlist
+        ? `<div class="mi-view-row"><span class="mi-k">플리 링크</span><span class="mi-v" style="color:var(--white);font-weight:500;"><a href="${escHtml(me.playlist)}" target="_blank" rel="noopener" style="color:var(--gold-light);text-decoration:underline;">🎵 열기</a></span></div>`
+        : `<div class="mi-view-row"><span class="mi-k">플리 링크</span><span class="mi-v" style="color:var(--text-dim);font-style:italic;">생략</span></div>`
+    ) : '';
     content.innerHTML = `
       ${photo ? `<div style="text-align:center;margin-bottom:14px;"><img src="${escHtml(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-border);"></div>` : ''}
       ${row('닉네임', me.nickname, false)}
@@ -4344,6 +4370,7 @@ function renderMiProfile() {
       ${row('업종', me.industry, me.hide_industry)}
       ${row('MBTI', me.mbti, false)}
       ${row('관심사', me.interest, me.hide_interest)}
+      ${playlistRow}
       ${row('인스타그램', me.instagram ? '@' + me.instagram : '', me.hide_instagram)}
     `;
   }
@@ -4390,8 +4417,10 @@ function cancelMiEdit() {
 async function saveMiEdit() {
   const inputs = document.querySelectorAll('#mi-content [data-mi-field]');
   const body = { uuid: state.uuid };
+  let playlistUrl = undefined; // playlist-share 팩 전용 (별도 엔드포인트)
   for (const inp of inputs) {
     const k = inp.dataset.miField;
+    if (k === 'playlist') { playlistUrl = (inp.value || '').trim(); continue; }
     if (inp.type === 'checkbox') body[k] = inp.checked;
     else if (inp.type === 'number') body[k] = inp.value ? parseInt(inp.value, 10) : null;
     else body[k] = inp.value || null;
@@ -4406,6 +4435,23 @@ async function saveMiEdit() {
       body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error('save failed');
+    // playlist-share 팩 — URL 별도 저장 (빈 값이면 DELETE)
+    if (playlistUrl !== undefined) {
+      try {
+        if (playlistUrl) {
+          await fetch(`/api/rooms/${state.roomCode}/playlist`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid: state.uuid, url: playlistUrl }),
+          });
+        } else {
+          await fetch(`/api/rooms/${state.roomCode}/playlist`, {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid: state.uuid }),
+          });
+        }
+        await refreshPlaylistMap();
+      } catch (_) {}
+    }
     status.textContent = '✓ 저장됨';
     status.style.color = 'var(--success)';
     _miEditMode = false;

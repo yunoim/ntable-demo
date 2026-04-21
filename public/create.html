@@ -901,7 +901,7 @@
         detailedDesc: '각자 15분 플리를 스피커로 공유하고, 익명 채팅으로 실시간 반응·BEST 플리 투표·인스타 교환까지.',
         features: [
           'QR 자동 입장 · 익명 닉네임',
-          '프로필에 플레이리스트 URL 수집',
+          '플레이리스트 URL 별도 수집 (playlist_links)',
           '5문항 A/B 음악 취향 탐구',
           '자유대화 (2시간 · 익명 채팅 · 반응 템플릿)',
           'BEST 플리 투표 (MVP 방식)',
@@ -911,7 +911,7 @@
         ],
         defaults: {
           question_count: 5,
-          display_fields: ['interest'],
+          display_fields: ['mbti', 'playlist'],
           birth_year_format: 'decade_half',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,

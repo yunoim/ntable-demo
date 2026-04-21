@@ -388,13 +388,13 @@ const PACK_DEFAULTS = {
       best_match_eyebrow: '나와 비슷한 이야기',
     },
   },
-  // 나만의 플리 공유회 — 대회형 포맷. interest 필드를 플레이리스트 URL 로 재용도, instagram 은 본래 인스타 ID.
+  // 나만의 플리 공유회 — 대회형 포맷. playlist_links 테이블 별도 수집(관심사와 분리).
   // BEST 플리 투표(MVP 재활용) + 인스타 교환 + 음악 테마 5문항 탐구.
   'playlist-share': {
     series: 'ntable-plays',
     content_kind: 'playlist',
-    wizard_fields: ['nickname', 'emoji', 'mbti', 'interest', 'instagram'],
-    display_fields_default: ['mbti', 'interest'],
+    wizard_fields: ['nickname', 'emoji', 'mbti', 'playlist', 'instagram'],
+    display_fields_default: ['mbti', 'playlist'],
     result_sections: ['ai_personality', 'best_match', 'mvp', 'explore_result', 'summary'],
     skip_free_chat: false,
     insta_exchange_enabled: true,

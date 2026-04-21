@@ -324,6 +324,7 @@ const PACK_META = {
 const data = {
   nickname: '', gender: null, birth_year: null, region: null,
   industry: null, mbti: null, interest: null, instagram: null, emoji: null,
+  playlist: null, // playlist-share 팩 전용 — playlist_links 테이블에 별도 저장
   // 카드 비공개 (매칭에만 사용, 다른 게스트 카드에서 마스킹)
   hide_birth_year: false, hide_region: false, hide_industry: false, hide_interest: false, hide_instagram: false,
 };
@@ -411,6 +412,7 @@ function rebuildSteps() {
     if (wf.includes('industry')) steps.push('industry');
     if (wf.includes('mbti')) steps.push('mbti');
     if (wf.includes('interest')) steps.push('interest');
+    if (wf.includes('playlist')) steps.push('playlist');
     if (wf.includes('instagram') && ROOM.instagram_collect === true) steps.push('instagram');
     if (wf.includes('emoji')) steps.push('photo'); // photo step = emoji/avatar 선택
     steps.push('confirm');
@@ -656,25 +658,24 @@ function renderStep() {
         </div>
       `;
       break;
+    case 'playlist': {
+      // playlist-share 팩 전용 — URL을 playlist_links 테이블에 별도 저장 (관심사와 분리).
+      body = `
+        <div class="step-num">${stepNum} · 플레이리스트 <span style="opacity:0.85;font-weight:500;color:var(--gold-light);">(권장)</span></div>
+        <h2 class="step-title">오늘 공유할<br>플레이리스트 링크 🎵</h2>
+        <p class="step-sub">유튜브·스포티파이·애플뮤직 등 URL. 15분 분량 추천.</p>
+        <div class="step-tip"><span class="step-tip-icon">🎧</span><span>참가자 카드에 플리 링크 버튼이 노출돼요. 모임 중 스피커로 재생·익명 채팅 반응까지.</span></div>
+        <div class="field">
+          <input type="url" id="playlistInput" maxlength="500" placeholder="https://music.youtube.com/... 또는 https://open.spotify.com/..." value="${escHtml(data.playlist || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" style="font-size:14px;">
+        </div>
+        <div class="actions">
+          ${prevBtn}
+          <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
+        </div>
+      `;
+      break;
+    }
     case 'interest': {
-      // playlist-share 팩 — interest 필드를 '플레이리스트 URL' 로 재용도. chip·해시 선택 UI 숨기고 URL 단일 입력만.
-      const isPlaylistShare = ROOM.pack_id === 'playlist-share';
-      if (isPlaylistShare) {
-        body = `
-          <div class="step-num">${stepNum} · 플레이리스트 <span style="opacity:0.85;font-weight:500;color:var(--gold-light);">(권장)</span></div>
-          <h2 class="step-title">오늘 공유할<br>플레이리스트 링크 🎵</h2>
-          <p class="step-sub">유튜브 또는 스포티파이 플레이리스트 URL. 15분 분량 추천.</p>
-          <div class="step-tip"><span class="step-tip-icon">🎧</span><span>참가자 카드에 플리 링크 버튼이 노출돼요. 모임 중 스피커로 재생·익명 채팅 반응까지.</span></div>
-          <div class="field">
-            <input type="url" id="interestInput" maxlength="200" placeholder="https://music.youtube.com/... 또는 https://open.spotify.com/..." value="${escHtml(data.interest || '')}" autocapitalize="none" autocorrect="off" spellcheck="false" style="font-size:14px;">
-          </div>
-          <div class="actions">
-            ${prevBtn}
-            <button type="button" class="btn btn-next" onclick="nextStep()">다음</button>
-          </div>
-        `;
-        break;
-      }
       // 일반 팩 — 관심사 태그 + 직접 입력
       const allTokens = (data.interest || '').split(',').map(s => s.trim()).filter(Boolean);
       const presetTokens = allTokens.filter(t => INTERESTS.includes(t));
@@ -811,6 +812,7 @@ function renderStep() {
           ${showFld('industry') ? rowH('업종', data.industry, data.hide_industry) : ''}
           ${showFld('mbti') ? rowH('MBTI', data.mbti, false) : ''}
           ${showFld('interest') ? rowH('관심사', data.interest, data.hide_interest) : ''}
+          ${showFld('playlist') ? rowH('플리 링크', data.playlist, false) : ''}
           ${showFld('instagram') ? rowH('인스타그램', data.instagram ? '@' + data.instagram : '', data.hide_instagram) : ''}
         </div>
         <div class="err-msg" id="errMsg"></div>
@@ -1031,6 +1033,10 @@ document.addEventListener('input', (e) => {
   if (e.target.id === 'interestInput') {
     recomputeInterest();
   }
+  if (e.target.id === 'playlistInput') {
+    const v = e.target.value.trim();
+    data.playlist = (v && /^https?:\/\//i.test(v)) ? v.slice(0, 500) : (v ? v : null);
+  }
   if (e.target.id === 'instaInput') {
     // 인스타그램 — 영문/숫자/점/언더바만 허용, 소문자 변환, @ 자동 제거
     const cleaned = e.target.value.toLowerCase().replace(/^@/, '').replace(/[^a-z0-9._]/g, '');
@@ -1139,6 +1145,16 @@ async function submitJoin() {
       btn.disabled = false;
       btn.textContent = '입장하기';
       return;
+    }
+    // playlist-share 팩 — 플레이리스트 URL 별도 저장 (실패해도 입장은 진행)
+    if (ROOM.pack_id === 'playlist-share' && data.playlist) {
+      try {
+        await fetch(`/api/rooms/${ROOM_CODE}/playlist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uuid: UUID, url: data.playlist }),
+        });
+      } catch (_) {}
     }
     try {
       localStorage.setItem('preferred_nickname', data.nickname);

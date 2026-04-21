@@ -1535,6 +1535,9 @@
     </select>
     <label for="editInterest">관심사</label>
     <input type="text" id="editInterest" placeholder="예: 등산, 독서, 요리" maxlength="30" aria-label="관심사" />
+    <!-- playlist-share 팩 전용 — pack_id 확인 후 JS 가 노출 -->
+    <label for="editPlaylist" id="editPlaylistLabel" hidden>플리 링크</label>
+    <input type="url" id="editPlaylist" placeholder="https://music.youtube.com/..." maxlength="500" aria-label="플리 링크" hidden />
     <label for="editInstagram">인스타그램 아이디</label>
     <input type="text" id="editInstagram" placeholder="@ 제외하고 입력" maxlength="50" aria-label="인스타그램 아이디" />
     <button type="button" class="profile-edit-save" onclick="saveProfileEdit()">저장</button>
@@ -1752,6 +1755,7 @@ const STATE = {
   myExploreVotes: {},
   currentQIndex: 0,
   members: [],
+  playlistByUuid: {}, // playlist-share 팩 전용 — /api/rooms/:code/playlist 응답 캐시
   myProfile: null,
   photos: {}, // uuid → dataURL (서버에 저장되지 않음, WS broadcast 휘발성)
   intros: {}, // uuid → 한줄 자기소개 (서버 미저장, 휘발성)
@@ -2456,6 +2460,18 @@ function openProfileEdit() {
   document.getElementById('editMbti').value = p.mbti || '';
   document.getElementById('editInterest').value = p.interest || '';
   document.getElementById('editInstagram').value = p.instagram || '';
+  // playlist-share 팩 — 플리 URL 편집 행 노출
+  const isPlaylistPack = STATE.room && STATE.room.pack_id === 'playlist-share';
+  const playlistLbl = document.getElementById('editPlaylistLabel');
+  const playlistInp = document.getElementById('editPlaylist');
+  if (isPlaylistPack && playlistInp && playlistLbl) {
+    playlistLbl.hidden = false;
+    playlistInp.hidden = false;
+    playlistInp.value = (STATE.playlistByUuid && STATE.playlistByUuid[STATE.uuid]) || '';
+  } else if (playlistInp && playlistLbl) {
+    playlistLbl.hidden = true;
+    playlistInp.hidden = true;
+  }
   document.getElementById('profileEditStatus').textContent = '';
   document.getElementById('profileEditModal').hidden = false;
 }
@@ -2484,6 +2500,26 @@ async function saveProfileEdit() {
     });
     if (!r.ok) throw new Error();
     STATE.myProfile = { ...STATE.myProfile, ...payload };
+    // playlist-share 팩 — URL 별도 저장
+    const isPlaylistPack = STATE.room && STATE.room.pack_id === 'playlist-share';
+    if (isPlaylistPack) {
+      const url = (document.getElementById('editPlaylist').value || '').trim();
+      try {
+        if (url) {
+          await fetch(`/api/rooms/${STATE.roomCode}/playlist`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid: STATE.uuid, url }),
+          });
+        } else {
+          await fetch(`/api/rooms/${STATE.roomCode}/playlist`, {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid: STATE.uuid }),
+          });
+        }
+        await refreshPlaylistMap();
+        renderCarousel();
+      } catch (_) {}
+    }
     renderMyProfile();
     statusEl.textContent = '✓ 저장 완료';
     setTimeout(closeProfileEdit, 900);
@@ -2517,8 +2553,20 @@ async function loadIntroData() {
     if (!res.ok) return;
     STATE.members = await res.json();
     console.log('[guest] members:', STATE.members);
+    // playlist-share 팩 — 플레이리스트 URL 맵 병합 (멤버 렌더에 사용)
+    if (STATE.room && STATE.room.pack_id === 'playlist-share') await refreshPlaylistMap();
     renderCarousel();
   } catch(e) { console.warn('[guest] loadIntroData error', e); }
+}
+
+async function refreshPlaylistMap() {
+  try {
+    const res = await fetch(`/api/rooms/${STATE.roomCode}/playlist`);
+    if (res.ok) {
+      const j = await res.json();
+      STATE.playlistByUuid = (j && j.links) || {};
+    }
+  } catch (_) {}
 }
 
 function renderCarousel() {
@@ -2534,6 +2582,8 @@ function renderCarousel() {
   const showRegion = df.includes('region');
   const showIndustry = df.includes('industry');
   const showInterest = df.includes('interest');
+  const showPlaylist = df.includes('playlist');
+  const playlistByUuid = STATE.playlistByUuid || {};
 
   STATE.members.forEach((m, i) => {
     const genderText = genderLabel(m.gender);
@@ -2561,11 +2611,8 @@ function renderCarousel() {
         <div class="member-meta">${meta}</div>
         <div class="member-tags">
           ${m.mbti ? `<span class="tag gold">${escHtml(m.mbti)}</span>` : ''}
-          ${showInterest && m.interest ? (
-            /^https?:\/\//.test(m.interest)
-              ? `<a href="${escHtml(m.interest)}" target="_blank" rel="noopener" class="tag gold" style="text-decoration:none;">🎵 플리 열기</a>`
-              : `<span class="tag">${escHtml(m.interest)}</span>`
-          ) : ''}
+          ${showInterest && m.interest ? `<span class="tag">${escHtml(m.interest)}</span>` : ''}
+          ${showPlaylist && playlistByUuid[m.uuid] ? `<a href="${escHtml(playlistByUuid[m.uuid])}" target="_blank" rel="noopener" class="tag gold" style="text-decoration:none;">🎵 플리 열기</a>` : ''}
           ${showRegion && m.region ? `<span class="tag">${escHtml(m.region)}</span>` : ''}
           ${showIndustry && m.industry ? `<span class="tag">${escHtml(m.industry)}</span>` : ''}
         </div>

@@ -293,6 +293,23 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_insta_selects_room ON insta_selects(room_id)
     `);
 
+    // playlist_links — playlist-share 팩 전용 플레이리스트 URL.
+    // interest 필드 재활용 대신 방별 별도 테이블로 분리 (관심사와 혼동·마이그레이션 리스크 제거).
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS playlist_links (
+        id SERIAL PRIMARY KEY,
+        room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+        uuid VARCHAR NOT NULL,
+        url TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(room_id, uuid)
+      )
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_playlist_links_room ON playlist_links(room_id)
+    `);
+
     // admin_users — Google OAuth 화이트리스트
     await client.query(`
       CREATE TABLE IF NOT EXISTS admin_users (

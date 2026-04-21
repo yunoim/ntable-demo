@@ -42,7 +42,8 @@ router.post('/rooms', async (req, res) => {
   }
 
   // 표시 필드 옵션 (호스트가 정함) — 팩 기본값을 폴백으로. couples 같이 최소 노출 팩 은 display_fields 가 빈 배열 가까울 수 있음 (mbti 는 별도 로직으로 항상 노출).
-  const ALLOWED_FIELDS = ['birth_year', 'region', 'industry', 'interest'];
+  // mbti·playlist 는 opt-in 표시 슬롯 — 카드 렌더러는 현재 mbti 게이트 없이 상시 노출, playlist 만 showPlaylist 로 게이트.
+  const ALLOWED_FIELDS = ['birth_year', 'region', 'industry', 'interest', 'mbti', 'playlist'];
   const packDisplayDefault = Array.isArray(getPackDefaults(pack.id).display_fields_default)
     ? getPackDefaults(pack.id).display_fields_default.filter(f => ALLOWED_FIELDS.includes(f))
     : ALLOWED_FIELDS;
@@ -967,7 +968,8 @@ router.patch('/rooms/:code/display', async (req, res) => {
   const room = await pool.query('SELECT id, host_uuid FROM rooms WHERE room_code = $1', [code]);
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
   if (room.rows[0].host_uuid !== uuid) return res.status(403).json({ error: 'host only' });
-  const ALLOWED_FIELDS = ['birth_year', 'region', 'industry', 'interest'];
+  // mbti·playlist 는 opt-in 표시 슬롯 — 카드 렌더러는 현재 mbti 게이트 없이 상시 노출, playlist 만 showPlaylist 로 게이트.
+  const ALLOWED_FIELDS = ['birth_year', 'region', 'industry', 'interest', 'mbti', 'playlist'];
   let display_fields = Array.isArray(req.body.display_fields)
     ? req.body.display_fields.filter(f => ALLOWED_FIELDS.includes(f))
     : null;
@@ -988,6 +990,63 @@ router.patch('/rooms/:code/display', async (req, res) => {
   params.push(code);
   await pool.query(`UPDATE rooms SET ${updates.join(', ')} WHERE room_code = $${i}`, params);
   res.json({ ok: true });
+});
+
+// ── 플레이리스트 링크 (playlist-share 팩 전용) ──────────────────────
+// interest 필드 재활용 대신 방별 별도 테이블. upsert 허용(사용자가 오타 수정 가능).
+
+function sanitizePlaylistUrl(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) return null;
+  if (s.length > 500) return null;
+  return s;
+}
+
+// POST /api/rooms/:code/playlist — body: { uuid, url }
+router.post('/rooms/:code/playlist', async (req, res) => {
+  const { code } = req.params;
+  const { uuid } = req.body || {};
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  const url = sanitizePlaylistUrl(req.body && req.body.url);
+  if (!url) return res.status(400).json({ error: 'invalid url' });
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const room_id = room.rows[0].id;
+  const mem = await pool.query('SELECT 1 FROM room_members WHERE room_id = $1 AND uuid = $2', [room_id, uuid]);
+  if (mem.rowCount === 0) return res.status(403).json({ error: 'NOT_PARTICIPANT' });
+  await pool.query(
+    `INSERT INTO playlist_links (room_id, uuid, url)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (room_id, uuid) DO UPDATE SET url = EXCLUDED.url, updated_at = NOW()`,
+    [room_id, uuid, url]
+  );
+  res.json({ ok: true, url });
+});
+
+// DELETE /api/rooms/:code/playlist — body: { uuid }
+router.delete('/rooms/:code/playlist', async (req, res) => {
+  const { code } = req.params;
+  const { uuid } = req.body || {};
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  await pool.query('DELETE FROM playlist_links WHERE room_id = $1 AND uuid = $2', [room.rows[0].id, uuid]);
+  res.json({ ok: true });
+});
+
+// GET /api/rooms/:code/playlist — returns { links: { uuid: url, ... } }
+router.get('/rooms/:code/playlist', async (req, res) => {
+  const { code } = req.params;
+  const room = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [code]);
+  if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const rows = await pool.query(
+    'SELECT uuid, url FROM playlist_links WHERE room_id = $1',
+    [room.rows[0].id]
+  );
+  const links = {};
+  for (const r of rows.rows) links[r.uuid] = r.url;
+  res.json({ links });
 });
 
 module.exports = router;
