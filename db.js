@@ -14,7 +14,7 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS users (
         uuid VARCHAR PRIMARY KEY,
         nickname VARCHAR(20) UNIQUE NOT NULL,
-        gender VARCHAR(10),
+        gender VARCHAR(20),
         birth_year INTEGER,
         region VARCHAR(50),
         industry VARCHAR(50),
@@ -129,6 +129,10 @@ async function initDB() {
     try { await client.query(`ALTER TABLE users ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
     try { await client.query(`ALTER TABLE room_members ALTER COLUMN interest TYPE VARCHAR(200)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
 
+    // gender 길이 확장 — 'unspecified'(11자) 가 VARCHAR(10) 초과 → 입장 실패 (2026-04-21 hotfix)
+    try { await client.query(`ALTER TABLE users ALTER COLUMN gender TYPE VARCHAR(20)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
+    try { await client.query(`ALTER TABLE room_members ALTER COLUMN gender TYPE VARCHAR(20)`); } catch (e) { if (e.code !== '42701' && e.code !== '42703') throw e; }
+
     // 카드 비공개 (입력+숨김) — 멤버별로 매칭에는 사용되지만 게스트 카드에는 안 보이게 마스킹
     try { await client.query(`ALTER TABLE room_members ADD COLUMN hide_birth_year BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
     try { await client.query(`ALTER TABLE room_members ADD COLUMN hide_region BOOLEAN DEFAULT FALSE`); } catch (e) { if (e.code !== '42701') throw e; }
@@ -186,7 +190,7 @@ async function initDB() {
         room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
         uuid VARCHAR NOT NULL,
         nickname VARCHAR(20) NOT NULL,
-        gender VARCHAR(10),
+        gender VARCHAR(20),
         birth_year INTEGER,
         region VARCHAR(50),
         industry VARCHAR(50),
