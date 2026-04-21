@@ -245,88 +245,21 @@
     }
     .tagline-hero strong { color: var(--gold); font-weight: 700; }
 
-    /* 히어로 — 둘이서만 1-tap 경로 */
-    .couples-hero {
-      position: relative;
-      background: linear-gradient(135deg, rgba(212,168,67,0.18), rgba(212,168,67,0.06));
-      border: 1px solid var(--gold);
-      border-radius: 18px;
-      padding: 22px 22px 20px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-    .couples-hero::before {
-      content: '';
+    /* T-16 (2026-04-22): couples 카드 "바로 시작" 뱃지 — 5종 균등 유지하되 즉시 시작 표시 */
+    .pack-card-instant { border-color: var(--gold); }
+    .pack-badge-instant {
       position: absolute;
-      top: -40%; right: -20%;
-      width: 180px; height: 180px;
-      background: radial-gradient(circle, rgba(240,202,96,0.25), transparent 70%);
-      pointer-events: none;
-    }
-    .couples-hero-eyebrow {
+      top: 10px; right: 12px;
       display: inline-block;
       font-family: var(--font-body);
       font-size: 10px;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--gold-light);
-      background: rgba(10,15,30,0.4);
-      border: 1px solid var(--gold-border);
-      padding: 3px 10px;
-      border-radius: 999px;
-      margin-bottom: 10px;
-    }
-    .couples-hero h3 {
-      font-family: var(--font-heading);
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--white);
-      margin-bottom: 6px;
-      line-height: 1.3;
-      position: relative;
-    }
-    .couples-hero p {
-      font-size: 13px;
-      color: var(--white-dim);
-      margin-bottom: 14px;
-      line-height: 1.6;
-      position: relative;
-    }
-    .couples-hero-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--gold);
       color: var(--navy);
-      border: none;
-      border-radius: 11px;
-      font-family: inherit;
-      font-size: 14px;
+      background: var(--gold);
+      padding: 3px 8px;
+      border-radius: 999px;
       font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 14px rgba(212,168,67,0.35);
-      position: relative;
-    }
-    .couples-hero-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,168,67,0.5); }
-    .couples-hero-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    /* 섹션 헤더 */
-    .group-section-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 24px 0 16px;
-      font-size: 13px;
-      color: var(--white-muted);
-      letter-spacing: 0.08em;
-      font-weight: 600;
-    }
-    .group-section-header::before,
-    .group-section-header::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
     }
 
     /* 전체 팩 보기 토글 */
@@ -531,8 +464,6 @@
       font-weight: 700;
     }
     /* couples hero 안 features (동일 톤) */
-    .couples-hero .pack-features { margin-top: 14px; }
-    .couples-hero .pack-features li { color: var(--white-dim); }
     .pack-card .pack-cta {
       position: absolute; bottom: 12px; right: 14px;
       font-size: 16px; color: var(--gold-light);
@@ -651,16 +582,7 @@
 
     <!-- 화면 1: 모임 선택 -->
     <div class="card" id="selectScreen">
-      <!-- 둘이서 hero (즉시 모임 생성, 확인 스킵) -->
-      <div class="couples-hero" id="couplesHero" data-twe>
-        <span class="couples-hero-eyebrow">둘이서</span>
-        <h3 style="font-size:19px;margin-bottom:14px;">연인·가까운 사이</h3>
-        <button type="button" class="couples-hero-btn" id="quickCouplesBtn">둘이서 시작하기</button>
-      </div>
-
-      <div class="group-section-header">아니면 여럿이서</div>
-
-      <!-- 4개 모임 카드 (couples 제외) -->
+      <!-- T-16 (2026-04-22): 5종 균등 카드. 둘이서는 "바로 시작" 뱃지로 1-tap 경로 표시. -->
       <div class="pack-grid" id="packGrid" data-twe></div>
     </div>
 
@@ -876,10 +798,12 @@
     function renderRoomCard(kit) {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'pack-card';
+      card.className = 'pack-card' + (kit.id === 'couples' ? ' pack-card-instant' : '');
       card.dataset.packId = kit.id;
-      // 시리즈 뱃지는 group 섹션 타이틀에서 이미 라벨링하므로 카드 내 중복 표기 제거
+      // T-16 (2026-04-22): couples 카드만 "바로 시작" 뱃지 — 확인 화면 스킵, 즉시 생성
+      const instantBadge = kit.id === 'couples' ? '<span class="pack-badge-instant">바로 시작</span>' : '';
       card.innerHTML = `
+        ${instantBadge}
         <span class="pack-cta" aria-hidden="true">→</span>
         <div class="pack-head">
           <span class="pack-icon">${escHtml(kit.icon)}</span>
@@ -887,15 +811,18 @@
         </div>
         <div class="pack-desc">${escHtml(kit.desc)}</div>
       `;
-      // 4개 모임은 확인 화면 거침. couples는 hero에서 직접 처리.
-      card.addEventListener('click', () => showConfirmScreen(kit));
+      // couples 는 확인 화면 스킵 후 즉시 생성. 나머지는 확인 화면 경유.
+      card.addEventListener('click', () => {
+        if (kit.id === 'couples') createRoomFromKit(kit);
+        else showConfirmScreen(kit);
+      });
       return card;
     }
 
     function loadPacks() {
       const grid = document.getElementById('packGrid');
       grid.innerHTML = '';
-      const items = ROOM_KITS.filter(k => k.id !== 'couples');
+      const items = ROOM_KITS.slice();
       // 시리즈 그루핑 — seriesLabel 없는 팩은 "빠른 시작" 그룹으로
       const groups = new Map();
       const QUICK = '빠른 시작';
@@ -925,11 +852,7 @@
       }
     }
 
-    // 둘이서 hero — 즉시 모임 생성 (확인 스킵)
-    document.getElementById('quickCouplesBtn').addEventListener('click', () => {
-      const couples = ROOM_KITS.find(k => k.id === 'couples');
-      if (couples) createRoomFromKit(couples);
-    });
+    // T-16 (2026-04-22): couples hero 제거 — 카드 내 click 핸들러에서 직접 생성 처리
 
     // 화면 전환
     let _pendingKit = null;
