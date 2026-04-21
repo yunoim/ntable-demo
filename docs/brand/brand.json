@@ -8,15 +8,17 @@
   "name_rules": "소문자 고정. 대문자·NTABLE·N-Table 등 변형 금지.",
 
   "tagline": {
-    "main": "누구나 유잼 모임장이 되도록",
-    "public_positioning": "처음이어도 유잼 모임장이 되는 앱",
+    "public_main": "누구나 호스트가 되는 모임",
+    "public_eyebrow": "오프라인 모임 진행 도우미",
+    "public_hero_alt": "QR 하나로 시작되는 오프라인 모임 툴킷",
+    "internal_main": "누구나 유잼 모임장이 되도록",
     "internal_positioning": "노잼 인간도 모임장이 되는 앱",
-    "short": "유잼 모임장 메이커",
-    "product_explanation": "혼자선 어려웠던 모임, 앱과 함께하면 됩니다",
-    "story_form": "노잼 인간 ISTP도 모임장이 됩니다"
+    "internal_short": "유잼 모임장 메이커",
+    "internal_story_form": "노잼 인간 ISTP도 모임장이 됩니다",
+    "product_explanation": "혼자선 어려웠던 모임, 앱과 함께하면 됩니다"
   },
 
-  "_tagline_policy": "메인은 공개·내부 공통. public_positioning 은 ntable.kr 랜딩·app hero·소셜 og·모집 퍼널 공식. internal_positioning 은 노션·세일즈·창업 서사·내부 스토리텔링 한정. 상세: docs/brand/ntable-brand-guide.md §2-1.",
+  "_tagline_policy": "public_* 만 대외 노출 (랜딩·app hero·og·meta·모집 퍼널). internal_* 은 노션·세일즈·창업 서사·팀 온보딩 한정. '유잼·노잼' 일상어는 공개에서 제외 (신뢰도 저하 우려). 상세: docs/brand/ntable-brand-guide.md §2-1.",
 
   "storytelling": {
     "istp_hook": [
@@ -28,21 +30,15 @@
   },
 
   "cta": {
-    "primary_hero": "첫 유잼 모임 시작",
-    "primary_login": "첫 유잼 모임 만들기",
-    "primary_reopen": "다음 유잼 모임 열기",
-    "final_call_to_action": "첫 유잼 모임, 여기서 시작",
+    "primary_hero": "모임 열기",
+    "primary_login": "새 모임 만들기",
+    "primary_reopen": "새 모임 만들기",
+    "final_call_to_action": "지금 바로 시작하기",
     "nav_cta": "모임 열기",
     "landing_secondary": "진행 방식 보기"
   },
 
-  "before_after_samples": [
-    { "before": "이벤트를 생성하세요", "after": "당신의 첫 유잼 모임, 여기서 시작" },
-    { "before": "체크인 완료", "after": "오늘의 유잼 현장에 도착!" },
-    { "before": "투표 제출", "after": "유잼 픽 한 표 완료" },
-    { "before": "새 모임 만들기", "after": "첫 유잼 모임 만들기" },
-    { "before": "모임 열기", "after": "첫 유잼 모임 시작 (hero/메인) / 모임 열기 (nav 단축형)" }
-  ],
+  "_cta_policy": "공개 CTA 는 기능적·간결 톤 (모임 열기 / 새 모임 만들기 / 지금 바로 시작하기). '유잼' 류 브랜드 표현은 내부 전용이라 CTA 에는 쓰지 않는다.",
 
   "series": {
     "ntable-nights":  { "label": "ntable Nights",  "icon": "🌙", "tagline": "대화·창작 소모임",   "category": "conversation" },
