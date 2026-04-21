@@ -1091,12 +1091,37 @@
   }
 
   /* ─── FREE SCREEN ─── */
-  #screenFree { display: flex; flex-direction: column; padding-bottom: 76px; }
-  #screenFree.active .chat-input-bar {
+  #screenFree { display: flex; flex-direction: column; }
+
+  /* ─── 상시 익명 채팅 패널 ─── */
+  #persistentChat {
+    display: none;
+    flex-direction: column;
     position: fixed;
     left: 0; right: 0; bottom: 0;
-    z-index: 100;
+    background: rgba(10,15,30,0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--gold-border);
+    z-index: 90;
   }
+  body.screen-waiting #persistentChat,
+  body.screen-intro #persistentChat {
+    display: flex;
+    height: 44vh;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+  }
+  body.screen-waiting #screenWaiting,
+  body.screen-intro #screenIntro {
+    padding-bottom: 44vh;
+  }
+  body.screen-free #persistentChat {
+    display: flex;
+    top: 108px; /* top-bar(~60) + free-status-bar(~48) */
+  }
+  body.screen-explore #persistentChat,
+  body.screen-closing #persistentChat { display: none; }
   .chat-area {
     flex: 1;
     overflow-y: auto;
@@ -1603,6 +1628,10 @@
     <span class="conn-status" id="connDot"></span>
   </div>
   <div class="free-status-bar" id="freeStatusBar">익명 채팅 — 상대방에게는 닉네임이 표시되지 않아요</div>
+</div>
+
+<!-- 상시 익명 채팅 패널 — waiting/intro/free 에서 노출. explore·closing 은 body class 로 숨김 -->
+<div id="persistentChat">
   <div id="qcBanner" class="qc-banner" hidden>
     <div class="qc-icon">📌</div>
     <div class="qc-text" id="qcBannerText"></div>
@@ -1924,6 +1953,15 @@ function switchScreen(state) {
   const id = map[state];
   if (id) document.getElementById(id)?.classList.add('active');
 
+  // 상시 익명 채팅 패널 표시 제어 — body.screen-* 클래스 단일 토글
+  const allScreens = ['loading','closed','waiting','intro','explore','free','closing','error'];
+  document.body.classList.remove(...allScreens.map(s => `screen-${s}`));
+  document.body.classList.add(`screen-${state}`);
+  // explore·closing 진입 시 모바일 키보드 방지용 blur
+  if (state === 'explore' || state === 'closing') {
+    try { document.getElementById('chatInput')?.blur(); } catch (_) {}
+  }
+
   if (state === 'waiting') {
     loadRoomPreview();
     startWaitingTimer();
@@ -1942,7 +1980,7 @@ function applyGuestFreeChatOptions() {
   const r = STATE.room || {};
   const chatEnabled = r.free_chat_chat_enabled !== false;
   const timerMin = parseInt(r.free_chat_timer_minutes, 10) || 0;
-  const chatBar = document.querySelector('#screenFree .chat-input-bar');
+  const chatBar = document.querySelector('#persistentChat .chat-input-bar');
   const statusBar = document.getElementById('freeStatusBar');
   if (chatBar) chatBar.style.display = chatEnabled ? '' : 'none';
   if (statusBar) statusBar.textContent = chatEnabled

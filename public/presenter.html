@@ -216,6 +216,53 @@
   }
   .q-opt-count strong { color: #e8b84b; font-size: 24px; }
 
+  /* TV 익명 채팅 오버레이 (읽기 전용) */
+  #tvChat {
+    position: fixed;
+    right: 28px; bottom: 84px;
+    width: 340px;
+    max-height: 42vh;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    background: rgba(14,22,40,0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(212,168,67,0.28);
+    border-radius: 16px;
+    overflow-y: auto;
+    z-index: 50;
+    pointer-events: none;
+    font-family: 'DM Sans','Noto Sans KR',sans-serif;
+  }
+  body[data-phase="waiting"] #tvChat,
+  body[data-phase="intro"] #tvChat,
+  body[data-phase="free"] #tvChat { display: flex; }
+  #tvChat.empty { display: none !important; }
+  #tvChat .tv-chat-head {
+    font-size: 11px; letter-spacing: 0.22em;
+    color: #d4a843; text-transform: uppercase;
+    margin-bottom: 2px; flex-shrink: 0;
+  }
+  #tvChat .tv-chat-msg {
+    font-size: 17px; line-height: 1.45;
+    color: #f5f2ec;
+    padding: 8px 12px;
+    background: rgba(212,168,67,0.08);
+    border: 1px solid rgba(212,168,67,0.22);
+    border-radius: 12px;
+    animation: tvChatIn 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  #tvChat .tv-chat-msg .tv-chat-meta {
+    font-size: 11px; color: rgba(245,242,236,0.55);
+    margin-bottom: 4px; letter-spacing: 0.04em;
+  }
+  @keyframes tvChatIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   /* Phase: free / generic message */
   .big-msg {
     text-align: center;
@@ -463,6 +510,8 @@
       <span data-step="closing">마무리</span>
     </div>
   </footer>
+  <!-- 읽기 전용 익명 채팅 오버레이 — waiting/intro/free 에서 최근 8건 노출 (입력창 없음) -->
+  <aside id="tvChat" aria-hidden="true"></aside>
 </div>
 
 <script>
@@ -627,6 +676,9 @@ async function handleMessage(msg) {
       STATE.currentPhase = 'closed';
       renderForPhase();
       break;
+    case 'chat':
+      appendTvChat(msg.uuid, msg.message);
+      break;
     case 'kicked':
       // observer 무관
       break;
@@ -643,8 +695,45 @@ async function loadQuestions() {
   } catch (_) {}
 }
 
+function anonTvLabel(u) {
+  if (!u) return '익명';
+  const tail = String(u).replace(/-/g, '').slice(-4).toUpperCase();
+  return `익명#${tail}`;
+}
+
+function escHtmlTv(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function appendTvChat(fromUuid, text) {
+  if (!text) return;
+  const box = document.getElementById('tvChat');
+  if (!box) return;
+  // 첫 메시지면 헤더 삽입
+  if (!box.querySelector('.tv-chat-head')) {
+    const head = document.createElement('div');
+    head.className = 'tv-chat-head';
+    head.textContent = '💬 익명 채팅';
+    box.appendChild(head);
+  }
+  const div = document.createElement('div');
+  div.className = 'tv-chat-msg';
+  const now = new Date();
+  const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  div.innerHTML = `<div class="tv-chat-meta">${escHtmlTv(anonTvLabel(fromUuid))} · ${time}</div>${escHtmlTv(text)}`;
+  box.appendChild(div);
+  box.classList.remove('empty');
+  // 최근 8건만 유지 (헤더 제외)
+  const msgs = box.querySelectorAll('.tv-chat-msg');
+  if (msgs.length > 8) msgs[0].remove();
+  box.scrollTop = box.scrollHeight;
+}
+
 function renderForPhase() {
   setProgress(STATE.currentPhase);
+  // TV 채팅 오버레이 노출 범위 — data-phase 로 CSS 제어
+  const _p = STATE.currentPhase || 'waiting';
+  document.body.dataset.phase = _p.startsWith('closing') ? 'closing' : _p;
   switch (STATE.currentPhase) {
     case 'waiting': renderWaiting(); break;
     case 'intro': renderIntro(); break;
