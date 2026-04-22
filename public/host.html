@@ -1730,8 +1730,11 @@
       background: var(--gold-dim, rgba(212,168,67,0.18));
       font-weight: 600;
     }
-    .phase-step:not(.active) .phase-label { display: none; }
-    .phase-step.active .phase-label { display: inline; font-size: 13px; }
+    /* T-B0-11 (2026-04-22): 비활성 탭에도 축약 한글 라벨 노출 — "01 소개 / 02 질문 / 03 자유대화 / 04 마무리".
+       iPhone SE 375px 에서 줄바꿈·잘림 없게 font-size 11px + opacity 0.7. active 는 pill 로 강조. */
+    .phase-step:not(.active) .phase-label { display: inline; font-size: 11px; opacity: 0.72; letter-spacing: 0; }
+    .phase-step.active .phase-label { display: inline; font-size: 13px; font-weight: 600; }
+    .phase-step { gap: 4px; padding: 10px 6px; }
     .phase-num { width: 24px; height: 24px; font-size: 11px; }
     /* 완료된 단계 dot 강조 */
     .phase-step.done .phase-num { background: rgba(126,232,162,0.3); color: var(--white); }

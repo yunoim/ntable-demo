@@ -461,6 +461,14 @@
     }
     .pack-card:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,168,67,0.15); }
     .pack-card:active { transform: scale(0.98); }
+    /* T-B0-6 (2026-04-22): 시즌 시리즈(ntable Plays 등) 카드에 얇은 상단 골드 액센트 라인. 빠른 시작 4개와 시각 구분. */
+    .pack-card[data-series="ntable-plays"]::before,
+    .pack-card[data-series="ntable-nights"]::before,
+    .pack-card[data-series="ntable-draws"]::before {
+      content: ''; position: absolute; top: 0; left: 14px; right: 14px; height: 2px;
+      background: linear-gradient(90deg, rgba(232,184,75,0.0), rgba(232,184,75,0.9), rgba(232,184,75,0.0));
+      border-radius: 2px;
+    }
     /* featured 강조는 폐기 — 모든 카드 동일 크기·톤 */
     .pack-card .pack-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .pack-card .pack-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
@@ -875,6 +883,9 @@
       card.type = 'button';
       card.className = 'pack-card' + (kit.id === 'couples' ? ' pack-card-instant' : '');
       card.dataset.packId = kit.id;
+      // T-B0-6 (2026-04-22): seriesLabel → data-series (CSS 에서 시즌 시리즈 액센트 라인 렌더용)
+      const seriesSlug = kit.seriesLabel ? kit.seriesLabel.toLowerCase().replace(/\s+/g, '-') : '';
+      if (seriesSlug) card.dataset.series = seriesSlug;
       // T-16 (2026-04-22): couples 카드만 "바로 시작" 뱃지 — 확인 화면 스킵, 즉시 생성
       const instantBadge = kit.id === 'couples' ? '<span class="pack-badge-instant">바로 시작</span>' : '';
       const examplesHtml = Array.isArray(kit.examples) && kit.examples.length
