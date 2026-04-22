@@ -1697,7 +1697,19 @@
     <!-- 2026-04-22: 닉네임 편집 필드 (couples auto-join 이후 변경용) -->
     <label for="editNickname">닉네임</label>
     <input type="text" id="editNickname" placeholder="닉네임 (최대 20자)" maxlength="20" aria-label="닉네임" />
-    <label for="editRegion">지역</label>
+    <!-- 2026-04-22: couples 팩 게스트도 호스트와 동일 4필드(닉네임·성별·생년·MBTI) 편집 가능. -->
+    <label for="editGender" id="editGenderLabel">성별</label>
+    <select id="editGender" aria-label="성별">
+      <option value="">선택</option>
+      <option value="female">여성</option>
+      <option value="male">남성</option>
+      <option value="unspecified">선택 안 함</option>
+    </select>
+    <label for="editBirthYear" id="editBirthYearLabel">출생연도</label>
+    <select id="editBirthYear" aria-label="출생연도">
+      <option value="">선택</option>
+    </select>
+    <label for="editRegion" id="editRegionLabel">지역</label>
     <select id="editRegion" aria-label="지역">
       <option value="">선택</option>
       <option>서울</option><option>경기</option><option>인천</option>
@@ -2807,6 +2819,9 @@ const LAZY_FIELD_DEFS = {
 function renderLazyPrompt() {
   const card = document.getElementById('lazyPromptCard');
   if (!card) return;
+  // 2026-04-22: couples 팩은 "프로필 더 채우기" 배너 숨김 (사용자 요청).
+  // couples 게스트는 자기 카드 탭 → profileEditModal 로 직접 편집하므로 lazy prompt 불필요.
+  if (STATE.room && STATE.room.pack_id === 'couples') { card.hidden = true; return; }
   const me = STATE.myProfile || {};
   const pack = STATE.room && STATE.room.pack_defaults || {};
   const prompts = Array.isArray(pack.wizard_prompt_after_join) ? pack.wizard_prompt_after_join : [];
@@ -2894,6 +2909,26 @@ function openProfileEdit() {
   // 2026-04-22: 닉네임 prefill
   const nickEl = document.getElementById('editNickname');
   if (nickEl) nickEl.value = p.nickname || '';
+  // 2026-04-22: 성별·출생연도 필드 prefill (couples 게스트 호스트 동일 입력 정보).
+  const genderSel = document.getElementById('editGender');
+  if (genderSel) {
+    const g = p.gender;
+    genderSel.value = (g === 'M' || g === 'male') ? 'male'
+                    : (g === 'F' || g === 'female') ? 'female'
+                    : (g === 'unspecified') ? 'unspecified' : '';
+  }
+  const birthSel = document.getElementById('editBirthYear');
+  if (birthSel) {
+    if (birthSel.children.length <= 1) {
+      const cur = new Date().getFullYear();
+      for (let y = cur - 10; y >= 1940; y--) {
+        const o = document.createElement('option');
+        o.value = String(y); o.textContent = y + '년';
+        birthSel.appendChild(o);
+      }
+    }
+    birthSel.value = p.birth_year ? String(p.birth_year) : '';
+  }
   document.getElementById('editRegion').value = p.region || '';
   document.getElementById('editMbti').value = p.mbti || '';
   document.getElementById('editInterest').value = p.interest || '';
@@ -2913,13 +2948,16 @@ function openProfileEdit() {
     playlistInp.hidden = true;
     if (playlistHint) playlistHint.hidden = true;
   }
-  // couples 팩 — 관심사·인스타그램 필드 숨김 (2026-04-22 사용자 요청: 2인 전용이라 불필요)
+  // couples 팩 — 관심사·인스타그램·지역 필드 숨김 (2026-04-22 사용자 요청).
+  // couples 게스트는 호스트와 동일하게 닉네임·성별·생년·MBTI 4필드만 편집.
   const isCouplesPack = STATE.room && STATE.room.pack_id === 'couples';
+  const regionLbl = document.getElementById('editRegionLabel');
+  const regionInp = document.getElementById('editRegion');
   const interestLbl = document.getElementById('editInterestLabel');
   const interestInp = document.getElementById('editInterest');
   const instagramLbl = document.getElementById('editInstagramLabel');
   const instagramInp = document.getElementById('editInstagram');
-  [interestLbl, interestInp, instagramLbl, instagramInp].forEach(el => {
+  [regionLbl, regionInp, interestLbl, interestInp, instagramLbl, instagramInp].forEach(el => {
     if (el) el.hidden = isCouplesPack;
   });
   document.getElementById('profileEditStatus').textContent = '';
@@ -2955,16 +2993,20 @@ async function saveProfileEdit() {
     }
   }
   const isCouplesPack = STATE.room && STATE.room.pack_id === 'couples';
+  // 편집 가능한 기본 4필드 (2026-04-22): 닉네임·성별·생년·MBTI. 지역·관심사·인스타는 couples 미포함.
+  const genderVal = (document.getElementById('editGender')?.value || '').trim() || null;
+  const birthRaw = (document.getElementById('editBirthYear')?.value || '').trim();
+  const birthVal = birthRaw ? parseInt(birthRaw, 10) : null;
   const payload = {
     uuid: STATE.uuid,
-    gender: STATE.myProfile.gender,
-    birth_year: STATE.myProfile.birth_year,
-    region: document.getElementById('editRegion').value || null,
+    gender: genderVal || STATE.myProfile.gender || null,
+    birth_year: Number.isFinite(birthVal) ? birthVal : (STATE.myProfile.birth_year || null),
     industry: STATE.myProfile.industry || null,
     mbti: document.getElementById('editMbti').value || null,
   };
-  // couples 팩은 관심사·인스타그램 필드 없음 — payload 에 포함 안 함(기존 값 유지).
+  // couples 외 팩만 지역·관심사·인스타 편집.
   if (!isCouplesPack) {
+    payload.region = document.getElementById('editRegion').value || null;
     payload.interest = document.getElementById('editInterest').value.trim() || null;
     payload.instagram = document.getElementById('editInstagram').value.trim() || null;
   }
