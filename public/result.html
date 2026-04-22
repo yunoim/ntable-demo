@@ -903,22 +903,29 @@
   });
 
   async function loadPersonality() {
+    // 2026-04-22: 실패해도 share-card + 공유 버튼은 기본 문구로 노출되도록 finally 블록에서
+    // personality-body 를 강제 display:block. 이전엔 /api/personality 실패 시 body 숨김 유지로
+    // "이미지 저장·공유" 버튼이 아예 안 보였음 (사용자 보고).
+    const loadingEl = document.getElementById('personality-loading');
+    const bodyEl = document.getElementById('personality-body');
+    const se = document.getElementById('share-emoji');
+    const typeEl = document.getElementById('share-type');
+    const textEl = document.getElementById('personality-text');
     try {
       const r = await fetch(`/api/personality?uuid=${uuid}&room_code=${room_code}`);
+      if (!r.ok) throw new Error('personality http ' + r.status);
       const data = await r.json();
-      document.getElementById('personality-loading').style.display = 'none';
-      // 결과(성향 분석)에서 도출된 이모지 사용 — wizard 선택 이모지 대신 결과 기반
-      // T-13: Twemoji 가 textContent 를 img 로 치환하므로 원본 이모지를 dataset 에 보관
-      {
-        const se = document.getElementById('share-emoji');
-        se.dataset.emoji = data.emoji || '✨';
-        se.textContent = se.dataset.emoji;
-      }
-      document.getElementById('share-type').textContent = data.personality || '탐구형';
-      document.getElementById('personality-text').textContent = data.text || '분석 결과를 불러올 수 없어요.';
-      document.getElementById('personality-body').style.display = 'block';
-    } catch {
-      document.getElementById('personality-loading').innerHTML = '<span style="color:var(--subtext)">분석 결과를 불러올 수 없어요.</span>';
+      if (se) { se.dataset.emoji = data.emoji || '✨'; se.textContent = se.dataset.emoji; }
+      if (typeEl) typeEl.textContent = data.personality || '탐구형';
+      if (textEl) textEl.textContent = data.text || '분석 결과를 불러올 수 없어요.';
+    } catch (err) {
+      console.error('[result] loadPersonality failed:', err);
+      if (se) { se.dataset.emoji = '✨'; se.textContent = '✨'; }
+      if (typeEl) typeEl.textContent = '탐구형';
+      if (textEl) textEl.textContent = '분석이 준비되지 않았어요. 이미지 저장·공유는 가능해요.';
+    } finally {
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (bodyEl) bodyEl.style.display = 'block';
     }
   }
 
@@ -1475,18 +1482,57 @@
         ${hostAggHtml}
       `;
       exploreEl.innerHTML = hlHtml || '<div style="color:var(--subtext);text-align:center;padding:20px 0;font-size:13px;">탐구 데이터가 없어요</div>';
+
+      // 2026-04-22 couples 전용 하단 3버튼: 한번 또하기 · 결과 URL 복사 · 홈으로.
+      // '한번 또하기' 는 기존 프로필(localStorage) 그대로 재활용되도록 /create?pack=couples 로 이동 —
+      // create.html 이 couples 를 instant 로 즉시 생성해 새 방 열림, 호스트 온보딩 시트는 한 번 더 노출되지만
+      // 닉네임 prefill + 아바타/프로필 이전 값 복구로 "다시 타이핑" 없이 시작 가능.
+      if (data.pack_id === 'couples') {
+        const againBar = document.createElement('div');
+        againBar.className = 'again-bar';
+        againBar.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px;';
+        againBar.innerHTML = `
+          <button type="button" class="again-btn primary" style="padding:13px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:12px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;">🔁 한번 또하기</button>
+          <button type="button" class="again-btn" style="padding:13px;background:transparent;color:var(--gold-light);border:1px solid var(--gold-border);border-radius:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;">🔗 URL 복사</button>
+          <button type="button" class="again-btn" style="padding:13px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;">🏠 홈으로</button>
+        `;
+        exploreEl.appendChild(againBar);
+        const [btnAgain, btnCopy, btnHome] = againBar.querySelectorAll('button');
+        btnAgain.addEventListener('click', () => { location.href = '/create?pack=couples'; });
+        btnCopy.addEventListener('click', () => {
+          const url = location.href;
+          navigator.clipboard.writeText(url).then(() => {
+            btnCopy.textContent = '✓ 복사됨';
+            setTimeout(() => { btnCopy.textContent = '🔗 URL 복사'; }, 1800);
+          }).catch(() => {
+            const ta = document.createElement('textarea'); ta.value = url;
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch (_) {}
+            document.body.removeChild(ta);
+            btnCopy.textContent = '✓ 복사됨';
+            setTimeout(() => { btnCopy.textContent = '🔗 URL 복사'; }, 1800);
+          });
+        });
+        btnHome.addEventListener('click', () => { location.href = '/'; });
+      }
     } catch (err) {
-      // 2026-04-22 (재수정): 이미 렌더된 match-content 덮어쓰기 금지.
-      //   이전엔 outer catch 가 match/summary/explore 모두 stomp 해서 couples 커플 카드가
-      //   다른 곳 throw(explore 등) 하나로 통째로 사라지는 이슈가 있었음.
-      //   이제 비어있는 영역만 fallback 설정.
+      // 2026-04-22 (재수정 3차): `innerHTML.trim()` 비어있음 조건은 초기 스피너 HTML 이
+      //   남아있을 때 false → 덮어쓰기 안 하고 스피너가 영원히 돌던 이슈(사용자 보고).
+      //   이제 `.loading` 스피너만 있으면 아직 렌더 안 된 걸로 취급하고 fallback 표시.
       console.error('[result] loadResult failed:', err);
+      const isBlankOrSpinner = (el) => {
+        if (!el) return false;
+        const inner = el.innerHTML.trim();
+        if (!inner) return true;
+        // 초기 스피너: <div class="loading">…</div> 만 있으면 아직 미렌더
+        return !!el.querySelector('.loading') && el.children.length === 1;
+      };
       const _mc = document.getElementById('match-content');
-      if (_mc && !_mc.innerHTML.trim()) _mc.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      if (isBlankOrSpinner(_mc)) _mc.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
       const _sc = document.getElementById('summary-content');
-      if (_sc && !_sc.innerHTML.trim()) _sc.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      if (isBlankOrSpinner(_sc)) _sc.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
       const _ec = document.getElementById('explore-content');
-      if (_ec && !_ec.innerHTML.trim()) _ec.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      if (isBlankOrSpinner(_ec)) _ec.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
     }
   }
 
