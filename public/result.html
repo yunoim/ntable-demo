@@ -1254,13 +1254,17 @@
           };
           nextCta.textContent = NEXT_BY_PACK[data.pack_id] || '✨ 다음 모임 열기';
           // 2026-04-23: couples 는 '한번 또하기' 양쪽 동의 흐름 — href 대신 JS 클릭 핸들러로 처리.
+          //   href='javascript:void(0)' 은 CSP/브라우저마다 blocked 되는 케이스 있음 → '#' + preventDefault 로.
+          //   onclick 할당은 재호출 시 중복 핸들러 방지 (loadResult 가 여러 번 호출돼도 안전).
           if (data.pack_id === 'couples') {
             nextCta.setAttribute('role', 'button');
-            nextCta.href = 'javascript:void(0)';
-            nextCta.addEventListener('click', (e) => {
+            nextCta.href = '#';
+            nextCta.onclick = (e) => {
               e.preventDefault();
+              e.stopPropagation();
               if (typeof requestNextRoom === 'function') requestNextRoom();
-            });
+              return false;
+            };
           } else {
             nextCta.href = data.pack_id ? `/create?pack=${encodeURIComponent(data.pack_id)}` : '/create';
           }
