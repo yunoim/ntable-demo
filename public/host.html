@@ -2764,12 +2764,13 @@
         <span class="nt-sheet-counter" id="nt-onb-nick-count">0 / 20</span>
       </div>
       <div class="nt-sheet-sublabel" data-copy="onboarding.step1_avatar_label">아바타 · 건너뛰어도 돼요</div>
+      <!-- 첫칸 👑 = 호스트 기본값. ＋ 는 샘플에 없는 이모지 선택용 (선택 시 해당 슬롯이 이모지로 치환됨). -->
       <div class="nt-avatar-row" id="nt-onb-avatar-row">
+        <button type="button" class="nt-avatar-btn" data-emoji="👑">👑</button>
         <button type="button" class="nt-avatar-btn" data-emoji="🦊">🦊</button>
         <button type="button" class="nt-avatar-btn" data-emoji="🐼">🐼</button>
         <button type="button" class="nt-avatar-btn" data-emoji="🦄">🦄</button>
         <button type="button" class="nt-avatar-btn" data-emoji="🐧">🐧</button>
-        <button type="button" class="nt-avatar-btn" data-emoji="🐨">🐨</button>
         <button type="button" class="nt-avatar-btn" data-emoji="🦁">🦁</button>
         <button type="button" class="nt-avatar-btn" id="nt-onb-avatar-more" aria-label="다른 이모지 선택">＋</button>
       </div>
@@ -3024,7 +3025,14 @@ async function ensureHostJoinedForCouples(myMember) {
     const sheet = document.getElementById('host-onboarding-sheet');
     if (!sheet) { resolve(); return; }
 
-    const data = { nickname: state.nickname || '', emoji: '', gender: '', birth_year: '', mbti: '' };
+    // 기본 이모지 👑 (호스트 상징). 이미 저장된 값 있으면 복구.
+    const data = {
+      nickname: state.nickname || '',
+      emoji: (state.myProfile && state.myProfile.emoji) || '👑',
+      gender: '',
+      birth_year: '',
+      mbti: '',
+    };
     let currentStep = 1;
 
     const progressEl = document.getElementById('nt-sheet-progress');
@@ -3070,13 +3078,22 @@ async function ensureHostJoinedForCouples(myMember) {
       const len = (nickInput.value || '').length;
       nickCount.textContent = `${len} / 20`;
     }
+    function syncAvatarActive() {
+      // data.emoji 와 일치하는 버튼에 active 표시. 커스텀 이모지는 ＋ 슬롯(nt-onb-avatar-more)에 이미 주입돼 있어야 매칭.
+      avatarRow.querySelectorAll('.nt-avatar-btn').forEach(b => {
+        b.classList.toggle('active', (b.dataset.emoji || '') === data.emoji);
+      });
+    }
     function showStep(n) {
       currentStep = n;
       sheet.querySelectorAll('.nt-sheet-step').forEach(s => {
         s.hidden = (s.dataset.step !== String(n));
       });
       progressEl.textContent = `${n} / 3 · 1분`;
-      if (n === 1) setTimeout(() => nickInput.focus(), 50);
+      if (n === 1) {
+        syncAvatarActive();
+        setTimeout(() => nickInput.focus(), 50);
+      }
     }
 
     function open() {
@@ -3098,32 +3115,36 @@ async function ensureHostJoinedForCouples(myMember) {
     });
 
     // 아바타 선택
+    // - 기본 6칸(👑·🦊·🐼·🦄·🐧·🦁) 은 탭 시 active 토글.
+    // - 7번째 ＋ 슬롯: 비어있으면 picker 열기(skipServerSave), 이모지 주입되면 일반 아바타처럼 동작.
+    //   주입된 뒤 재탭 시에도 picker 재오픈(이모지 변경) — 사용자 자유도 확보.
     avatarRow.addEventListener('click', (e) => {
       const btn = e.target.closest('.nt-avatar-btn');
       if (!btn) return;
-      if (btn.id === 'nt-onb-avatar-more') {
-        // + 탭: 기존 이모지 카테고리 모달 재사용
+      const isMoreSlot = btn.id === 'nt-onb-avatar-more';
+      const hasEmoji = !!btn.dataset.emoji;
+      if (isMoreSlot) {
+        // ＋ 슬롯 클릭: 항상 picker 열기 (비었거나 이미 커스텀 이모지 있어도 변경 가능)
         try {
-          const prev = data.emoji;
-          openHostEmojiPicker();
-          // openHostEmojiPicker 은 비동기 — state.myProfile.emoji 반영을 짧은 polling 으로 감지
-          const t0 = Date.now();
-          const poll = setInterval(() => {
-            const v = state.myProfile && state.myProfile.emoji;
-            if ((v && v !== prev) || (Date.now() - t0 > 30000)) {
-              clearInterval(poll);
-              if (v) {
-                data.emoji = v;
-                avatarRow.querySelectorAll('.nt-avatar-btn').forEach(b => b.classList.toggle('active', b.dataset.emoji === v));
-              }
-            }
-          }, 500);
+          openHostEmojiPicker({
+            skipServerSave: true,
+            initialEmoji: btn.dataset.emoji || '',
+            onPick: (v) => {
+              if (!v) return; // skip/backdrop close: 변화 없음
+              btn.dataset.emoji = v;
+              btn.textContent = v;
+              btn.setAttribute('aria-label', `${v} 아바타`);
+              data.emoji = v;
+              syncAvatarActive();
+            },
+          });
         } catch (_) {}
         return;
       }
       const em = btn.dataset.emoji || '';
+      if (!em) return;
       data.emoji = em;
-      avatarRow.querySelectorAll('.nt-avatar-btn').forEach(b => b.classList.toggle('active', b === btn));
+      syncAvatarActive();
     });
 
     // 닉네임 서버 저장 (step1 완료 시에만)
@@ -3236,9 +3257,16 @@ const HOST_EMOJI_CATEGORIES = [
   { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼'] },
   { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'] },
 ];
-function openHostEmojiPicker() {
+// opts.skipServerSave (default false): true 면 PATCH 호출 안 하고 onPick(v) 만 호출 후 close.
+//   — 온보딩 바텀시트 에서 "＋" 로 호출할 때 사용 (시트 최종 저장 버튼이 PATCH 담당).
+// opts.onPick (default undefined): (emojiOrNull) => void — save 또는 skip 결과 콜백.
+// opts.initialEmoji (default state.myProfile.emoji): picker 진입 시 이미 선택된 값.
+function openHostEmojiPicker(opts) {
+  opts = opts || {};
   if (document.getElementById('host-emoji-picker-modal')) return;
-  const cur = (state.myProfile && state.myProfile.emoji) || '';
+  const cur = opts.initialEmoji != null
+    ? opts.initialEmoji
+    : ((state.myProfile && state.myProfile.emoji) || '');
   let activeIdx = 0;
   if (cur) {
     const f = HOST_EMOJI_CATEGORIES.findIndex(c => c.emojis.includes(cur));
@@ -3272,8 +3300,14 @@ function openHostEmojiPicker() {
   `;
   document.body.appendChild(modal);
   const close = () => modal.remove();
-  modal.querySelector('#host-ep-backdrop').addEventListener('click', close);
-  modal.querySelector('#host-ep-skip').addEventListener('click', close);
+  modal.querySelector('#host-ep-backdrop').addEventListener('click', () => {
+    if (typeof opts.onPick === 'function') { try { opts.onPick(null); } catch (_) {} }
+    close();
+  });
+  modal.querySelector('#host-ep-skip').addEventListener('click', () => {
+    if (typeof opts.onPick === 'function') { try { opts.onPick(null); } catch (_) {} }
+    close();
+  });
   const tabs = modal.querySelector('#host-ep-tabs');
   const grid = modal.querySelector('#host-ep-grid');
   const inp = modal.querySelector('#host-ep-input');
@@ -3295,6 +3329,12 @@ function openHostEmojiPicker() {
   modal.querySelector('#host-ep-save').addEventListener('click', async () => {
     const v = (inp.value || '').slice(0,4) || null;
     const saveBtn = modal.querySelector('#host-ep-save');
+    // skipServerSave 모드: 서버 PATCH 없이 onPick(v) 만 호출 후 close (온보딩 시트용)
+    if (opts.skipServerSave) {
+      if (typeof opts.onPick === 'function') { try { opts.onPick(v); } catch (_) {} }
+      close();
+      return;
+    }
     saveBtn.disabled = true;
     saveBtn.textContent = '저장 중…';
     try {
@@ -3312,6 +3352,7 @@ function openHostEmojiPicker() {
       }
       if (typeof renderProfiles === 'function') renderProfiles();
       if (typeof renderApprovedList === 'function') renderApprovedList();
+      if (typeof opts.onPick === 'function') { try { opts.onPick(v); } catch (_) {} }
       close();
     } catch (_) {
       saveBtn.disabled = false;
