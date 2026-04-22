@@ -302,132 +302,39 @@ if (typeof loadBrand === 'function') {
   }
 })();
 
-// 빠른 입장 섹션 제어 — OAuth provider 활성 시 노출
+// 2026-04-22: OAuth / remember-me / quick-login / provider 버튼 로직 전체 비활성화 (사용자 요청 — admin 제외).
+// 참조하던 DOM 요소(loginToggle · loginConnectedMini · googleBtn · kakaoBtn)가 HTML 주석 처리돼 null 참조로
+// 스크립트가 크래시했고, 그 여파로 joinCodeBtn 바인딩까지 실행되지 않아 "참여 코드 입장" 버튼이 작동하지 않았음.
+// 아래 블록 전체 주석. ?role=guest 자동 스크롤만 별도 IIFE 로 보존.
+/*
 const quickLogin = document.getElementById('quickLogin');
 const loginToggle = document.getElementById('loginToggle');
 const loginConnectedMini = document.getElementById('loginConnectedMini');
 const miniProviderLabel = document.getElementById('miniProviderLabel');
 let isAuthed = false;
+function applyView() { ... }
+function setToggle(on) { ... }
+function setProviderLabel(me) { ... }
+(async () => { ... OAuth config + 토글 초기화 ... })();
+loginToggle.addEventListener('click', ...);
+document.getElementById('googleBtn').addEventListener('click', ...);
+document.getElementById('kakaoBtn').addEventListener('click', ...);
+*/
 
-// 섹션 노출 규칙:
-// - 인증됨  → 헤더 우상단에 '✓ Google 계정 연결됨' 라벨만 (빠른 입장 섹션은 숨김)
-// - 미인증 + 토글 ON → 빠른 입장 섹션에 OAuth 버튼 노출
-// - 미인증 + 토글 OFF → 둘 다 숨김
-function applyView() {
-  const on = loginToggle.dataset.on === 'true';
-  if (isAuthed) {
-    loginConnectedMini.hidden = false;
-    quickLogin.hidden = true;
-  } else {
-    loginConnectedMini.hidden = true;
-    quickLogin.hidden = !on;
-  }
-}
-
-// 토글 상태 설정 + 뷰 갱신
-function setToggle(on) {
-  loginToggle.dataset.on = on ? 'true' : 'false';
-  loginToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-  applyView();
-}
-
-function setProviderLabel(me) {
-  let label = '계정 연결됨';
-  if (me && me.google) label = 'Google 계정 연결됨';
-  else if (me && me.kakao) label = '카카오 계정 연결됨';
-  if (miniProviderLabel) miniProviderLabel.textContent = label;
-}
-
-(async () => {
-  // OAuth provider config — 활성된 provider만 버튼 노출. 둘 다 비활성이면 섹션 전체 숨김.
-  let cfgGoogle = false, cfgKakao = false;
+// ?role=guest 자동 스크롤 — OAuth 와 무관하게 유지.
+(() => {
   try {
-    const r = await fetch('/api/auth/status');
-    const cfg = r.ok ? await r.json() : {};
-    cfgGoogle = !!cfg.google;
-    cfgKakao = !!cfg.kakao;
-  } catch (_) {}
-  if (!cfgGoogle && !cfgKakao) {
-    // provider 없으면 토글 자체 숨김 (섹션도 항상 숨김 유지)
-    return;
-  }
-  loginToggle.hidden = false;
-  if (cfgGoogle) document.getElementById('googleBtn').hidden = false;
-  if (cfgKakao) document.getElementById('kakaoBtn').hidden = false;
-
-  // 로그인 상태 확인 먼저 (토글 초기 상태가 인증 여부에 따라 갈림)
-  const remembered = (() => { try { return localStorage.getItem('login_remember'); } catch (_) { return null; } })();
-  try {
-    const tok = localStorage.getItem('user_token');
-    if (tok) {
-      const r = await fetch('/api/auth/me', { headers: { 'x-user-token': tok } });
-      const me = r.ok ? await r.json() : {};
-      if (me.authed) {
-        isAuthed = true;
-        setProviderLabel(me);
-      } else {
-        try { localStorage.removeItem('user_token'); } catch (_) {}
-      }
+    if (new URLSearchParams(location.search).get('role') !== 'guest') return;
+    const guest = document.getElementById('guestSection');
+    const input = document.getElementById('joinCodeInput');
+    if (guest) {
+      const rect = guest.getBoundingClientRect();
+      const offsetY = window.scrollY + rect.top - window.innerHeight / 2 + rect.height / 2;
+      window.scrollTo({ top: Math.max(0, offsetY), behavior: 'smooth' });
     }
-  } catch (_) {}
-
-  // 토글 초기 상태 — 인증돼 있으면 자동 ON, 아니면 저장된 선호(기본 OFF)
-  // 사용자가 명시적으로 OFF한 적 있으면 그 선택 존중
-  if (isAuthed && remembered !== 'false') {
-    try { localStorage.setItem('login_remember', 'true'); } catch (_) {}
-    setToggle(true);
-  } else if (remembered === 'true') {
-    setToggle(true);
-  } else {
-    setToggle(false);
-  }
-
-  // ?role=guest 자동 스크롤 — iOS Safari safe-area 호환 (scrollIntoView 회피)
-  try {
-    if (new URLSearchParams(location.search).get('role') === 'guest') {
-      const guest = document.getElementById('guestSection');
-      const input = document.getElementById('joinCodeInput');
-      if (guest) {
-        const rect = guest.getBoundingClientRect();
-        const offsetY = window.scrollY + rect.top - window.innerHeight / 2 + rect.height / 2;
-        window.scrollTo({ top: Math.max(0, offsetY), behavior: 'smooth' });
-      }
-      if (input) setTimeout(() => input.focus(), 400);
-    }
+    if (input) setTimeout(() => input.focus(), 400);
   } catch (_) {}
 })();
-
-loginToggle.addEventListener('click', async () => {
-  const wasOn = loginToggle.dataset.on === 'true';
-  if (wasOn) {
-    // ON → OFF: 기억 해제 + 캐시 정리. 인증 상태면 즉시 로그아웃.
-    try {
-      localStorage.setItem('login_remember', 'false');
-      localStorage.removeItem('profile_snapshot');
-      localStorage.removeItem('preferred_nickname');
-    } catch (_) {}
-    if (isAuthed) {
-      const tok = localStorage.getItem('user_token');
-      if (tok) {
-        try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-user-token': tok } }); } catch (_) {}
-      }
-      try { localStorage.removeItem('user_token'); } catch (_) {}
-      isAuthed = false;
-    }
-    setToggle(false);
-  } else {
-    // OFF → ON: 기억 활성화. OAuth 연결은 사용자가 버튼을 눌러야 개시.
-    try { localStorage.setItem('login_remember', 'true'); } catch (_) {}
-    setToggle(true);
-  }
-});
-
-document.getElementById('googleBtn').addEventListener('click', () => {
-  location.href = (typeof ntableOAuthHref === 'function') ? ntableOAuthHref('google') : '/api/auth/google';
-});
-document.getElementById('kakaoBtn').addEventListener('click', () => {
-  location.href = (typeof ntableOAuthHref === 'function') ? ntableOAuthHref('kakao') : '/api/auth/kakao';
-});
 
 // 참여 코드 입장
 document.getElementById('joinCodeBtn').addEventListener('click', () => {
