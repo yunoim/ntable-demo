@@ -2611,6 +2611,11 @@ const HOST_LAZY_FIELD_DEFS = {
     label: '인스타그램',
     render: (val) => `<input type="text" class="lazy-field-input" data-k="instagram" maxlength="50" placeholder="@ 없이 아이디만" autocapitalize="off" autocorrect="off" value="${escHtml(val || '')}">`,
   },
+  // T-26c (2026-04-22): 이모지 변경 — 카드 아바타에 노출.
+  emoji: {
+    label: '아바타 이모지',
+    render: (val) => `<input type="text" class="lazy-field-input" data-k="emoji" maxlength="4" placeholder="🦄 (1자 이모지)" style="text-align:center;font-size:18px;" value="${escHtml(val || '')}">`,
+  },
 };
 
 function renderHostLazyPrompt() {
@@ -2622,7 +2627,9 @@ function renderHostLazyPrompt() {
     card.hidden = true; return;
   }
   const me = state.myProfile || {};
-  const prompts = Array.isArray(pack.wizard_prompt_after_join) ? pack.wizard_prompt_after_join : [];
+  // T-26c: 호스트는 emoji 도 수집 (wizard_prompt_after_join 은 게스트 영향 있어 건드리지 않고 호스트만 확장)
+  const basePrompts = Array.isArray(pack.wizard_prompt_after_join) ? pack.wizard_prompt_after_join : [];
+  const prompts = basePrompts.includes('emoji') ? basePrompts : [...basePrompts, 'emoji'];
   const skipKey = `ntable_lazy_skip_host_${state.roomCode}`;
   if (localStorage.getItem(skipKey) === 'true') { card.hidden = true; return; }
   const missing = prompts.filter(k => {

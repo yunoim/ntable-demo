@@ -664,7 +664,9 @@
         examples: ['둘만의 밸런스게임 10문항', '서로 몰랐던 취향 발견', 'MBTI·가치관 교차 탐구'],
         defaults: {
           question_count: 10,
-          display_fields: ['birth_year', 'region', 'industry', 'interest'],
+          // T-26c (2026-04-22): pack_defaults.display_fields_default 와 일치 — couples 카드는 birth_year·mbti 만.
+          // 이전 ['birth_year','region','industry','interest'] 는 prefill 된 region/industry/interest 가 카드 노출되는 버그 원인.
+          display_fields: ['birth_year', 'mbti'],
           birth_year_format: 'exact',
           host_role: 'participant', display_mode: 'mobile',
           photo_enabled: true, region_detail: false,
