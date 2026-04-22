@@ -1694,6 +1694,9 @@
       </div>
       <button type="button" onclick="openEmojiPicker()" style="padding:8px 14px;background:transparent;border:1px solid var(--gold-border);color:var(--gold-light);border-radius:8px;font-family:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;">변경</button>
     </div>
+    <!-- 2026-04-22: 닉네임 편집 필드 (couples auto-join 이후 변경용) -->
+    <label for="editNickname">닉네임</label>
+    <input type="text" id="editNickname" placeholder="닉네임 (최대 20자)" maxlength="20" aria-label="닉네임" />
     <label for="editRegion">지역</label>
     <select id="editRegion" aria-label="지역">
       <option value="">선택</option>
@@ -1993,10 +1996,25 @@ const STATE = {
 
     // 본인이 이 모임에 join 했는지 확인 — 안 했으면 /join 페이지로
     const meRes = await fetch(`/api/rooms/${STATE.roomCode}/me?uuid=${encodeURIComponent(STATE.uuid)}`);
-    const me = meRes.ok ? await meRes.json() : { joined: false };
+    let me = meRes.ok ? await meRes.json() : { joined: false };
     if (!me.joined) {
-      location.replace(`/room/${STATE.roomCode}/join`);
-      return;
+      // 2026-04-22: couples 팩은 wizard(join.html) 스킵 — 랜덤 닉네임/이모지로 즉시 입장,
+      // 입장 후 프로필 수정 모달에서 닉네임/이모지 변경 가능.
+      const isCouples = STATE.room && STATE.room.pack_id === 'couples';
+      let autoJoined = false;
+      if (isCouples) {
+        autoJoined = await autoJoinCouples();
+        if (autoJoined) {
+          try {
+            const mr2 = await fetch(`/api/rooms/${STATE.roomCode}/me?uuid=${encodeURIComponent(STATE.uuid)}`);
+            if (mr2.ok) me = await mr2.json();
+          } catch (_) {}
+        }
+      }
+      if (!me.joined) {
+        location.replace(`/room/${STATE.roomCode}/join`);
+        return;
+      }
     }
     STATE.myProfile = { uuid: STATE.uuid, nickname: me.nickname, ...me };
     renderMyProfile();
@@ -2842,6 +2860,9 @@ function openProfileEdit() {
   const p = STATE.myProfile || {};
   const avDisp = document.getElementById('editAvatarDisplay');
   if (avDisp) avDisp.textContent = p.emoji || (typeof genderAvatar === 'function' ? genderAvatar(p.gender) : '🙂');
+  // 2026-04-22: 닉네임 prefill
+  const nickEl = document.getElementById('editNickname');
+  if (nickEl) nickEl.value = p.nickname || '';
   document.getElementById('editRegion').value = p.region || '';
   document.getElementById('editMbti').value = p.mbti || '';
   document.getElementById('editInterest').value = p.interest || '';
@@ -2871,6 +2892,28 @@ function closeProfileEdit() {
 async function saveProfileEdit() {
   const statusEl = document.getElementById('profileEditStatus');
   if (!STATE.myProfile || !STATE.uuid) return;
+  // 2026-04-22: 닉네임 변경 — /api/rooms/:code/join (ON CONFLICT DO UPDATE 로 기존 row 업데이트)
+  const newNick = (document.getElementById('editNickname')?.value || '').trim().slice(0, 20);
+  const curNick = STATE.myProfile.nickname || '';
+  if (newNick && newNick !== curNick) {
+    try {
+      const jr = await fetch(`/api/rooms/${STATE.roomCode}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid: STATE.uuid, nickname: newNick, profile: { emoji: STATE.myProfile.emoji || null } }),
+      });
+      if (!jr.ok) {
+        const err = await jr.json().catch(() => ({}));
+        if (statusEl) { statusEl.textContent = err.message || '닉네임 변경 실패'; statusEl.style.color = '#ff8a8a'; }
+        return;
+      }
+      STATE.myProfile.nickname = newNick;
+      try { localStorage.setItem('preferred_nickname', newNick); } catch (_) {}
+    } catch (_) {
+      if (statusEl) { statusEl.textContent = '닉네임 변경 중 네트워크 오류'; statusEl.style.color = '#ff8a8a'; }
+      return;
+    }
+  }
   const payload = {
     uuid: STATE.uuid,
     gender: STATE.myProfile.gender,
@@ -3393,6 +3436,34 @@ const GUEST_EMOJI_CATEGORIES = [
   { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼'] },
   { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'] },
 ];
+
+// 2026-04-22: couples 팩 게스트 자동 입장 — 랜덤 닉네임/이모지. wizard(join.html) 스킵.
+async function autoJoinCouples() {
+  const tail = (STATE.uuid || '').replace(/-/g,'').slice(-4).toUpperCase() || 'RAND';
+  const baseNick = `게스트${tail}`;
+  const allEmojis = GUEST_EMOJI_CATEGORIES.flatMap(c => c.emojis);
+  const emoji = allEmojis[Math.floor(Math.random() * allEmojis.length)] || '🙂';
+  const tryJoin = async (nick) => {
+    try {
+      const r = await fetch(`/api/rooms/${STATE.roomCode}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid: STATE.uuid, nickname: nick, profile: { emoji } }),
+      });
+      if (r.ok) return nick;
+      return null;
+    } catch (_) { return null; }
+  };
+  let nick = await tryJoin(baseNick);
+  if (!nick) {
+    // 닉네임 충돌 대비 — 1회 suffix 재시도.
+    nick = await tryJoin(`${baseNick}${Math.floor(Math.random() * 900) + 100}`);
+  }
+  if (!nick) return false;
+  try { localStorage.setItem('preferred_nickname', nick); } catch (_) {}
+  STATE.myProfile = { uuid: STATE.uuid, nickname: nick, emoji };
+  return true;
+}
 
 function openEmojiPicker(opts) {
   const options = opts || {};
