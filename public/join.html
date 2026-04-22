@@ -697,10 +697,11 @@ function renderStep() {
       body = `
         <div class="step-num">${stepNum} · 플레이리스트 <span style="opacity:0.85;font-weight:500;color:var(--gold-light);">(권장)</span></div>
         <h2 class="step-title">오늘 공유할<br>플레이리스트 링크 🎵</h2>
-        <p class="step-sub">유튜브·스포티파이·애플뮤직 등 URL. 15분 분량 추천.</p>
-        <div class="step-tip"><span class="step-tip-icon">🎧</span><span>참가자 카드에 플리 링크 버튼이 노출돼요. 모임 중 스피커로 재생·익명 채팅 반응까지.</span></div>
+        <p class="step-sub">Spotify · Apple Music · YouTube Music · YouTube 링크를 붙여주세요. 15분 분량 추천.</p>
+        <div class="step-tip"><span class="step-tip-icon">🎧</span><span>오늘의 베스트 플리로 뽑히면 결과 화면에서 이 링크로 바로 들을 수 있어요.</span></div>
         <div class="field">
-          <input type="url" id="playlistInput" inputmode="url" maxlength="500" placeholder="https://music.youtube.com/... 또는 https://open.spotify.com/..." value="${escHtml(data.playlist || '')}" autocapitalize="none" autocorrect="off" spellcheck="false">
+          <input type="url" id="playlistInput" inputmode="url" maxlength="500" placeholder="https://open.spotify.com/... 또는 https://music.youtube.com/..." value="${escHtml(data.playlist || '')}" autocapitalize="none" autocorrect="off" spellcheck="false">
+          <div id="playlistHint" style="margin-top:8px;font-size:11.5px;color:var(--text-muted);line-height:1.5;display:none;"></div>
         </div>
         <div class="actions">
           ${prevBtn}
@@ -1119,6 +1120,23 @@ document.addEventListener('input', (e) => {
   if (e.target.id === 'playlistInput') {
     const v = e.target.value.trim();
     data.playlist = (v && /^https?:\/\//i.test(v)) ? v.slice(0, 500) : (v ? v : null);
+    // URL whitelist 체크 — Spotify/Apple Music/YouTube Music/YouTube (2026-04-22 QA)
+    const hintEl = document.getElementById('playlistHint');
+    if (hintEl) {
+      if (!v) { hintEl.style.display = 'none'; hintEl.textContent = ''; return; }
+      let host = '';
+      try { host = new URL(v).hostname.toLowerCase(); } catch (_) { host = ''; }
+      const ok = /(^|\.)(open\.spotify\.com|spotify\.com|music\.apple\.com|music\.youtube\.com|youtube\.com|youtu\.be)$/.test(host);
+      if (!ok) {
+        hintEl.style.display = 'block';
+        hintEl.style.color = '#e87e7e';
+        hintEl.textContent = '⚠️ Spotify · Apple Music · YouTube Music · YouTube 링크를 붙여주세요.';
+      } else {
+        hintEl.style.display = 'block';
+        hintEl.style.color = 'var(--text-muted)';
+        hintEl.textContent = '✓ 확인됐어요';
+      }
+    }
   }
   if (e.target.id === 'instaInput') {
     // 인스타그램 — 영문/숫자/점/언더바만 허용, 소문자 변환, @ 자동 제거

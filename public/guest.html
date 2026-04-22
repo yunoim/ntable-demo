@@ -1630,6 +1630,14 @@
   <div class="profile-edit-card">
     <button type="button" class="profile-edit-close" onclick="closeProfileEdit()" aria-label="프로필 수정 닫기">×</button>
     <h3 id="profileEditTitle">프로필 수정</h3>
+    <div class="profile-edit-avatar-row" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 12px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:12px;">
+      <div id="editAvatarDisplay" aria-hidden="true" style="width:48px;height:48px;border-radius:50%;background:rgba(212,168,67,0.12);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">🙂</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;color:var(--white);font-weight:600;">아바타 이모지</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;line-height:1.4;">나를 표현하는 이모지를 골라보세요</div>
+      </div>
+      <button type="button" onclick="openEmojiPicker()" style="padding:8px 14px;background:transparent;border:1px solid var(--gold-border);color:var(--gold-light);border-radius:8px;font-family:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;">변경</button>
+    </div>
     <label for="editRegion">지역</label>
     <select id="editRegion" aria-label="지역">
       <option value="">선택</option>
@@ -1652,7 +1660,8 @@
     <input type="text" id="editInterest" placeholder="예: 등산, 독서, 요리" maxlength="30" aria-label="관심사" />
     <!-- playlist-share 팩 전용 — pack_id 확인 후 JS 가 노출 -->
     <label for="editPlaylist" id="editPlaylistLabel" hidden>플리 링크</label>
-    <input type="url" id="editPlaylist" placeholder="https://music.youtube.com/..." maxlength="500" aria-label="플리 링크" hidden />
+    <input type="url" id="editPlaylist" placeholder="https://open.spotify.com/..." maxlength="500" aria-label="플리 링크" hidden />
+    <div id="editPlaylistHint" hidden style="margin-top:-6px;margin-bottom:10px;font-size:11.5px;color:var(--text-muted);line-height:1.5;">오늘의 베스트 플리로 뽑히면 결과 화면에서 이 링크로 바로 들을 수 있어요. (Spotify · Apple Music · YouTube Music · YouTube)</div>
     <label for="editInstagram">인스타그램 아이디</label>
     <input type="text" id="editInstagram" placeholder="@ 제외하고 입력" maxlength="50" aria-label="인스타그램 아이디" />
     <button type="button" class="profile-edit-save" onclick="saveProfileEdit()">저장</button>
@@ -2755,6 +2764,8 @@ async function saveLazyPrompt() {
 // ─── Profile edit modal ───
 function openProfileEdit() {
   const p = STATE.myProfile || {};
+  const avDisp = document.getElementById('editAvatarDisplay');
+  if (avDisp) avDisp.textContent = p.emoji || (typeof genderAvatar === 'function' ? genderAvatar(p.gender) : '🙂');
   document.getElementById('editRegion').value = p.region || '';
   document.getElementById('editMbti').value = p.mbti || '';
   document.getElementById('editInterest').value = p.interest || '';
@@ -2763,13 +2774,16 @@ function openProfileEdit() {
   const isPlaylistPack = STATE.room && STATE.room.pack_id === 'playlist-share';
   const playlistLbl = document.getElementById('editPlaylistLabel');
   const playlistInp = document.getElementById('editPlaylist');
+  const playlistHint = document.getElementById('editPlaylistHint');
   if (isPlaylistPack && playlistInp && playlistLbl) {
     playlistLbl.hidden = false;
     playlistInp.hidden = false;
+    if (playlistHint) playlistHint.hidden = false;
     playlistInp.value = (STATE.playlistByUuid && STATE.playlistByUuid[STATE.uuid]) || '';
   } else if (playlistInp && playlistLbl) {
     playlistLbl.hidden = true;
     playlistInp.hidden = true;
+    if (playlistHint) playlistHint.hidden = true;
   }
   document.getElementById('profileEditStatus').textContent = '';
   document.getElementById('profileEditModal').hidden = false;
@@ -2799,6 +2813,17 @@ async function saveProfileEdit() {
     });
     if (!r.ok) throw new Error();
     STATE.myProfile = { ...STATE.myProfile, ...payload };
+    // 인스타 room_members 동기화 — /api/profile 는 users 테이블만 업데이트하므로
+    // room-scoped insta-status 가 프로필 값을 승계하도록 /me/instagram 도 호출 (2026-04-22 QA)
+    if (payload.instagram) {
+      try {
+        await fetch(`/api/rooms/${STATE.roomCode}/me/instagram`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uuid: STATE.uuid, instagram: payload.instagram }),
+        });
+      } catch (_) {}
+    }
     // playlist-share 팩 — URL 별도 저장
     const isPlaylistPack = STATE.room && STATE.room.pack_id === 'playlist-share';
     if (isPlaylistPack) {
@@ -3335,6 +3360,8 @@ function openEmojiPicker() {
       if (STATE.myProfile) STATE.myProfile.emoji = v;
       const av = document.getElementById('myAvatar');
       if (av) { av.textContent = v || '👤'; av.classList.remove('has-photo'); }
+      const avEdit = document.getElementById('editAvatarDisplay');
+      if (avEdit) avEdit.textContent = v || (typeof genderAvatar === 'function' ? genderAvatar(STATE.myProfile && STATE.myProfile.gender) : '🙂');
       if (STATE.members && STATE.members.length) {
         const me = STATE.members.find(m => m.uuid === STATE.uuid);
         if (me) me.emoji = v;

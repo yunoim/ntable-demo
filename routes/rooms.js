@@ -182,6 +182,11 @@ router.get('/rooms/:code', async (req, res) => {
   delete room.id;
   // 팩 기본값 — read-time 계산 (스냅샷 X). 팩별 wizard·display·result·flow 정책.
   const pack_defaults = getPackDefaults(room.pack_id);
+  // 기존 방 호환 — playlist-share 에서 과거 생성된 방에 'match' 가 남아있으면 읽기 시점에 필터.
+  // (2026-04-22 QA: myplay 킷은 작대기 단계 없음)
+  if (room.pack_id === 'playlist-share' && Array.isArray(room.closing_steps)) {
+    room.closing_steps = room.closing_steps.filter(s => s !== 'match');
+  }
   res.json({ ...room, current_state, pack_defaults });
 });
 
@@ -935,6 +940,21 @@ router.get('/rooms/:code/insta-status', async (req, res) => {
     );
     if (meRes.rows.length === 0) return res.status(404).json({ error: 'member not found' });
     const me = meRes.rows[0];
+    // 프로필(users.instagram) 승계 — room_members.instagram 미설정 시 users 값으로 fallback + 자동 업서트.
+    // (2026-04-22 QA: 프로필에 저장한 인스타가 교환 페이지 게이트를 뚫지 못하던 회귀 수정)
+    if (!me.instagram) {
+      try {
+        const uRes = await pool.query('SELECT instagram FROM users WHERE uuid = $1', [uuid]);
+        const profileInsta = uRes.rows[0] && uRes.rows[0].instagram;
+        if (profileInsta) {
+          await pool.query(
+            'UPDATE room_members SET instagram = $1 WHERE room_id = $2 AND uuid = $3',
+            [profileInsta, room_id, uuid]
+          );
+          me.instagram = profileInsta;
+        }
+      } catch (_) {}
+    }
 
     // 참가자 전체 (팩 정책에 따라 이성만 필터)
     const othersRes = await pool.query(
@@ -1190,11 +1210,16 @@ router.post('/rooms/:code/recover-reject', async (req, res) => {
 // 현재는 room_members 멤버십만 검증. 단일 오프라인 이벤트 스코프에서는 충분.
 // 설계안·적용 대상·재평가 트리거: docs/backlog/member-write-auth.md
 
+// Spotify · Apple Music · YouTube Music · YouTube 화이트리스트 검증 (2026-04-22 QA — 죽은 필드 방지).
+const PLAYLIST_HOST_RE = /(^|\.)(open\.spotify\.com|spotify\.com|music\.apple\.com|music\.youtube\.com|youtube\.com|youtu\.be)$/;
 function sanitizePlaylistUrl(raw) {
   const s = String(raw || '').trim();
   if (!s) return null;
   if (!/^https?:\/\//i.test(s)) return null;
   if (s.length > 500) return null;
+  let host = '';
+  try { host = new URL(s).hostname.toLowerCase(); } catch (_) { return null; }
+  if (!PLAYLIST_HOST_RE.test(host)) return null;
   return s;
 }
 

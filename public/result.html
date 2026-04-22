@@ -758,10 +758,10 @@
       </div>
     </section>
 
-    <!-- 페이지 2 — 베스트 매칭 -->
+    <!-- 페이지 2 — 베스트 매칭 / 오늘의 베스트 플리(playlist-share) / 연애 케미(couples) -->
     <section class="page" data-page="1">
       <div class="card">
-        <div class="card-title">💘 베스트 매칭</div>
+        <div class="card-title" id="page2-card-title">💘 베스트 매칭</div>
         <div id="match-content">
           <div class="loading"><div class="spinner"></div><span>불러오는 중...</span></div>
         </div>
@@ -1114,8 +1114,51 @@
         </div>
       ` : '';
 
-      // couples 팩: page 2 = 연애 분석(couple_love), 기존 best_match/mutual_pairs 로직 대체
-      if (isCouplesPack) {
+      // 페이지 2 카드 타이틀 팩별 오버라이드 (pack_defaults.labels.page2_card_title)
+      const p2Title = data.pack_defaults && data.pack_defaults.labels && data.pack_defaults.labels.page2_card_title;
+      if (p2Title) {
+        const t = document.getElementById('page2-card-title');
+        if (t) t.textContent = p2Title;
+      }
+
+      // playlist-share 팩: page 2 = 오늘의 베스트 플리 카드 (MVP 1위 + playlist_url CTA)
+      // (2026-04-22 QA: myplay 결과 페이지 상단 카드 교체)
+      const isPlaylistPack = data.pack_id === 'playlist-share';
+      if (isPlaylistPack) {
+        const mvp = data.mvp || null;
+        const urlRaw = mvp && mvp.playlist_url ? String(mvp.playlist_url) : '';
+        let host = '';
+        try { host = urlRaw ? new URL(urlRaw).hostname.toLowerCase() : ''; } catch (_) {}
+        const isSpotify = /spotify\.com$/.test(host) || /(^|\.)spotify\./.test(host);
+        const isApple = /music\.apple\.com$/.test(host);
+        const isYtMusic = /music\.youtube\.com$/.test(host);
+        const isYt = /(^|\.)youtube\.com$/.test(host) || /(^|\.)youtu\.be$/.test(host);
+        const svcLabel = isSpotify ? 'Spotify' : isApple ? 'Apple Music' : isYtMusic ? 'YouTube Music' : isYt ? 'YouTube' : '플리';
+        const svcIcon = isSpotify ? '🟢' : isApple ? '🍎' : (isYtMusic || isYt) ? '▶︎' : '🎵';
+        const urlEsc = escMatch(urlRaw);
+        const ctaHtml = urlRaw
+          ? `<a href="${urlEsc}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:12px 20px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border-radius:10px;font-family:inherit;font-weight:700;text-decoration:none;font-size:14px;">${svcIcon} ${escMatch(svcLabel)}에서 듣기 →</a>`
+          : `<div style="margin-top:14px;font-size:12px;color:var(--text-muted);">플리 링크가 아직 없어요</div>`;
+        if (mvp) {
+          const mvpEmoji = mvp.emoji ? escMatch(mvp.emoji) : '🎵';
+          matchEl.innerHTML = `
+            <div class="match-frame" style="padding:26px 22px;text-align:center;">
+              <div class="match-eyebrow">오늘 가장 많이 뽑힌 플리</div>
+              <div style="width:88px;height:88px;margin:14px auto 10px;border-radius:50%;background:rgba(212,168,67,0.1);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-size:44px;">${mvpEmoji}</div>
+              <div class="match-name">${escMatch(mvp.nickname || '익명')}</div>
+              <div class="match-sub">${mvp.fi_count || 0}표 득표</div>
+              ${ctaHtml}
+            </div>`;
+        } else {
+          matchEl.innerHTML = `
+            <div class="match-fallback-frame">
+              <div class="match-fallback-icon">🎵</div>
+              <div class="match-fallback-title">아직 집계되지 않았어요</div>
+              <div class="match-fallback-text">모임장이 베스트 플리 발표 단계로 진행하면<br>여기에 1위 플리가 표시돼요.</div>
+            </div>`;
+        }
+        // 팩 정책상 매칭 섹션·mutuals 호출 없음 — 바로 다음 흐름으로.
+      } else if (isCouplesPack) {
         // 카드 타이틀 변경
         const cardTitle = document.querySelector('section[data-page="1"] .card-title');
         if (cardTitle) cardTitle.textContent = '💘 우리 연애 케미';
@@ -1478,9 +1521,11 @@
   }
 
   // ── 후기 연결 투표 상호 지명(서로 또 만나고 싶어요) ───
+  // 팩 정책: match_pairs_enabled=false 면 섹션 자체 비노출 (myplay, teambuilding 등)
   async function refreshConnectionMutuals() {
     const slot = document.getElementById('connection-mutuals-slot');
     if (!slot) return;
+    if (window._packMatchPairsEnabled === false) { slot.innerHTML = ''; return; }
     try {
       const r = await fetch(`/api/connections/status?room_code=${encodeURIComponent(room_code)}&uuid=${encodeURIComponent(uuid)}`);
       if (!r.ok) return;
@@ -1777,6 +1822,13 @@
   // 팩 정책에 따라 인스타 교환 카드 자체를 숨김 (dating 외 팩은 비노출).
   // data.pack_defaults 는 loadResult 에서 받은 뒤 적용 — 여기서는 초기 상태만 설정.
   function applyPackGates(packDefaults, packId) {
+    // match_pairs_enabled: false 면 "서로 또 만나고 싶어요" 섹션 렌더 차단
+    window._packMatchPairsEnabled = !(packDefaults && packDefaults.match_pairs_enabled === false);
+    // 이미 렌더된 경우 비우기 (race condition 방어)
+    if (!window._packMatchPairsEnabled) {
+      const slot = document.getElementById('connection-mutuals-slot');
+      if (slot) slot.innerHTML = '';
+    }
     const exCard = document.getElementById('insta-exchange-card');
     const enabled = packDefaults && packDefaults.insta_exchange_enabled === true;
     if (exCard) exCard.style.display = enabled ? '' : 'none';

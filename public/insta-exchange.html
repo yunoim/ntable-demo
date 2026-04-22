@@ -511,25 +511,43 @@
   modalSave.addEventListener('click', async () => {
     const val = modalInput.value.trim();
     if (!val) { modalStatus.textContent = '인스타 아이디를 입력해주세요'; modalStatus.style.color = '#ff8a8a'; return; }
+    const origLabel = '저장';
     modalSave.disabled = true;
-    const origLabel = modalSave.textContent;
     modalSave.textContent = '저장 중…';
     modalStatus.textContent = '';
+    // 타임아웃 가드 — 8초 이상 걸리면 AbortError 로 중단 (stuck loading 방지)
+    const ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const to = ac ? setTimeout(() => { try { ac.abort(); } catch (_) {} }, 8000) : null;
     try {
       const r = await fetch(`/api/rooms/${room_code}/me/instagram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uuid, instagram: val }),
+        signal: ac ? ac.signal : undefined,
       });
-      if (!r.ok) throw new Error('save fail');
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok || !body || body.ok !== true) throw new Error('save fail');
       STATE.myInstagram = val;
+      // 프로필(users.instagram)에도 역동기화 — 다음 모임에서도 재사용 가능하도록 (2026-04-22 QA)
+      try {
+        await fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uuid, instagram: val }),
+        });
+      } catch (_) {}
       closeInstaModal();
       await loadStatus();
     } catch (e) {
+      const aborted = e && e.name === 'AbortError';
+      modalStatus.textContent = aborted
+        ? '네트워크가 느려요. 다시 시도해주세요.'
+        : '저장 실패. 다시 시도해주세요.';
+      modalStatus.style.color = '#ff8a8a';
+    } finally {
+      if (to) clearTimeout(to);
       modalSave.disabled = false;
       modalSave.textContent = origLabel;
-      modalStatus.textContent = '저장 실패. 다시 시도해주세요.';
-      modalStatus.style.color = '#ff8a8a';
     }
   });
 

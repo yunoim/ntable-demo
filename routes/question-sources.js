@@ -256,7 +256,7 @@ const PACK_FLOW_DEFAULTS = {
   'friends-reunion': ['explore-result'],      // 오랜만 — 탐구 결과 카드
   dating: ['mvp', 'match'],                   // 연애 — MVP + 작대기
   teambuilding: ['mvp', 'explore-result'],    // 팀빌딩 — MVP + 결과
-  'playlist-share': ['mvp', 'match', 'explore-result'],// 플리 공유회 — BEST 플리 + 또 만나고 싶은 사람 + 탐구 결과
+  'playlist-share': ['mvp', 'explore-result'],// 플리 공유회 — BEST 플리 투표(MVP 재활용) + 탐구 결과. match(작대기) 단계 없음 (2026-04-22 QA 피드백)
   'nights-stories': ['mvp'],                  // 나의 이야기 찾기 — 오늘의 주인공만
 };
 
@@ -408,16 +408,19 @@ const PACK_DEFAULTS = {
     wizard_required: ['nickname', 'playlist'],
     wizard_prompt_after_join: ['mbti', 'instagram'],
     display_fields_default: ['mbti', 'playlist'],
-    result_sections: ['ai_personality', 'best_match', 'mvp', 'explore_result', 'summary'],
+    result_sections: ['ai_personality', 'mvp', 'explore_result', 'summary'],
     skip_free_chat: false,
     insta_exchange_enabled: true,
     insta_opposite_gender_only: false, // playlist-share — 음악 취향 기반, 동성·이성 무관
-    best_match_enabled: true,
+    best_match_enabled: false, // myplay 는 MVP(베스트 플리)만 — "베스트 매칭" 섹션 비노출 (2026-04-22 QA)
     mvp_enabled: true,
-    match_pairs_enabled: true,
+    match_pairs_enabled: false, // 또 만나고 싶은 사람(작대기) 단계 없음 (2026-04-22 QA)
     labels: {
       page2_card_title: '🎵 오늘의 BEST 플리',
       best_match_eyebrow: '음악 취향이 비슷한 사람',
+      mvp_card_head: '🎵 오늘의 베스트 플리',
+      mvp_vote_card_head: '🎵 베스트 플리 투표',
+      closing_stage_sub: '베스트 플리 투표 → 발표 → 탐구 결과 공개 순서로 진행해요.',
     },
   },
   // 팀빌딩 — 업종·관심사 중심. MVP 만. 매칭·인스타 없음.

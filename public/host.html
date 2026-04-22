@@ -2079,7 +2079,7 @@
     <div class="panel" id="panel-ending">
       <div class="stage-tag" hidden>Step 04 · 마무리</div>
       <h1 class="stage-title">오늘의 <em>결과</em></h1>
-      <p class="stage-sub">오늘의 주인공 투표 → 발표 → 또 만나고 싶은 사람 선택 → 매칭 발표 순서로 진행해요.</p>
+      <p class="stage-sub" id="closingStageSub">오늘의 주인공 투표 → 발표 → 또 만나고 싶은 사람 선택 → 매칭 발표 순서로 진행해요.</p>
 
       <div class="closing-substeps" id="closingSubsteps">
         <span class="csub" data-sub="mvp">① 주인공 투표</span>
@@ -4004,11 +4004,39 @@ async function submitHostMatch() {
 
 // closing 단계 시각 표시 + 카드 head/help 업데이트
 function renderClosingSubsteps(current) {
+  // closing_steps 에 'match' 가 없으면 match chips 숨김 + 번호 재부여 (myplay/teambuilding 등)
+  const steps = Array.isArray(state.closingSteps) ? state.closingSteps : ['mvp'];
+  const hasMatch = steps.includes('match');
+  // stage-sub 텍스트 — 팩별 커스텀 또는 기본
+  const stageSubEl = document.getElementById('closingStageSub');
+  if (stageSubEl) {
+    const customSub = state.packDefaults && state.packDefaults.labels && state.packDefaults.labels.closing_stage_sub;
+    if (customSub) stageSubEl.textContent = customSub;
+    else if (!hasMatch) stageSubEl.textContent = '오늘의 주인공 투표 → 발표 → 탐구 결과 순서로 진행해요.';
+  }
+  const CHIP_LABELS = {
+    'mvp': '주인공 투표',
+    'mvp-result': '주인공 발표',
+    'match': '또 만나고 싶은 사람',
+    'match-result': '매칭 발표',
+  };
+  const MVP_LABELS_PLAYLIST = { 'mvp': '베스트 플리 투표', 'mvp-result': '베스트 플리 발표' };
+  const isPlaylist = (state.room && state.room.pack_id === 'playlist-share') || (state.packDefaults && state.packDefaults.content_kind === 'playlist');
+  const NUM = ['①','②','③','④'];
+  const visible = hasMatch ? ['mvp','mvp-result','match','match-result'] : ['mvp','mvp-result'];
   document.querySelectorAll('.csub').forEach(el => {
-    el.classList.toggle('active', el.dataset.sub === current.replace('closing-', ''));
+    const sub = el.dataset.sub;
+    const isVisible = visible.includes(sub);
+    el.hidden = !isVisible;
+    if (isVisible) {
+      const idx = visible.indexOf(sub);
+      const label = (isPlaylist && MVP_LABELS_PLAYLIST[sub]) || CHIP_LABELS[sub];
+      el.textContent = `${NUM[idx] || ''} ${label}`.trim();
+    }
+    el.classList.toggle('active', sub === current.replace('closing-', ''));
     const order = ['mvp', 'mvp-result', 'match', 'match-result'];
     const curIdx = order.indexOf(current.replace('closing-', ''));
-    const elIdx = order.indexOf(el.dataset.sub);
+    const elIdx = order.indexOf(sub);
     el.classList.toggle('done', elIdx < curIdx);
   });
   // 마지막 phase면 nextBtn 라벨 "모임 종료"
@@ -4020,11 +4048,17 @@ function renderClosingSubsteps(current) {
   const nextBtn = document.getElementById('closingNextBtn');
   const labels = {
     'closing-mvp':        ['🏆 오늘의 주인공 투표', '참가자가 각자 카드에서 투표하고 "투표 완료"를 눌러요. 이 화면엔 실시간 집계가 보여요.', '주인공 발표 →'],
-    'closing-mvp-result': ['🏆 오늘의 주인공 발표', '참가자 화면에 주인공 카드가 떴어요. 다음 단계로 넘기세요.', '또 만나고 싶은 사람 →'],
+    'closing-mvp-result': ['🏆 오늘의 주인공 발표', '참가자 화면에 주인공 카드가 떴어요. 다음 단계로 넘기세요.', hasMatch ? '또 만나고 싶은 사람 →' : '다음 단계 →'],
     'closing-match':      ['💘 또 만나고 싶은 사람', '참가자가 또 만나고 싶은 사람을 고르고 "선택 완료"를 눌러요. 모두 끝나면 매칭 발표로 넘기세요.', '매칭 발표 →'],
     'closing-match-result': ['💘 매칭 결과', '매칭 카드가 참가자 화면에 떴어요. 인스타 공유 등 마무리 단계.', '모임 종료'],
     'closing-explore-result': ['📖 오늘의 질문 — 모아 보기', '진행한 모든 문항과 누가 어떤 답을 골랐는지 표시돼요.', '모임 종료'],
   };
+  // 팩별 MVP 카드 라벨 override (myplay: "베스트 플리 투표/발표")
+  if (isPlaylist && state.packDefaults && state.packDefaults.labels) {
+    const lb = state.packDefaults.labels;
+    if (lb.mvp_vote_card_head) labels['closing-mvp'][0] = lb.mvp_vote_card_head;
+    if (lb.mvp_card_head) labels['closing-mvp-result'][0] = lb.mvp_card_head;
+  }
   const conf = labels[current] || labels['closing-mvp'];
   if (head) head.textContent = conf[0];
   if (help) help.textContent = conf[1];

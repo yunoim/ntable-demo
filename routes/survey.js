@@ -142,9 +142,19 @@ router.post('/connections', async (req, res) => {
     return res.status(400).json({ error: 'uuid, room_code, picks[] required' });
   }
   try {
-    const roomRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [room_code]);
+    const roomRes = await pool.query('SELECT id, pack_id FROM rooms WHERE room_code = $1', [room_code]);
     if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
     const room_id = roomRes.rows[0].id;
+    const room_pack_id = roomRes.rows[0].pack_id;
+
+    // 팩 정책 — match_pairs_enabled=false 면 작대기 API 자체 차단 (myplay 등, 2026-04-22 QA)
+    try {
+      const { getPackDefaults } = require('./question-sources');
+      const pd = getPackDefaults(room_pack_id);
+      if (pd && pd.match_pairs_enabled === false) {
+        return res.status(400).json({ error: 'NOT_AVAILABLE_FOR_PACK' });
+      }
+    } catch (_) {}
 
     // 참여자 검증 — 모임에 join 한 사람이면 OK (투표 없어도 사랑의 작대기 가능)
     const part = await pool.query(
@@ -413,7 +423,44 @@ router.get('/result', async (req, res) => {
       couple_partner_uuid = otherRes.rows[0]?.uuid || null;
     }
 
-    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs, pack_id, pack_defaults, couple_partner_uuid });
+    // MVP winner (fi_count 1위) — playlist-share 는 베스트 플리 카드에 사용, 다른 팩은 오늘의 주인공 표시용.
+    // (2026-04-22 QA: myplay 결과 페이지에 베스트 플리 카드 노출)
+    let mvp = null;
+    try {
+      const mvpRes = await pool.query(
+        `SELECT mr.uuid, mr.fi_count,
+                COALESCE(rm.nickname, u.nickname) AS nickname,
+                COALESCE(rm.emoji, u.emoji) AS emoji
+           FROM member_results mr
+           LEFT JOIN room_members rm ON rm.room_id = mr.room_id AND rm.uuid = mr.uuid
+           LEFT JOIN users u ON u.uuid = mr.uuid
+          WHERE mr.room_id = $1 AND mr.fi_count > 0
+          ORDER BY mr.fi_count DESC, COALESCE(rm.nickname, u.nickname) ASC
+          LIMIT 1`,
+        [room_id]
+      );
+      if (mvpRes.rows[0]) {
+        mvp = {
+          uuid: mvpRes.rows[0].uuid,
+          nickname: mvpRes.rows[0].nickname || '익명',
+          emoji: mvpRes.rows[0].emoji || null,
+          fi_count: mvpRes.rows[0].fi_count || 0,
+          playlist_url: null,
+        };
+        // playlist-share 팩 — MVP 의 플리 링크 조회
+        if (pack_id === 'playlist-share') {
+          try {
+            const pl = await pool.query(
+              'SELECT url FROM playlist_links WHERE room_id = $1 AND uuid = $2',
+              [room_id, mvp.uuid]
+            );
+            if (pl.rows[0]) mvp.playlist_url = pl.rows[0].url || null;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs, pack_id, pack_defaults, couple_partner_uuid, mvp });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });
