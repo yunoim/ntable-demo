@@ -1715,13 +1715,13 @@
       <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
       <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
     </select>
-    <label for="editInterest">관심사</label>
+    <label for="editInterest" id="editInterestLabel">관심사</label>
     <input type="text" id="editInterest" placeholder="예: 등산, 독서, 요리" maxlength="30" aria-label="관심사" />
     <!-- playlist-share 팩 전용 — pack_id 확인 후 JS 가 노출 -->
     <label for="editPlaylist" id="editPlaylistLabel" hidden>플리 링크</label>
     <input type="url" id="editPlaylist" placeholder="https://open.spotify.com/..." maxlength="500" aria-label="플리 링크" hidden />
     <div id="editPlaylistHint" hidden style="margin-top:-6px;margin-bottom:10px;font-size:11.5px;color:var(--text-muted);line-height:1.5;">오늘의 베스트 플리로 뽑히면 결과 화면에서 이 링크로 바로 들을 수 있어요. (Spotify · Apple Music · YouTube Music · YouTube)</div>
-    <label for="editInstagram">인스타그램 아이디</label>
+    <label for="editInstagram" id="editInstagramLabel">인스타그램 아이디</label>
     <input type="text" id="editInstagram" placeholder="@ 제외하고 입력" maxlength="50" aria-label="인스타그램 아이디" />
     <button type="button" class="profile-edit-save" onclick="saveProfileEdit()">저장</button>
     <div id="profileEditStatus"></div>
@@ -2395,6 +2395,26 @@ async function handleWSMessage(msg) {
       }
       break;
 
+    case 'member_update': {
+      // 2026-04-22: 닉네임/프로필 실시간 동기화 — 다른 참가자 화면에서 본인 변경이 즉시 반영.
+      // payload 예: { type:'member_update', uuid, nickname?, emoji?, gender?, birth_year?, mbti?, interest?, region?, instagram? }
+      const { type, ...fields } = msg;
+      if (!fields.uuid) break;
+      if (Array.isArray(STATE.members)) {
+        const idx = STATE.members.findIndex(m => m && m.uuid === fields.uuid);
+        if (idx >= 0) STATE.members[idx] = { ...STATE.members[idx], ...fields };
+      }
+      if (STATE.myProfile && STATE.myProfile.uuid === fields.uuid) {
+        STATE.myProfile = { ...STATE.myProfile, ...fields };
+      }
+      if (STATE.currentState === 'intro') {
+        try { if (typeof renderCarousel === 'function') renderCarousel(); } catch (_) {}
+        try { if (typeof renderGuestMpList === 'function') renderGuestMpList(); } catch (_) {}
+        try { if (typeof renderMyProfile === 'function') renderMyProfile(); } catch (_) {}
+      }
+      break;
+    }
+
     case 'state_update': {
       const { current_tab, question_index } = msg.state || {};
       console.log('[guest] state_update', current_tab, 'q=', question_index, 'curScreen=', STATE.currentState);
@@ -2887,6 +2907,15 @@ function openProfileEdit() {
     playlistInp.hidden = true;
     if (playlistHint) playlistHint.hidden = true;
   }
+  // couples 팩 — 관심사·인스타그램 필드 숨김 (2026-04-22 사용자 요청: 2인 전용이라 불필요)
+  const isCouplesPack = STATE.room && STATE.room.pack_id === 'couples';
+  const interestLbl = document.getElementById('editInterestLabel');
+  const interestInp = document.getElementById('editInterest');
+  const instagramLbl = document.getElementById('editInstagramLabel');
+  const instagramInp = document.getElementById('editInstagram');
+  [interestLbl, interestInp, instagramLbl, instagramInp].forEach(el => {
+    if (el) el.hidden = isCouplesPack;
+  });
   document.getElementById('profileEditStatus').textContent = '';
   document.getElementById('profileEditModal').hidden = false;
 }
@@ -2919,6 +2948,7 @@ async function saveProfileEdit() {
       return;
     }
   }
+  const isCouplesPack = STATE.room && STATE.room.pack_id === 'couples';
   const payload = {
     uuid: STATE.uuid,
     gender: STATE.myProfile.gender,
@@ -2926,9 +2956,12 @@ async function saveProfileEdit() {
     region: document.getElementById('editRegion').value || null,
     industry: STATE.myProfile.industry || null,
     mbti: document.getElementById('editMbti').value || null,
-    interest: document.getElementById('editInterest').value.trim() || null,
-    instagram: document.getElementById('editInstagram').value.trim() || null,
   };
+  // couples 팩은 관심사·인스타그램 필드 없음 — payload 에 포함 안 함(기존 값 유지).
+  if (!isCouplesPack) {
+    payload.interest = document.getElementById('editInterest').value.trim() || null;
+    payload.instagram = document.getElementById('editInstagram').value.trim() || null;
+  }
   try {
     const r = await fetch('/api/profile', {
       method: 'PUT',
@@ -2969,6 +3002,22 @@ async function saveProfileEdit() {
       } catch (_) {}
     }
     renderMyProfile();
+    // STATE.members 본인 엔트리도 merge — carousel/리스트 카드에 닉네임·필드 변경 즉시 반영 (2026-04-22).
+    // 서버 broadcast 는 /me/profile 에서 처리하므로 다른 참가자는 member_update WS 이벤트로 받음.
+    // 이 지역 merge 는 본인 화면에서 round-trip 없이 즉각 반영되는 UX 용.
+    if (Array.isArray(STATE.members)) {
+      const selfIdx = STATE.members.findIndex(m => m && m.uuid === STATE.uuid);
+      if (selfIdx >= 0) {
+        STATE.members[selfIdx] = {
+          ...STATE.members[selfIdx],
+          ...payload,
+          nickname: STATE.myProfile.nickname,
+          emoji: STATE.myProfile.emoji,
+        };
+      }
+    }
+    try { if (typeof renderCarousel === 'function') renderCarousel(); } catch (_) {}
+    try { if (typeof renderGuestMpList === 'function') renderGuestMpList(); } catch (_) {}
     statusEl.textContent = '✓ 저장 완료';
     setTimeout(closeProfileEdit, 900);
   } catch {
@@ -3193,6 +3242,11 @@ function updateCarousel() {
 
 // 카드 탭 → 확대 모달
 function openGuestMemberModal(uuid) {
+  // 본인 탭 시 편집 가능한 프로필 수정 모달로 라우팅 (2026-04-22 사용자 요청)
+  if (uuid && STATE.uuid && uuid === STATE.uuid) {
+    if (typeof openProfileEdit === 'function') openProfileEdit();
+    return;
+  }
   const m = (STATE.members || []).find(x => x.uuid === uuid);
   const modal = document.getElementById('guest-card-modal');
   const inner = document.getElementById('guest-card-modal-inner');
@@ -3489,7 +3543,8 @@ function openEmojiPicker(opts) {
 
   const modal = document.createElement('div');
   modal.id = 'emoji-picker-modal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:1600;display:flex;align-items:center;justify-content:center;padding:20px;';
+  // z-index 10005 — profileEditModal(10001) 위에 떠야 '변경' 버튼이 작동함 (이전 1600 은 뒤에 가려 클릭 불가).
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10005;display:flex;align-items:center;justify-content:center;padding:20px;';
 
   const renderTabs = () => GUEST_EMOJI_CATEGORIES.map((cat, idx) => `
     <button type="button" data-cat-idx="${idx}" style="padding:7px 11px;border-radius:999px;border:1px solid ${idx===activeCatIdx?'var(--gold)':'var(--gold-border)'};background:${idx===activeCatIdx?'rgba(212,168,67,0.22)':'transparent'};color:${idx===activeCatIdx?'var(--gold-light)':'var(--text-muted)'};font-size:12px;font-family:inherit;letter-spacing:0.02em;cursor:pointer;white-space:nowrap;">${escHtml(cat.label)}</button>

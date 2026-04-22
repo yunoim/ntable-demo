@@ -543,6 +543,17 @@ router.post('/rooms/:code/join', async (req, res) => {
       `INSERT INTO users (uuid) VALUES ($1) ON CONFLICT (uuid) DO NOTHING`,
       [uuid]
     );
+    // WS broadcast — 다른 참가자/호스트 화면에 닉네임·이모지 실시간 반영 (2026-04-22)
+    try {
+      const wsModule = require('./ws');
+      const emojiVal = (typeof profile.emoji === 'string' && profile.emoji) ? profile.emoji.slice(0, 8) : null;
+      wsModule.broadcastToRoom(code, {
+        type: 'member_update',
+        uuid,
+        nickname: nick,
+        emoji: emojiVal,
+      });
+    } catch (_) {}
     res.json({ ok: true, room_code: code, nickname: nick });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'NICKNAME_TAKEN' });
@@ -1051,6 +1062,15 @@ router.patch('/rooms/:code/me/profile', async (req, res) => {
     `UPDATE room_members SET ${updates.join(', ')} WHERE room_id = $${i++} AND uuid = $${i++}`,
     params
   );
+  // WS broadcast — 변경된 프로필 필드를 다른 참가자/호스트 화면에 실시간 반영 (2026-04-22)
+  try {
+    const wsModule = require('./ws');
+    const payload = { type: 'member_update', uuid };
+    for (const k of allowed) {
+      if (k in req.body) payload[k] = req.body[k];
+    }
+    wsModule.broadcastToRoom(code, payload);
+  } catch (_) {}
   res.json({ ok: true });
 });
 

@@ -3621,6 +3621,25 @@ function handleWSMessage(msg) {
       state.waitingUsers = state.waitingUsers.filter(u => u.uuid !== msg.uuid);
       renderWaitingList();
       break;
+
+    case 'member_update': {
+      // 2026-04-22: 참가자 본인이 닉네임/프로필 수정 시 실시간 반영.
+      // payload: { type, uuid, nickname?, emoji?, gender?, birth_year?, mbti?, region?, interest?, instagram?, industry? }
+      const { type: _t, ...fields } = msg;
+      if (!fields.uuid) break;
+      if (Array.isArray(state.approvedUsers)) {
+        const idx = state.approvedUsers.findIndex(u => u && u.uuid === fields.uuid);
+        if (idx >= 0) state.approvedUsers[idx] = { ...state.approvedUsers[idx], ...fields };
+      }
+      if (state.myProfile && fields.uuid === state.uuid) {
+        state.myProfile = { ...state.myProfile, ...fields };
+      }
+      if (state.activeTab === 'intro') {
+        try { if (typeof renderProfiles === 'function') renderProfiles(); } catch (_) {}
+        try { if (typeof renderApprovedList === 'function') renderApprovedList(); } catch (_) {}
+      }
+      break;
+    }
     case 'approved': {
       const idx = state.waitingUsers.findIndex(u => u.uuid === msg.uuid);
       if (idx !== -1) {
@@ -3960,6 +3979,9 @@ function renderProfiles() {
         ${showPlaylist && playlistByUuid[u.uuid] ? `<a href="${escHtml(playlistByUuid[u.uuid])}" target="_blank" rel="noopener" class="tag-chip gold" style="text-decoration:none;">🎵 플리 열기</a>` : ''}
       </div>
       ${introHtml}`;
+    // 2026-04-22: 카드 클릭 → 본인이면 openMyInfo(편집), 타인이면 mp-card view 모달
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => openMpCard(u.uuid));
     carousel.appendChild(card);
   }
   // 모바일 전용 접이식 리스트도 동기 갱신
@@ -4027,6 +4049,11 @@ function toggleMpList() {
 }
 
 function openMpCard(uuid) {
+  // 본인 탭 시 편집 가능한 내 정보 모달로 라우팅 (2026-04-22 사용자 요청, 호스트/게스트 공통)
+  if (uuid && state.uuid && uuid === state.uuid) {
+    if (typeof openMyInfo === 'function') openMyInfo();
+    return;
+  }
   const source = document.querySelector(`#profile-carousel .profile-card[data-uuid="${CSS.escape(uuid)}"]`);
   const modal = document.getElementById('mp-card-modal');
   const inner = document.getElementById('mp-card-modal-inner');
