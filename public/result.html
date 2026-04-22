@@ -828,7 +828,7 @@
     <div style="display:flex;flex-direction:column;gap:10px;align-items:stretch;">
       <a id="next-room-cta" href="/create" style="padding:14px 16px;background:var(--gold);color:#0f1220;border-radius:12px;text-decoration:none;font-family:inherit;font-size:15px;font-weight:700;letter-spacing:0.02em;text-align:center;box-shadow:0 6px 18px rgba(212,168,67,0.24);">다음 모임 열기</a>
       <button type="button" id="save-url-btn" onclick="saveResultUrl()" style="padding:12px 14px;background:transparent;color:var(--gold-light);border:1px solid var(--gold-border);border-radius:10px;font-family:inherit;font-size:13.5px;font-weight:500;letter-spacing:0.02em;cursor:pointer;text-align:center;">🔗 결과 URL 복사</button>
-      <a href="/" style="padding:8px 12px;background:none;color:var(--text-muted);border:none;text-decoration:none;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:0.02em;text-align:center;">홈으로</a>
+      <a href="/create" style="padding:8px 12px;background:none;color:var(--text-muted);border:none;text-decoration:none;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:0.02em;text-align:center;">다른 모임 열기</a>
     </div>
     <div style="margin-top:12px;font-size:11.5px;color:var(--text-muted);letter-spacing:0.02em;line-height:1.55;">👁 모임 종료 후 <strong style="color:var(--gold-light);">30일까지</strong> 볼 수 있어요.</div>
   </div>
@@ -865,6 +865,109 @@
   let matchedUuid = null;
   let couplePartnerUuid = null;
 
+  // ── couples 한번 또하기 — 양쪽 동의 상태 관리 (2026-04-23) ──
+  // hostuuid 일치 여부로 새 방 진입 경로 분기 (host 은 /room/CODE/host, guest 은 /room/CODE)
+  window._isHostView = false;
+  function setNextRoomBtn(state) {
+    const cta = document.getElementById('next-room-cta');
+    const btns = [cta].filter(Boolean);
+    const LABEL = {
+      'idle':             '🔁 한번 또하기',
+      'self-waiting':     '⏳ 상대를 기다리는 중',
+      'partner-waiting':  '✨ 상대가 대기 중 · 누르면 새 방',
+      'ready':            '✓ 새 방으로 이동 중...',
+    };
+    const label = LABEL[state] || LABEL.idle;
+    btns.forEach(b => {
+      if (!b) return;
+      b.textContent = label;
+      if (state === 'self-waiting' || state === 'ready') {
+        b.style.pointerEvents = 'none';
+        b.style.opacity = '0.7';
+      } else {
+        b.style.pointerEvents = '';
+        b.style.opacity = '';
+      }
+    });
+  }
+  async function requestNextRoom() {
+    const cta = document.getElementById('next-room-cta');
+    if (!cta) return;
+    // 이미 self-waiting 이면 재클릭 무시
+    if (cta.textContent && cta.textContent.indexOf('기다리는 중') >= 0) return;
+    try {
+      const r = await fetch(`/api/rooms/${room_code}/next-room`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        console.error('[result] next-room failed:', data);
+        alert(data.message || data.error || '새 방 요청에 실패했어요.');
+        return;
+      }
+      if (data.status === 'waiting') {
+        setNextRoomBtn('self-waiting');
+      } else if (data.status === 'ready' && data.new_room_code) {
+        setNextRoomBtn('ready');
+        const path = window._isHostView ? `/room/${data.new_room_code}/host` : `/room/${data.new_room_code}`;
+        setTimeout(() => { location.href = path; }, 400);
+      }
+    } catch (err) {
+      console.error('[result] next-room error:', err);
+      alert('네트워크 오류 — 잠시 후 다시 시도해주세요.');
+    }
+  }
+
+  // ── 박스 이미지 저장 / 공유 (generic, 2026-04-23) ──
+  async function saveElementAsImage(elementId, filePrefix) {
+    const el = document.getElementById(elementId);
+    if (!el || typeof html2canvas === 'undefined') {
+      alert('이미지 저장 모듈 로딩 중이에요. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    try {
+      if (typeof t === 'function' && typeof toast === 'function') { try { toast(t('toasts.image_preparing')); } catch (_) {} }
+      const canvas = await html2canvas(el, { backgroundColor: '#141d35', scale: 2, useCORS: true, logging: false });
+      const link = document.createElement('a');
+      link.download = `ntable-${filePrefix || 'card'}-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      if (typeof t === 'function' && typeof toast === 'function') { try { toast(t('toasts.image_saved')); } catch (_) {} }
+    } catch (err) {
+      console.error('[result] saveElementAsImage failed:', err);
+      alert('이미지 저장 실패 — 잠시 후 다시 시도해주세요.');
+    }
+  }
+  async function shareElementAsImage(elementId, filePrefix) {
+    const el = document.getElementById(elementId);
+    if (!el || typeof html2canvas === 'undefined') {
+      alert('공유 모듈 로딩 중이에요. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    try {
+      const canvas = await html2canvas(el, { backgroundColor: '#141d35', scale: 2, useCORS: true, logging: false });
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const file = new File([blob], `ntable-${filePrefix || 'card'}-${Date.now()}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'ntable', text: 'ntable 결과' });
+        } catch (_) { /* 사용자 취소 */ }
+      } else {
+        // Web Share API 미지원: 다운로드 폴백
+        const link = document.createElement('a');
+        link.download = file.name;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        alert('공유를 지원하지 않는 브라우저라 이미지로 저장했어요.');
+      }
+    } catch (err) {
+      console.error('[result] shareElementAsImage failed:', err);
+      alert('공유 실패 — 잠시 후 다시 시도해주세요.');
+    }
+  }
+
   // ws 연결 — insta_mutual broadcast 수신 시 자동 갱신
   let _ws = null;
   function connectResultWs() {
@@ -887,6 +990,22 @@
             // 후기 연결 투표 상호 지명 — 내가 pair 에 포함되면 섹션 재조회
             const involved = (msg.a && msg.a.uuid === uuid) || (msg.b && msg.b.uuid === uuid);
             if (involved) refreshConnectionMutuals();
+          } else if (msg.type === 'next_room_pending') {
+            // 2026-04-23: couples '한번 또하기' 양쪽 동의 — 상대가 먼저 눌렀을 때.
+            // requesters 안에 내 uuid 있으면 양쪽 다 대기 중(새 방 생성 진행) — 아니면 partner-waiting.
+            const rqs = Array.isArray(msg.requesters) ? msg.requesters : [];
+            if (!rqs.includes(uuid)) {
+              setNextRoomBtn('partner-waiting');
+            }
+          } else if (msg.type === 'next_room_ready') {
+            // 새 방 생성 완료 — 자동 redirect.
+            if (msg.new_room_code) {
+              setNextRoomBtn('ready');
+              // host 이면 /room/CODE/host, 게스트이면 /room/CODE
+              const isHost = window._isHostView === true;
+              const path = isHost ? `/room/${msg.new_room_code}/host` : `/room/${msg.new_room_code}`;
+              setTimeout(() => { location.href = path; }, 400);
+            }
           }
         } catch (_) {}
       };
@@ -1119,6 +1238,8 @@
 
       // 팩별 UI 게이트 적용 (인스타 교환 카드 노출 등)
       if (typeof window._applyPackGates === 'function') window._applyPackGates(data.pack_defaults, data.pack_id);
+      // 2026-04-23: host 여부 판별 — '한번 또하기' 새 방 진입 경로 분기용.
+      window._isHostView = !!(data.host_uuid && data.host_uuid === uuid);
 
       // T-B0-14 (2026-04-22): 다음 모임 CTA pack 별 라벨·링크 분기
       try {
@@ -1126,15 +1247,20 @@
         if (nextCta) {
           const NEXT_BY_PACK = {
             'playlist-share': '🎵 다음 플리 공유회 열기',
-            'couples':        '👫 다음 둘이서 열기',
+            'couples':        '🔁 한번 또하기',
             'dating':         '💫 다음 소개팅 열기',
             'teambuilding':   '💼 다음 팀빌딩 열기',
             'icebreaker':     '🤝 다음 모임 열기',
           };
           nextCta.textContent = NEXT_BY_PACK[data.pack_id] || '✨ 다음 모임 열기';
-          // 2026-04-22: 둘이서(couples) 모드 종료 후 CTA 는 app.ntable.kr 최초 페이지(/)로 이동.
+          // 2026-04-23: couples 는 '한번 또하기' 양쪽 동의 흐름 — href 대신 JS 클릭 핸들러로 처리.
           if (data.pack_id === 'couples') {
-            nextCta.href = '/';
+            nextCta.setAttribute('role', 'button');
+            nextCta.href = 'javascript:void(0)';
+            nextCta.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (typeof requestNextRoom === 'function') requestNextRoom();
+            });
           } else {
             nextCta.href = data.pack_id ? `/create?pack=${encodeURIComponent(data.pack_id)}` : '/create';
           }
@@ -1489,37 +1615,21 @@
         exploreEl.innerHTML = hlHtml || '<div style="color:var(--subtext);text-align:center;padding:20px 0;font-size:13px;">탐구 데이터가 없어요</div>';
       }
 
-      // 2026-04-22 couples 전용 하단 3버튼: 한번 또하기 · 결과 URL 복사 · 홈으로.
-      // '한번 또하기' 는 기존 프로필(localStorage) 그대로 재활용되도록 /create?pack=couples 로 이동 —
-      // create.html 이 couples 를 instant 로 즉시 생성해 새 방 열림, 호스트 온보딩 시트는 한 번 더 노출되지만
-      // 닉네임 prefill + 아바타/프로필 이전 값 복구로 "다시 타이핑" 없이 시작 가능.
-      if (data.pack_id === 'couples' && exploreEl) {
-        const againBar = document.createElement('div');
-        againBar.className = 'again-bar';
-        againBar.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px;';
-        againBar.innerHTML = `
-          <button type="button" class="again-btn primary" style="padding:13px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:12px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;">🔁 한번 또하기</button>
-          <button type="button" class="again-btn" style="padding:13px;background:transparent;color:var(--gold-light);border:1px solid var(--gold-border);border-radius:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;">🔗 URL 복사</button>
-          <button type="button" class="again-btn" style="padding:13px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;">🏠 홈으로</button>
+      // 2026-04-23: 오늘의 질문 카드 박스 내부에 이미지 저장 / 공유 2버튼.
+      //   이전의 '한번 또하기·URL복사·홈으로' 3버튼은 하단 CTA(#next-room-cta) 와 중복이라 제거.
+      //   '한번 또하기' 는 하단 CTA 하나로만 담당 (양쪽 동의 흐름).
+      if (exploreEl) {
+        const shareBar = document.createElement('div');
+        shareBar.className = 'share-actions';
+        shareBar.style.cssText = 'display:flex;gap:8px;margin-top:18px;';
+        shareBar.innerHTML = `
+          <button type="button" class="share-btn" data-cap="explore-content" data-cap-label="오늘의 질문" aria-label="이미지 저장" style="flex:1;padding:12px;background:var(--gold);color:var(--navy);border:none;border-radius:10px;font-family:inherit;font-weight:700;cursor:pointer;">📷 이미지 저장</button>
+          <button type="button" class="share-btn outline" data-cap-share="explore-content" data-cap-label="오늘의 질문" aria-label="공유하기" style="flex:1;padding:12px;background:transparent;color:var(--gold-light);border:1px solid var(--gold-border);border-radius:10px;font-family:inherit;font-weight:600;cursor:pointer;">📸 공유하기</button>
         `;
-        exploreEl.appendChild(againBar);
-        const [btnAgain, btnCopy, btnHome] = againBar.querySelectorAll('button');
-        btnAgain.addEventListener('click', () => { location.href = '/create?pack=couples'; });
-        btnCopy.addEventListener('click', () => {
-          const url = location.href;
-          navigator.clipboard.writeText(url).then(() => {
-            btnCopy.textContent = '✓ 복사됨';
-            setTimeout(() => { btnCopy.textContent = '🔗 URL 복사'; }, 1800);
-          }).catch(() => {
-            const ta = document.createElement('textarea'); ta.value = url;
-            document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); } catch (_) {}
-            document.body.removeChild(ta);
-            btnCopy.textContent = '✓ 복사됨';
-            setTimeout(() => { btnCopy.textContent = '🔗 URL 복사'; }, 1800);
-          });
-        });
-        btnHome.addEventListener('click', () => { location.href = '/'; });
+        exploreEl.appendChild(shareBar);
+        const [saveBtn, shareBtn] = shareBar.querySelectorAll('button');
+        saveBtn.addEventListener('click', () => saveElementAsImage('explore-content', '오늘의-질문'));
+        shareBtn.addEventListener('click', () => shareElementAsImage('explore-content', '오늘의-질문'));
       }
     } catch (err) {
       // 2026-04-22 (재수정 3차): `innerHTML.trim()` 비어있음 조건은 초기 스피너 HTML 이

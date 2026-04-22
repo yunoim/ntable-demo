@@ -1289,4 +1289,115 @@ router.get('/rooms/:code/playlist', async (req, res) => {
   res.json({ links });
 });
 
+// POST /api/rooms/:code/next-room — couples 결과 페이지 '한번 또하기' 양쪽 동의 트리거 (2026-04-23)
+// 참가자 전원이 눌러야 새 방 생성. 한 명만 눌렀으면 status=waiting + 상대에게 WS 'next_room_pending' broadcast.
+// 전원 동의 시 새 방 생성 (방 설정·질문·room_members 프로필 복사) + 양쪽에 WS 'next_room_ready' + { new_room_code }.
+router.post('/rooms/:code/next-room', async (req, res) => {
+  const { code } = req.params;
+  const { uuid } = req.body || {};
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+
+  const roomRes = await pool.query(`
+    SELECT id, host_uuid, pack_id, question_count, pack_defaults, display_fields,
+           birth_year_format, display_mode, photo_enabled, region_detail,
+           free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled,
+           host_role, instagram_collect, closing_steps, questions_json, free_topics_json
+    FROM rooms WHERE room_code = $1
+  `, [code]);
+  if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
+  const room = roomRes.rows[0];
+  // 지금은 couples 팩만 지원 (다른 팩은 기존 /create 플로우)
+  if (room.pack_id !== 'couples') return res.status(400).json({ error: 'only couples supported' });
+
+  const wsModule = require('./ws');
+  wsModule.markNextRoomRequest(code, uuid);
+  const requesters = wsModule.getNextRoomRequesters(code);
+
+  // 해당 방 참가자 전원 uuid (room_members 스냅샷)
+  const members = await pool.query('SELECT uuid FROM room_members WHERE room_id = $1', [room.id]);
+  const memberUuids = members.rows.map(r => r.uuid);
+  const allAgreed = memberUuids.length >= 2 && memberUuids.every(u => requesters.has(u));
+
+  if (!allAgreed) {
+    // 상대에게 '누군가 기다리고 있어요' 알림
+    wsModule.broadcastToRoom(code, {
+      type: 'next_room_pending',
+      uuid,
+      requesters: Array.from(requesters),
+    });
+    return res.json({ status: 'waiting', requesters: Array.from(requesters) });
+  }
+
+  // 양쪽 동의 — 새 방 생성
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function genCode() {
+    let s = '';
+    for (let i = 0; i < 6; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+    return s;
+  }
+  let newCode = null;
+  for (let i = 0; i < 10; i++) {
+    const c = genCode();
+    const exists = await pool.query('SELECT 1 FROM rooms WHERE room_code = $1', [c]);
+    if (exists.rows.length === 0) { newCode = c; break; }
+  }
+  if (!newCode) {
+    wsModule.clearNextRoomRequests(code);
+    return res.status(500).json({ error: 'code gen fail' });
+  }
+
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const title = `둘이서 · ${mm}.${dd}`;
+
+  try {
+    // 방 insert (기존 방 config 그대로 복사)
+    await pool.query(`
+      INSERT INTO rooms (
+        room_code, title, host_uuid, pack_id, status,
+        question_count, questions_json, pack_defaults, display_fields, birth_year_format,
+        display_mode, photo_enabled, region_detail,
+        free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled,
+        host_role, instagram_collect, closing_steps, free_topics_json
+      )
+      VALUES (
+        $1, $2, $3, $4, 'waiting',
+        $5, $6, $7, $8, $9,
+        $10, $11, $12,
+        $13, $14, $15,
+        $16, $17, $18, $19
+      )
+    `, [
+      newCode, title, room.host_uuid, room.pack_id,
+      room.question_count, JSON.stringify(room.questions_json || []), JSON.stringify(room.pack_defaults || {}), room.display_fields, room.birth_year_format,
+      room.display_mode, room.photo_enabled, room.region_detail,
+      room.free_chat_timer_minutes, room.free_chat_chat_enabled, room.free_chat_topic_card_enabled,
+      room.host_role, room.instagram_collect, room.closing_steps, JSON.stringify(room.free_topics_json || []),
+    ]);
+
+    const newIdRes = await pool.query('SELECT id FROM rooms WHERE room_code = $1', [newCode]);
+    const newRoomId = newIdRes.rows[0].id;
+
+    // room_members 복사 — 프로필 스냅샷(닉·성별·생년·MBTI·이모지 등) 그대로 승계
+    await pool.query(`
+      INSERT INTO room_members (
+        room_id, uuid, nickname, gender, birth_year, region, industry, mbti, interest, instagram, emoji,
+        hide_birth_year, hide_region, hide_industry, hide_interest, hide_instagram
+      )
+      SELECT $1, uuid, nickname, gender, birth_year, region, industry, mbti, interest, instagram, emoji,
+             hide_birth_year, hide_region, hide_industry, hide_interest, hide_instagram
+      FROM room_members WHERE room_id = $2
+    `, [newRoomId, room.id]);
+
+    wsModule.clearNextRoomRequests(code);
+    wsModule.broadcastToRoom(code, { type: 'next_room_ready', new_room_code: newCode });
+    return res.json({ status: 'ready', new_room_code: newCode });
+  } catch (err) {
+    console.error('[next-room] create failed:', err);
+    wsModule.clearNextRoomRequests(code);
+    return res.status(500).json({ error: 'create failed' });
+  }
+});
+
 module.exports = router;

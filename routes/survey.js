@@ -258,10 +258,11 @@ router.get('/result', async (req, res) => {
   if (!uuid || !room_code) return res.status(400).json({ error: 'uuid, room_code required' });
 
   try {
-    const roomRes = await pool.query('SELECT id, pack_id FROM rooms WHERE room_code = $1', [room_code]);
+    const roomRes = await pool.query('SELECT id, pack_id, host_uuid FROM rooms WHERE room_code = $1', [room_code]);
     if (roomRes.rows.length === 0) return res.status(404).json({ error: 'room not found' });
     const room_id = roomRes.rows[0].id;
     const pack_id = roomRes.rows[0].pack_id;
+    const host_uuid = roomRes.rows[0].host_uuid || null;
     const pack_defaults = getPackDefaults(pack_id);
 
     const mrRes = await pool.query(
@@ -460,7 +461,7 @@ router.get('/result', async (req, res) => {
       }
     } catch (_) {}
 
-    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs, pack_id, pack_defaults, couple_partner_uuid, mvp });
+    res.json({ match_nickname, match_uuid, match_emoji, fi_count, match_common, match_total_answered, match_common_picks, top_matches, participants, question_highlights, host_summary, mutual_pairs, pack_id, pack_defaults, couple_partner_uuid, mvp, host_uuid });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'db error' });

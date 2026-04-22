@@ -554,4 +554,19 @@ function attachTVToRoom(pairCode, room_code) {
   return { ok: true };
 }
 
-module.exports = { init, broadcastToRoom, getRoomClients, getActiveRoomCodes, isUserActive, closeUserWS, attachTVToRoom };
+// 2026-04-23: 결과 페이지에서 '한번 또하기' 양쪽 동의 대기 상태 (in-memory, 서버 restart 시 초기화).
+//   - room_code → Set<uuid> 중 누가 요청했는지 저장. 참가자 전원 요청하면 새 방 생성 트리거.
+const nextRoomPending = new Map();
+function markNextRoomRequest(room_code, uuid) {
+  if (!nextRoomPending.has(room_code)) nextRoomPending.set(room_code, new Set());
+  nextRoomPending.get(room_code).add(uuid);
+  return nextRoomPending.get(room_code);
+}
+function getNextRoomRequesters(room_code) {
+  return nextRoomPending.get(room_code) || new Set();
+}
+function clearNextRoomRequests(room_code) {
+  nextRoomPending.delete(room_code);
+}
+
+module.exports = { init, broadcastToRoom, getRoomClients, getActiveRoomCodes, isUserActive, closeUserWS, attachTVToRoom, markNextRoomRequest, getNextRoomRequesters, clearNextRoomRequests };
