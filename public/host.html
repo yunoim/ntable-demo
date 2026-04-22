@@ -1963,6 +1963,8 @@
         <div id="mobile-more-slot"></div>
       </div>
       <!-- 2026-04-22: 호스트 누적 실적 위젯 전체 주석처리 (사용자 요청).
+           빈 div 는 CSS .host-stats padding/border 때문에 박스 모양으로 남아 완전 제거.
+           (loadHostCumulativeStats 는 null 가드 있어 안전.)
       <div id="host-stats" class="host-stats" hidden>
         <div class="stat-line"><span class="stat-icon">🏠</span><span class="stat-text">누적 <strong id="stat-cum-rooms">0</strong>개 모임</span></div>
         <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text">참석 <strong id="stat-cum-people">0</strong>명</span></div>
@@ -1971,7 +1973,8 @@
         <div id="stat-login-hint" class="stat-login-hint" hidden>다른 기기에서도 누적 유지하려면 <a href="#" id="stat-login-link">로그인</a></div>
       </div>
       -->
-      <div id="host-stats" class="host-stats" hidden aria-hidden="true"></div>
+      <!-- 2026-04-22: 같은 자리에 소개(intro) 질문 결과 요약 위젯 준비 슬롯. JS 가 채울 때까지 숨김. -->
+      <div id="host-intro-summary" class="host-stats" hidden></div>
     </div>
     <!-- 사이드바 액션 버튼들은 상단 [📋 모임장 도구] 드롭다운으로 이전됨. 코드 보존(hidden) — 호환·접근성. -->
     <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기" hidden>🔍 QR 크게 보기</button>
@@ -2673,7 +2676,13 @@ function openHostEmojiPicker() {
       });
       if (!r.ok) throw new Error('fail');
       if (state.myProfile) state.myProfile.emoji = v; else state.myProfile = { emoji: v };
+      // 2026-04-22: approvedUsers 의 본인 엔트리도 emoji 동기화 — 카드 렌더에 반영되도록.
+      if (Array.isArray(state.approvedUsers)) {
+        const _selfIdx = state.approvedUsers.findIndex(u => u && u.uuid === state.uuid);
+        if (_selfIdx >= 0) state.approvedUsers[_selfIdx] = { ...state.approvedUsers[_selfIdx], emoji: v };
+      }
       if (typeof renderProfiles === 'function') renderProfiles();
+      if (typeof renderApprovedList === 'function') renderApprovedList();
       close();
     } catch (_) {
       saveBtn.disabled = false;
