@@ -5008,7 +5008,8 @@ function renderMiProfile() {
   if (_miEditMode) {
     content.innerHTML = `
       ${photo ? `<div style="text-align:center;margin-bottom:14px;"><img src="${escHtml(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-border);"></div>` : ''}
-      <div class="mi-row"><label>닉네임</label><span style="color:var(--text-dim);font-size:11.5px;">변경 불가 (모임별 고정)</span></div>
+      <!-- 2026-04-22: 닉네임 변경 락 해제 (사용자 요청) — 방 입장 후에도 수정 가능. -->
+      <div class="mi-row"><label for="mi-edit-nickname">닉네임</label><input type="text" id="mi-edit-nickname" data-mi-field="nickname" value="${escHtml(me.nickname || '')}" maxlength="20" placeholder="닉네임 (최대 20자)" style="flex:1;padding:9px 11px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:8px;color:#fff;font-family:inherit;font-size:13.5px;"></div>
       ${miEditField('성별', 'gender', me.gender, [['male','남성'],['female','여성'],['unspecified','선택 안 함']])}
       ${miEditNum('출생연도', 'birth_year', me.birth_year, 1900, 2100, 'hide_birth_year', me.hide_birth_year)}
       ${miEditText('지역', 'region', me.region, 'hide_region', me.hide_region)}
@@ -5102,9 +5103,11 @@ async function saveMiEdit() {
   const inputs = document.querySelectorAll('#mi-content [data-mi-field]');
   const body = { uuid: state.uuid };
   let playlistUrl = undefined; // playlist-share 팩 전용 (별도 엔드포인트)
+  let newNickname = undefined; // 2026-04-22: 닉네임 변경은 /join 으로 별도 처리 — /me/profile 는 nickname 필드 없음.
   for (const inp of inputs) {
     const k = inp.dataset.miField;
     if (k === 'playlist') { playlistUrl = (inp.value || '').trim(); continue; }
+    if (k === 'nickname') { newNickname = (inp.value || '').trim().slice(0, 20); continue; }
     if (inp.type === 'checkbox') body[k] = inp.checked;
     else if (inp.type === 'number') body[k] = inp.value ? parseInt(inp.value, 10) : null;
     else body[k] = inp.value || null;
@@ -5113,12 +5116,37 @@ async function saveMiEdit() {
   status.textContent = '저장 중…';
   status.style.color = 'var(--text-muted)';
   try {
-    const r = await fetch(`/api/rooms/${state.roomCode}/me/profile`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error('save failed');
+    // 2026-04-22: 닉네임 변경 — /api/rooms/:code/join 재호출 (ON CONFLICT DO UPDATE 로 갱신).
+    const curNick = (_miCurrent && _miCurrent.nickname) || state.nickname || '';
+    if (newNickname && newNickname !== curNick) {
+      const jr = await fetch(`/api/rooms/${state.roomCode}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid: state.uuid, nickname: newNickname, profile: {} }),
+      });
+      if (!jr.ok) {
+        const err = await jr.json().catch(() => ({}));
+        throw new Error(err.message || '닉네임 변경 실패');
+      }
+      state.nickname = newNickname;
+      try { localStorage.setItem('preferred_nickname', newNickname); } catch (_) {}
+      const nickEl = document.getElementById('user-nick');
+      if (nickEl) nickEl.textContent = newNickname;
+      if (Array.isArray(state.approvedUsers)) {
+        const idx = state.approvedUsers.findIndex(u => u && u.uuid === state.uuid);
+        if (idx >= 0) state.approvedUsers[idx] = { ...state.approvedUsers[idx], nickname: newNickname };
+      }
+    }
+    // body 에 uuid 외 필드가 있을 때만 PATCH 호출 (닉네임만 변경한 경우 PATCH 는 'nothing to update' 반환).
+    const hasProfileDelta = Object.keys(body).some(k => k !== 'uuid');
+    if (hasProfileDelta) {
+      const r = await fetch(`/api/rooms/${state.roomCode}/me/profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error('save failed');
+    }
     // playlist-share 팩 — URL 별도 저장 (빈 값이면 DELETE)
     if (playlistUrl !== undefined) {
       try {

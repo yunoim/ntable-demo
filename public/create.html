@@ -711,6 +711,8 @@
           free_chat_timer_minutes: 0, free_chat_chat_enabled: false, free_chat_topic_card_enabled: false,
         },
       },
+      // 2026-04-22: icebreaker 팩 create UI 에서 제외 (사용자 요청 — couples/playlist-share 만 오픈).
+      /*
       {
         id: 'icebreaker', icon: '🤝', title: '처음 만나는 사이',
         desc: '아이스브레이커 — 5분 안에 어색함을 해소',
@@ -739,6 +741,9 @@
           free_chat_timer_minutes: 10, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
         },
       },
+      */
+      // 2026-04-22: dating 팩 create UI 에서 제외.
+      /*
       {
         id: 'dating', icon: '💘', title: '소개팅·연애',
         desc: '밸런스 게임 + 상호 지명 매칭',
@@ -768,6 +773,7 @@
           free_chat_timer_minutes: 15, free_chat_chat_enabled: true, free_chat_topic_card_enabled: true,
         },
       },
+      */
       // 오랜만의 만남 — 2026-04-24 남산엔테이블 '나만의 플리 공유회' 를 위해 create UI 에서 일시 제외.
       //  PACK_DEFAULTS / 질문 MD 는 유지되어 있음. 재활성화 시 아래 객체 주석만 풀면 됨.
       // {
@@ -846,6 +852,8 @@
           instagram_collect: true,
         },
       },
+      // 2026-04-22: teambuilding 팩 create UI 에서 제외.
+      /*
       {
         id: 'teambuilding', icon: '💼', title: '팀·회사',
         desc: '팀빌딩 — 업무 스타일 탐구·신입 OT·워크숍',
@@ -876,6 +884,7 @@
           free_chat_timer_minutes: 15, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
         },
       },
+      */
     ];
 
     function renderRoomCard(kit) {

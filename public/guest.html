@@ -2001,14 +2001,15 @@ const STATE = {
       // 2026-04-22: couples 팩은 wizard(join.html) 스킵 — 랜덤 닉네임/이모지로 즉시 입장,
       // 입장 후 프로필 수정 모달에서 닉네임/이모지 변경 가능.
       const isCouples = STATE.room && STATE.room.pack_id === 'couples';
-      let autoJoined = false;
       if (isCouples) {
-        autoJoined = await autoJoinCouples();
-        if (autoJoined) {
+        const ok = await autoJoinCouples();
+        if (ok) {
           try {
             const mr2 = await fetch(`/api/rooms/${STATE.roomCode}/me?uuid=${encodeURIComponent(STATE.uuid)}`);
             if (mr2.ok) me = await mr2.json();
           } catch (_) {}
+          // 진입 후 닉네임/이모지 확인·변경 모달 자동 오픈 플래그.
+          STATE._autoJoinedCouples = true;
         }
       }
       if (!me.joined) {
@@ -2018,6 +2019,10 @@ const STATE = {
     }
     STATE.myProfile = { uuid: STATE.uuid, nickname: me.nickname, ...me };
     renderMyProfile();
+    // 2026-04-22: couples auto-join 게스트에게는 프로필 수정 모달을 자동 오픈 — 닉네임/이모지 둘 다 확정 유도.
+    if (STATE._autoJoinedCouples) {
+      setTimeout(() => { try { openProfileEdit(); } catch (_) {} }, 320);
+    }
 
     // 모임장 현재 화면으로 catch-up — 재접속·중간 입장 모두 즉시 동기화
     const cur = room.current_state;
