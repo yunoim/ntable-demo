@@ -2237,7 +2237,8 @@
 
 <!-- QR 확대 모달 -->
 <!-- T-25 (2026-04-22): couples 호스트 닉네임 모달 — host_role=participant 인데 room_members 미가입 시 강제. ESC/외부클릭 차단. -->
-<div id="host-couples-join-modal" role="dialog" aria-modal="true" hidden style="position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);">
+<!-- T-25b: hidden 속성 + 인라인 display:flex 충돌로 클릭 무반응 → display:none 시작 후 style.display='flex' 토글 패턴(다른 모달과 동일)으로 변경. -->
+<div id="host-couples-join-modal" role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);">
   <div style="background:#1a1410;border:1px solid var(--gold-border);border-radius:14px;padding:24px;max-width:340px;width:calc(100% - 32px);">
     <h2 style="margin:0 0 10px;font-size:18px;color:#fff;letter-spacing:0.02em;">👫 모임장 닉네임</h2>
     <p style="margin:0 0 16px;font-size:13px;color:var(--text-dim);line-height:1.55;">둘이서 모임은 모임장도 함께 답해요. 상대에게 보일 닉네임을 입력해주세요.</p>
@@ -2429,7 +2430,7 @@ async function ensureHostJoinedForCouples(myMember) {
     if (!modal || !input || !btn) { resolve(); return; }
     input.value = state.nickname || '';
     errEl.textContent = '';
-    modal.hidden = false;
+    modal.style.display = 'flex';
     setTimeout(() => input.focus(), 50);
     const blockEsc = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); } };
     document.addEventListener('keydown', blockEsc, true);
@@ -2456,7 +2457,7 @@ async function ensureHostJoinedForCouples(myMember) {
         if (!state.approvedUsers.find(u => u.uuid === state.uuid)) {
           state.approvedUsers.push({ uuid: state.uuid, nickname: nick });
         }
-        modal.hidden = true;
+        modal.style.display = 'none';
         document.removeEventListener('keydown', blockEsc, true);
         resolve();
       } catch (_) {
@@ -2465,7 +2466,13 @@ async function ensureHostJoinedForCouples(myMember) {
       }
     };
     btn.onclick = submit;
-    input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
+    // IME(한국어) 조합 중 Enter는 조합 종료용 — submit 발동 차단. e.isComposing/keyCode 229 둘 다 가드.
+    input.onkeydown = (e) => {
+      if (e.key !== 'Enter') return;
+      if (e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      submit();
+    };
   });
 }
 
