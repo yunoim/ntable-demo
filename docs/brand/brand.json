@@ -125,7 +125,9 @@
     "role_guest_desc": "QR 스캔 또는 6자리 코드 입력",
     "role_modal_title": "참여 코드 입력",
     "role_modal_sub": "초대받은 6자리 코드를 넣어주세요.",
-    "role_modal_cancel": "닫기"
+    "role_modal_cancel": "닫기",
+    "footer_slogan": "More Life. People Connect.",
+    "footer_copyright": "© 2026 ntable"
   },
 
   "_home_role_policy": "role_* 키는 2026-04-23 홈 역할 분기 개편용 (login.html). 기존 eyebrow·hero_*·cta_primary·divider_label·join_code_* 는 하위 호환 및 transition 용으로 유지하되 신규 렌더링에서 사용 금지.",

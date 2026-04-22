@@ -90,6 +90,13 @@
   }
   .nt-foot a { color: inherit; text-decoration: none; }
   .nt-foot a:hover { color: var(--text-muted); }
+  .nt-foot-slogan {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+  }
 
   /* Join code modal — 기존 modal primitive 재사용 위에 input 스타일 추가 */
   .jc-input {
@@ -167,11 +174,9 @@
   </section>
 
   <div class="nt-foot">
-    <a href="https://ntable.kr/privacy.html">개인정보처리방침</a>
-    ·
-    <a href="https://ntable.kr/terms.html">이용약관</a>
-    &nbsp;·&nbsp;
-    © 2026 ntable
+    <span class="nt-foot-slogan" data-copy="home.footer_slogan">More Life. People Connect.</span>
+    <br>
+    <span data-copy="home.footer_copyright">© 2026 ntable</span>
   </div>
 </main>
 
