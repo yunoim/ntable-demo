@@ -2431,20 +2431,32 @@ async function loadRoomInfo() {
     state.skipFreeChat = state.packDefaults.skip_free_chat === true;
 
     // 모임장이 participant 면 본인 카드도 approvedUsers 에 포함
+    // T-26b (2026-04-22): /is-member 로 정확 판별 먼저 — 미가입 시 users fallback ghost push 방지
+    // (이전 방 nickname 이 카드에 남아 모달 submit 의 duplicate check 에 걸려 새 nickname 안 반영되던 버그).
     let myMember = null;
+    let hostIsRoomMember = false;
     if (state.hostRole === 'participant') {
       try {
-        const myRes = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(state.uuid)}?viewer=${encodeURIComponent(state.uuid)}`);
-        if (myRes.ok) {
-          const me = await myRes.json();
-          if (me && me.uuid) {
-            myMember = me;
-            if (!state.approvedUsers.find(u => u.uuid === me.uuid)) {
-              state.approvedUsers.push(me);
-            }
-          }
+        const r = await fetch(`/api/rooms/${state.roomCode}/is-member/${encodeURIComponent(state.uuid)}`);
+        if (r.ok) {
+          const j = await r.json();
+          hostIsRoomMember = !!j.is_member;
         }
       } catch (_) {}
+      if (hostIsRoomMember) {
+        try {
+          const myRes = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(state.uuid)}?viewer=${encodeURIComponent(state.uuid)}`);
+          if (myRes.ok) {
+            const me = await myRes.json();
+            if (me && me.uuid) {
+              myMember = me;
+              if (!state.approvedUsers.find(u => u.uuid === me.uuid)) {
+                state.approvedUsers.push(me);
+              }
+            }
+          }
+        } catch (_) {}
+      }
     }
     settingsState.roomStatus = room.status || 'waiting';
     updateSettingsBtnVisibility();
@@ -2462,21 +2474,13 @@ async function loadRoomInfo() {
     } catch {}
     // T-25 (2026-04-22): couples + participant + 본인 미가입 → 닉네임 모달 강제.
     // 호스트가 room_members 에 들어가야 survey/connections/couple-card 정상.
-    // T-25c: myMember 는 users fallback 도 200 반환해 부정확. /is-member 로 정확히 판별.
+    // T-26b: hostIsRoomMember 는 위에서 이미 판별. 가입 시 nickname prefill 처리.
     if (state.room && state.room.pack_id === 'couples' && state.hostRole === 'participant') {
-      let hostIsRoomMember = false;
-      try {
-        const r = await fetch(`/api/rooms/${state.roomCode}/is-member/${encodeURIComponent(state.uuid)}`);
-        if (r.ok) {
-          const j = await r.json();
-          hostIsRoomMember = !!j.is_member;
-          if (hostIsRoomMember && j.nickname) {
-            state.nickname = j.nickname;
-            const nickEl = document.getElementById('user-nick');
-            if (nickEl) nickEl.textContent = j.nickname;
-          }
-        }
-      } catch (_) {}
+      if (hostIsRoomMember && myMember && myMember.nickname) {
+        state.nickname = myMember.nickname;
+        const nickEl = document.getElementById('user-nick');
+        if (nickEl) nickEl.textContent = myMember.nickname;
+      }
       if (!hostIsRoomMember) await ensureHostJoinedForCouples(null);
       // T-26: couples 호스트 본인 프로필 fetch — lazy prompt 미입력 판별 위해 매 진입마다 갱신.
       await loadHostMyProfile();
@@ -2520,9 +2524,16 @@ async function ensureHostJoinedForCouples(myMember) {
         try { localStorage.setItem('preferred_nickname', nick); } catch (_) {}
         const nickEl = document.getElementById('user-nick');
         if (nickEl) nickEl.textContent = nick;
-        if (!state.approvedUsers.find(u => u.uuid === state.uuid)) {
+        // T-26b: duplicate 면 nickname update (users fallback 으로 미리 push 된 ghost entry 덮어쓰기).
+        // push-only 면 이전 방 nickname 이 카드에 그대로 남는 버그.
+        const idx = state.approvedUsers.findIndex(u => u.uuid === state.uuid);
+        if (idx >= 0) {
+          state.approvedUsers[idx] = { ...state.approvedUsers[idx], uuid: state.uuid, nickname: nick };
+        } else {
           state.approvedUsers.push({ uuid: state.uuid, nickname: nick });
         }
+        if (typeof renderApprovedList === 'function') renderApprovedList();
+        if (typeof renderProfiles === 'function') renderProfiles();
         modal.style.display = 'none';
         document.removeEventListener('keydown', blockEsc, true);
         resolve();
@@ -2673,6 +2684,13 @@ async function saveHostLazyPrompt() {
     });
     if (!r.ok) throw new Error('save failed');
     state.myProfile = { ...(state.myProfile || {}), ...payload };
+    // T-26b: 본인 카드 즉시 갱신 — approvedUsers 내 본인 entry merge + 재렌더.
+    const idx = state.approvedUsers.findIndex(u => u.uuid === state.uuid);
+    if (idx >= 0) {
+      state.approvedUsers[idx] = { ...state.approvedUsers[idx], ...payload };
+    }
+    if (typeof renderApprovedList === 'function') renderApprovedList();
+    if (typeof renderProfiles === 'function') renderProfiles();
     if (typeof toast === 'function') toast('✓ 프로필이 저장됐어요');
     renderHostLazyPrompt();
   } catch (_) {
