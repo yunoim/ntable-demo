@@ -472,16 +472,19 @@ function rebuildSteps() {
       return;
     }
   }
-  // 기본 입장 경로 — required 필드만
+  // 기본 입장 경로 — required 필드만 + confirm
+  // T-24 (2026-04-22): confirm 누락으로 STEPS=['nick'] 케이스(couples 등)에서 nextStep 이
+  // Math.min(0+1, 0)=0 으로 같은 step 재렌더되며 "다음" 무반응 버그. 항상 confirm 종착.
   if (req) {
     const steps = ['nick'];
     if (req.includes('playlist')) steps.push('playlist');
     if (req.includes('instagram') && ROOM.instagram_collect === true) steps.push('instagram');
+    steps.push('confirm');
     STEPS = steps;
     return;
   }
   // legacy fallback — pack_defaults 미탑재 방
-  STEPS = ['nick'];
+  STEPS = ['nick', 'confirm'];
 }
 
 async function prefillFromCache() {
@@ -853,9 +856,22 @@ function renderStep() {
         if (metro && regionDisplay.startsWith(metro + ' ')) regionDisplay = metro;
       }
       // 팩별 수집 필드만 확인 화면에 노출
+      // T-24 (2026-04-22): edit 모드는 기존 wizard_fields 기준(전 필드 수정 화면).
+      // 일반 입장은 wizard_required + 실제 데이터(prefill 포함) 채워진 필드만 — '생략' 행 도배 방지.
       const wfConf = ROOM.pack_defaults && Array.isArray(ROOM.pack_defaults.wizard_fields)
         ? ROOM.pack_defaults.wizard_fields : null;
-      const showFld = (f) => !wfConf || wfConf.includes(f);
+      const reqConf = ROOM.pack_defaults && Array.isArray(ROOM.pack_defaults.wizard_required)
+        ? ROOM.pack_defaults.wizard_required : null;
+      const isEditMode = new URLSearchParams(location.search).get('edit') === '1';
+      const hasVal = (f) => {
+        const v = data[f];
+        return v !== undefined && v !== null && v !== '';
+      };
+      const showFld = (f) => {
+        if (isEditMode) return !wfConf || wfConf.includes(f);
+        if (reqConf && reqConf.includes(f)) return true;
+        return hasVal(f);
+      };
       const avatarRow = showFld('emoji')
         ? `<div class="summary-row"><span class="key">아바타</span><span class="val">${data.emoji ? `<span style="font-size:22px;">${escHtml(data.emoji)}</span>` : '<span class="empty">생략</span>'}</span></div>`
         : '';
@@ -1115,7 +1131,11 @@ document.addEventListener('input', (e) => {
 function nextStep() {
   // basic step 떠날 때 birth_year default 1990 보장
   if (STEPS[CURRENT] === 'basic') ensureBirthDefault();
-  CURRENT = Math.min(CURRENT + 1, STEPS.length - 1);
+  const next = Math.min(CURRENT + 1, STEPS.length - 1);
+  if (next === CURRENT) {
+    console.warn('[wizard] nextStep: already at last step', { STEPS, CURRENT, key: STEPS[CURRENT] });
+  }
+  CURRENT = next;
   renderStep();
 }
 function skipInstagram() {
