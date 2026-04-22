@@ -1471,23 +1471,29 @@
             <div class="stat-num">${data.fi_count || 0}</div>
             <div class="stat-label">나에게 관심 표시</div>
           </div>`;
-      summEl.innerHTML = `
-        <div class="stats-row">
-          <div class="stat-box">
-            <div class="stat-num">${data.participants}</div>
-            <div class="stat-label">오늘 참가자</div>
+      // null 가드 — couples 등 result_sections 에 'summary' 없는 팩은 applyPackGates 가
+      // page 4(#summary-content 포함) DOM 을 통째로 제거함. 이 경우 summEl === null.
+      if (summEl) {
+        summEl.innerHTML = `
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-num">${data.participants}</div>
+              <div class="stat-label">오늘 참가자</div>
+            </div>
+            ${_interestBox}
           </div>
-          ${_interestBox}
-        </div>
-        ${hostAggHtml}
-      `;
-      exploreEl.innerHTML = hlHtml || '<div style="color:var(--subtext);text-align:center;padding:20px 0;font-size:13px;">탐구 데이터가 없어요</div>';
+          ${hostAggHtml}
+        `;
+      }
+      if (exploreEl) {
+        exploreEl.innerHTML = hlHtml || '<div style="color:var(--subtext);text-align:center;padding:20px 0;font-size:13px;">탐구 데이터가 없어요</div>';
+      }
 
       // 2026-04-22 couples 전용 하단 3버튼: 한번 또하기 · 결과 URL 복사 · 홈으로.
       // '한번 또하기' 는 기존 프로필(localStorage) 그대로 재활용되도록 /create?pack=couples 로 이동 —
       // create.html 이 couples 를 instant 로 즉시 생성해 새 방 열림, 호스트 온보딩 시트는 한 번 더 노출되지만
       // 닉네임 prefill + 아바타/프로필 이전 값 복구로 "다시 타이핑" 없이 시작 가능.
-      if (data.pack_id === 'couples') {
+      if (data.pack_id === 'couples' && exploreEl) {
         const againBar = document.createElement('div');
         againBar.className = 'again-bar';
         againBar.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px;';
