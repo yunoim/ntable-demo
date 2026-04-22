@@ -9,342 +9,274 @@
   <link rel="stylesheet" href="/styles/tokens.css">
   <link rel="stylesheet" href="/styles/components.css">
   <script src="/samsung-dark-warn.js" defer></script>
-  <!-- 2026-04-22: OAuth/remember-me 비활성화 (사용자 요청 — admin 제외).
-  <script src="/oauth-redirect.js"></script>
-  <script src="/auth-header.js" defer></script>
-  <script src="/remember-toggle.js" defer></script>
-  -->
   <script src="/pending-reveals.js" defer></script>
   <script src="/twemoji-brand.js" defer></script>
   <script src="/js/brand.js"></script>
   <title>모임 만들기 · ntable</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      /* Navy */
-      --navy:        #0a0f1e;
-      --navy-light:  #0f1628;
-      --navy-mid:    #141d35;
-      /* Surfaces */
-      --surface:     #141d35;
-      --surface-2:   #1a2442;
-      --surface-3:   #223056;
-      /* Gold (landing 기준) */
-      --gold:        #d4a843;
-      --gold-light:  #f0ca60;
-      --gold-dim:    rgba(212,168,67,0.18);
-      --gold-dim-2:  rgba(212,168,67,0.08);
-      --gold-border: rgba(212,168,67,0.35);
-      /* Text */
-      --white:       #f5f2ec;
-      --white-dim:   rgba(245,242,236,0.88);
-      --white-muted: rgba(245,242,236,0.72);
-      --text:        #ddd5bc;
-      --text-muted:  rgba(216,208,187,0.78);
-      --text-dim:    rgba(216,208,187,0.65);
-      --subtext:     rgba(216,208,187,0.78);
-      /* UI */
-      --border:      rgba(255,255,255,0.14);
-      --input-border:#5a6178;
-      --placeholder: rgba(216,208,187,0.65);
-      --danger:      #e87e7e;
-      --success:     #7ee8a2;
-      /* Motion */
-      --radius:      10px;
-      --radius-lg:   18px;
-      --transition:  0.32s cubic-bezier(0.4,0,0.2,1);
-    }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--navy);
-      color: var(--text);
+      color: var(--white);
       font-family: var(--font-body);
       min-height: 100vh;
       min-height: 100dvh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 0 0 60px 0;
-      padding-top: calc(82px + env(safe-area-inset-top));
+      padding: 0 0 120px;
       -webkit-font-smoothing: antialiased;
-      position: relative;
-      overflow-x: hidden;
+      text-wrap: pretty;
     }
 
-    /* 공통 헤더 — ntable.kr 랜딩 nav 구조 (.nav-inner max-width:1100px) 동일 적용 */
-    .app-header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      padding-top: env(safe-area-inset-top);
-      background: rgba(14,22,40,0.88);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(212,168,67,0.45);
-    }
-    .nav-inner {
-      max-width: 1100px; margin: 0 auto; padding: 0 32px;
-      height: 62px; display: flex; align-items: center; justify-content: space-between;
-    }
-    @media (max-width: 768px) {
-      .nav-inner { padding: 0 20px; }
-    }
-    .h-brand {
-      font-family: var(--font-heading);
-      font-size: 22px; font-weight: 600;
-      color: #d4a843; letter-spacing: 0.08em;
-      text-decoration: none;
-    }
-    /* 로그인 토글·아코디언 UI 제거 (2026-04-20) — 공통 /auth-header.js pill 로 대체됨 */
-
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 15%, rgba(212,168,67,0.08), transparent 55%),
-        radial-gradient(circle at 80% 90%, rgba(80,100,180,0.05), transparent 50%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      width: 100%;
+    .ct-shell {
       max-width: 460px;
-      padding: 0 22px;
-      position: relative;
-      z-index: 1;
+      margin: 0 auto;
+      padding: 0 18px;
     }
 
-    .welcome {
-      padding-top: 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--white, #f5f2ec);
-      text-align: center;
-      margin-bottom: 16px;
-      line-height: 1.4;
-      letter-spacing: 0.01em;
+    /* Top bar */
+    .ct-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 0 16px;
     }
-    .welcome span { color: var(--gold-light); font-weight: 600; }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--gold-border);
-      border-radius: 20px;
-      padding: 32px 28px;
-      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    .ct-back {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 20px;
+      cursor: pointer;
+      text-decoration: none;
+      line-height: 1;
     }
-
-    .section-title {
-      font-family: var(--font-heading);
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--white);
-      margin-bottom: 8px;
+    .ct-back:hover { border-color: var(--gold-border); color: var(--gold-light); }
+    .ct-head {
+      min-width: 0;
+      padding-top: 2px;
     }
-    .section-sub {
-      font-size: 13px;
-      color: var(--subtext);
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      color: var(--subtext);
-      margin-bottom: 8px;
-      letter-spacing: 0.06em;
+    .ct-eyebrow {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       font-weight: 600;
+      margin-bottom: 6px;
     }
-
-    input[type="text"] {
-      width: 100%;
-      background: var(--navy-light);
-      border: 1.5px solid var(--input-border);
-      border-radius: 12px;
+    .ct-title {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
       color: var(--white);
-      font-size: 15px;
-      padding: 14px 16px;
-      outline: none;
-      transition: border-color 0.2s;
+    }
+
+    /* Filter rail */
+    .ct-filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px 0 16px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .ct-filters::-webkit-scrollbar { display: none; }
+    .ct-filter {
+      flex-shrink: 0;
+      height: 32px;
+      padding: 0 14px;
+      display: inline-flex; align-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      color: var(--text-muted);
       font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, color 0.18s;
     }
-    input[type="text"]:focus { border-color: var(--gold); }
-    input[type="text"]::placeholder { color: var(--placeholder); opacity: 1; }
-
-    .char-count {
-      font-size: 11px;
-      color: var(--subtext);
-      text-align: right;
-      margin-top: 8px;
-      letter-spacing: 0.02em;
+    .ct-filter.active {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+      color: var(--gold-light);
+      font-weight: 600;
     }
-    .field-group { margin-bottom: 24px; }
 
-    .qcount-row {
+    /* Template list */
+    .ct-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 0;
+    }
+    .ct-row {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 14px;
-    }
-    .qcount-slider {
-      flex: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 4px;
-      background: var(--input-border);
-      border-radius: 2px;
-      outline: none;
-    }
-    .qcount-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--gold);
-      cursor: pointer;
-      border: 2px solid var(--navy);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    }
-    .qcount-slider::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--gold);
-      cursor: pointer;
-      border: 2px solid var(--navy);
-    }
-    .qcount-value {
-      min-width: 70px;
-      text-align: right;
-      color: var(--gold-light);
-      font-weight: 600;
-      font-size: 15px;
-      letter-spacing: 0.02em;
-    }
-    .qcount-hint {
-      font-size: 11px;
-      color: var(--subtext);
-      margin-top: 8px;
-      letter-spacing: 0.02em;
-    }
-
-    /* 상단 태그라인 */
-    .tagline-hero {
-      background: linear-gradient(135deg, rgba(212,168,67,0.10), rgba(212,168,67,0.03));
-      border: 1px solid var(--gold-border);
-      border-radius: 14px;
-      padding: 14px 18px;
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--gold-light);
-      letter-spacing: 0.02em;
-      line-height: 1.55;
-    }
-    .tagline-hero strong { color: var(--gold); font-weight: 700; }
-
-    /* T-16 (2026-04-22): couples 카드 "바로 시작" 뱃지 — 5종 균등 유지하되 즉시 시작 표시 */
-    .pack-card-instant { border-color: var(--gold); }
-    .pack-badge-instant {
-      position: absolute;
-      top: 10px; right: 12px;
-      display: inline-block;
-      font-family: var(--font-body);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--navy);
-      background: var(--gold);
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-weight: 700;
-    }
-
-    /* 전체 팩 보기 토글 */
-    .pack-expand-btn {
-      width: 100%;
+      padding: 14px 16px;
       background: transparent;
-      border: 1px dashed var(--gold-border);
-      color: var(--gold-light);
-      border-radius: 10px;
-      padding: 11px;
-      font-family: inherit;
-      font-size: 12.5px;
+      border: 1px solid transparent;
+      border-radius: 14px;
       cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.2s;
+      font-family: inherit;
+      color: var(--white);
+      text-align: left;
+      transition: background 0.18s, border-color 0.18s;
+      width: 100%;
     }
-    .pack-expand-btn:hover { background: var(--gold-dim-2); }
-    #allPackGrid { margin-top: 10px; }
-    #allPackGrid[hidden] { display: none; }
-
-    /* 선택 완료 후 펼쳐지는 설정 영역 */
-    #packSetup {
-      margin-top: 22px;
-      padding-top: 22px;
-      border-top: 1px solid var(--border);
+    .ct-row:hover { background: rgba(212,168,67,0.04); }
+    .ct-row.active {
+      background: var(--surface-base);
+      border-color: rgba(212,168,67,0.28);
     }
-    #packSetup[hidden] { display: none; }
-
-    /* 모임 카드 — 시리즈별 섹션 그루핑 + 섹션 내 2x2 grid */
-    .pack-grid { display: flex; flex-direction: column; gap: 26px; }
-    .pack-group-title {
-      font-family: var(--font-body);
-      font-size: 11px;
-      color: var(--gold-light);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin: 0 0 10px 2px;
-      font-weight: 600;
-      display: flex; align-items: center; gap: 10px;
+    .ct-row-tile {
+      flex-shrink: 0;
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      font-size: 22px;
+      line-height: 1;
+      transition: background 0.18s;
     }
-    .pack-group-title::after {
-      content: '';
+    .ct-row.active .ct-row-tile {
+      background: var(--gold-dim);
+    }
+    .ct-row-body {
+      min-width: 0;
       flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, rgba(212,168,67,0.28), transparent);
     }
-    .pack-group-subtitle {
-      font-family: 'Noto Sans KR', sans-serif;
-      font-size: 11.5px;
+    .ct-row-titleline {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      min-width: 0;
+      margin-bottom: 2px;
+    }
+    .ct-row-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.01em;
+    }
+    .ct-row-meta {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .ct-row-desc {
+      font-size: 12px;
       color: var(--text-muted);
-      letter-spacing: 0;
-      text-transform: none;
-      margin: -6px 0 10px 2px;
-      font-weight: 400;
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
     }
-    .pack-group-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
+    .ct-row-check {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: none;
+      align-items: center; justify-content: center;
+      background: var(--gold);
+      color: var(--navy);
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1;
     }
-    @media (max-width: 380px) {
-      .pack-group-grid { grid-template-columns: 1fr; }
+    .ct-row.active .ct-row-check { display: inline-flex; }
+
+    /* Sticky bottom action bar */
+    .ct-bottom {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: 0;
+      padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, var(--navy) 70%, rgba(10,15,30,0) 100%);
+      z-index: 90;
+    }
+    .ct-bottom-inner {
+      max-width: 460px;
+      margin: 0 auto;
+    }
+    .ct-summary {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4px 10px;
+      gap: 10px;
+    }
+    .ct-summary-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+    .ct-summary-value {
+      font-size: 13px;
+      color: var(--white);
+      font-weight: 600;
+    }
+    .ct-cta {
+      width: 100%;
+      min-height: 54px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, var(--gold), #a07828);
+      color: var(--navy);
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 15.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(212,168,67,0.28);
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+    }
+    .ct-cta:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(212,168,67,0.38); }
+    .ct-cta:active { transform: scale(0.98); }
+    .ct-cta:disabled {
+      background: var(--gold-dim);
+      color: var(--gold-light);
+      box-shadow: none;
+      cursor: not-allowed;
     }
 
-    /* 확인 화면 (4개 모임 클릭 시) */
-    #confirmScreen[hidden] { display: none; }
-    .confirm-head { text-align: center; margin-bottom: 18px; }
-    .confirm-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
+    /* Detail screen (confirm) — second step 유지, 기존 기능 그대로 */
+    .ct-confirm {
+      background: var(--surface);
+      border: 1px solid var(--gold-border);
+      border-radius: 20px;
+      padding: 28px 22px;
+      margin-top: 4px;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    }
+    .ct-confirm[hidden] { display: none; }
+    .confirm-head { text-align: center; margin-bottom: 16px; }
+    .confirm-icon { font-size: 34px; line-height: 1; margin-bottom: 8px; }
     .confirm-title {
       font-family: var(--font-heading);
-      font-size: 20px; font-weight: 600; color: var(--white);
-      margin-bottom: 4px;
+      font-size: 22px; font-weight: 600; color: var(--white);
+      margin-bottom: 6px;
     }
     .confirm-desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; }
     .confirm-section-head {
-      font-size: 11.5px; color: var(--gold); letter-spacing: 0.14em;
-      text-transform: uppercase; font-weight: 600;
-      margin: 24px 0 12px;
+      font-size: 11px; color: var(--gold); letter-spacing: 0.14em;
+      text-transform: uppercase; font-weight: 700;
+      margin: 22px 0 12px;
     }
     .meeting-time-row {
       margin: 18px 0 4px;
-      padding: 14px 14px 12px;
+      padding: 14px;
       background: rgba(212,168,67,0.05);
       border: 1px solid rgba(212,168,67,0.18);
       border-radius: 12px;
@@ -355,49 +287,30 @@
       color: var(--gold-light);
       font-weight: 600;
       margin-bottom: 8px;
-      letter-spacing: 0.02em;
     }
     .meeting-time-label .opt-hint { color: var(--text-muted); font-size: 11px; font-weight: 400; margin-left: 4px; }
     .meeting-time-input {
       width: 100%;
-      padding: 9px 12px;
+      padding: 10px 44px 10px 12px;
       background: rgba(0,0,0,0.25);
       border: 1px solid var(--gold-border);
       border-radius: 8px;
       color: #fff;
       font-family: inherit;
       font-size: 13px;
+      color-scheme: dark;
     }
     .meeting-time-input::-webkit-calendar-picker-indicator {
-      /* T-B0-8 (2026-04-22): 네이티브 캘린더 아이콘은 숨김. 좌측 커스텀 📅 아이콘이 picker 트리거 담당.
-         absolute 로 input 전체 덮도록 키워서 input 어디를 눌러도 picker 가 열리게 유지. */
-      opacity: 0;
-      cursor: pointer;
-      position: absolute;
-      width: 100%; height: 100%;
-      left: 0; top: 0;
-      padding: 0; margin: 0;
+      opacity: 0; cursor: pointer; position: absolute;
+      width: 100%; height: 100%; left: 0; top: 0; padding: 0; margin: 0;
     }
-    .meeting-time-input { color-scheme: dark; }
     .meeting-time-hint {
       font-size: 11px;
       color: var(--text-muted);
       margin-top: 6px;
       line-height: 1.5;
     }
-    .confirm-features {
-      list-style: none; padding: 0; margin: 0;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .confirm-features li {
-      font-size: 13.5px; color: var(--text); line-height: 1.55;
-      padding-left: 22px; position: relative;
-    }
-    .confirm-features li::before {
-      content: '✓'; position: absolute; left: 0;
-      color: #7ee8a2; font-weight: 700;
-    }
-    /* T-B0-7 (2026-04-22): 3-stage 그룹 — STEP 01/02/03 블록 헤더 + 아이템 연속 번호 */
+
     .confirm-stages { display: flex; flex-direction: column; gap: 14px; }
     .confirm-stage-block + .confirm-stage-block {
       padding-top: 14px;
@@ -422,200 +335,28 @@
       color: var(--gold-light); letter-spacing: 0.04em;
       font-variant-numeric: tabular-nums;
     }
-    .confirm-actions {
-      display: flex; gap: 10px; margin-top: 28px;
-    }
-    .confirm-actions .btn-primary,
-    .confirm-actions .btn-secondary {
-      flex: 1; padding: 15px;
-      border-radius: 12px;
-      font-size: 14.5px; font-weight: 700;
-      cursor: pointer; font-family: inherit;
-      letter-spacing: 0.04em;
-      transition: transform 0.15s, box-shadow 0.2s;
-      border: none;
-    }
-    .confirm-actions .btn-primary {
-      background: linear-gradient(135deg, var(--gold), #a07828);
-      color: var(--navy);
-      box-shadow: 0 4px 18px rgba(212,168,67,0.25);
-    }
-    .confirm-actions .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.35); }
-    .confirm-actions .btn-secondary {
-      background: transparent;
-      border: 1px solid var(--gold-border);
-      color: var(--gold-light);
-    }
-    .confirm-actions .btn-secondary:hover { background: var(--gold-dim-2); border-color: var(--gold); }
-    .pack-card {
-      background: var(--navy-light);
-      border: 1.5px solid var(--input-border);
-      border-radius: 14px;
-      padding: 16px 16px;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s;
-      font-family: inherit;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      position: relative;
-    }
-    .pack-card:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(212,168,67,0.15); }
-    .pack-card:active { transform: scale(0.98); }
-    /* T-B0-6 (2026-04-22): 시즌 시리즈(ntable Plays 등) 카드에 얇은 상단 골드 액센트 라인. 빠른 시작 4개와 시각 구분. */
-    .pack-card[data-series="ntable-plays"]::before,
-    .pack-card[data-series="ntable-nights"]::before,
-    .pack-card[data-series="ntable-draws"]::before {
-      content: ''; position: absolute; top: 0; left: 14px; right: 14px; height: 2px;
-      background: linear-gradient(90deg, rgba(232,184,75,0.0), rgba(232,184,75,0.9), rgba(232,184,75,0.0));
-      border-radius: 2px;
-    }
-    /* featured 강조는 폐기 — 모든 카드 동일 크기·톤 */
-    .pack-card .pack-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .pack-card .pack-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
-    .pack-card .pack-title { font-size: 14px; font-weight: 700; color: var(--white); letter-spacing: 0; word-break: keep-all; line-height: 1.3; }
-    .pack-card .pack-desc {
-      font-size: 12.5px;
-      color: var(--text-muted);
-      line-height: 1.55;
-    }
-    /* T-22 (2026-04-22): 카드 하단 examples 칩 — 실제 모임 예시 3개 */
-    .pack-card .pack-examples {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      margin-top: 8px;
-    }
-    .pack-card .pack-ex-chip {
-      font-size: 11px;
-      color: var(--text-muted);
-      background: var(--surface-sunk, rgba(255,255,255,0.04));
-      border: 1px solid rgba(255,255,255,0.06);
-      padding: 4px 8px;
-      border-radius: 999px;
-      letter-spacing: 0.02em;
-      line-height: 1.3;
-    }
-    .pack-card .pack-features {
-      list-style: none;
-      padding: 0; margin: 4px 0 0;
-      display: flex; flex-direction: column;
-      gap: 5px;
-    }
-    .pack-card .pack-features li {
-      font-size: 12.5px;
-      color: var(--text-muted);
-      letter-spacing: 0.01em;
-      padding-left: 20px;
-      position: relative;
-      line-height: 1.5;
-    }
-    .pack-card .pack-features li::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: #7ee8a2;
-      font-weight: 700;
-    }
-    /* couples hero 안 features (동일 톤) */
-    .pack-card .pack-cta {
-      position: absolute; bottom: 12px; right: 14px;
-      font-size: 16px; color: var(--gold-light);
-      opacity: 0; transition: opacity 0.2s, transform 0.2s;
-      pointer-events: none;
-    }
-    .pack-card:hover .pack-cta { opacity: 1; transform: translateX(2px); }
 
-    .pack-loading {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 20px;
-      color: var(--text-muted);
-      font-size: 12px;
+    .confirm-back {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 12.5px; cursor: pointer; font-family: inherit;
+      letter-spacing: 0.02em; padding: 8px 12px;
     }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 26px 0;
-    }
-
-    .submit-btn {
-      width: 100%;
-      background: linear-gradient(135deg, var(--gold), #a07828);
-      color: var(--navy);
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
-      padding: 16px;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
-      letter-spacing: 0.04em;
-      box-shadow: 0 4px 18px rgba(212,168,67,0.25);
-      font-family: inherit;
-    }
-    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,168,67,0.35); }
-    .submit-btn:active { transform: scale(0.98); }
-    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .confirm-back:hover { color: var(--gold-light); }
 
     .error-msg {
       font-size: 13px;
       color: var(--danger);
       text-align: center;
-      margin-top: 14px;
+      margin-top: 12px;
       min-height: 18px;
     }
 
-    .required-mark { color: var(--gold); margin-left: 3px; }
-
-    /* ── Focus visible (A11y) ── */
     button:focus-visible, input:focus-visible, a:focus-visible {
       outline: 2px solid var(--gold);
       outline-offset: 2px;
     }
 
-    /* ── Mobile (≤480px) ── */
-    @media (max-width: 480px) {
-      .container { padding: 0 16px; }
-      .top-nav { padding: 16px 0 0; }
-      .logo { font-size: 28px; padding: 22px 0 4px; }
-      .welcome { font-size: 13px; margin-bottom: 12px; }
-      .card { padding: 26px 20px; border-radius: 18px; }
-      .section-title { font-size: 20px; }
-      .section-sub { font-size: 12.5px; }
-      .tagline-hero { padding: 12px 14px; font-size: 12px; }
-      /* 모임 유형은 2열 고정 — 4열로 벌리지 않음 */
-      .type-options { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .type-btn { font-size: 12.5px; padding: 11px 8px; }
-      input[type="text"] { padding: 13px 14px; font-size: 14.5px; }
-      .qcount-value { font-size: 14px; min-width: 58px; }
-      .submit-btn { padding: 15px; font-size: 14.5px; }
-      .field-group { margin-bottom: 20px; }
-    }
-
-    .display-fields-row {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      margin-top: 6px;
-    }
-    .df-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 7px 13px;
-      border: 1px solid var(--gold-border, rgba(212,168,67,0.35));
-      border-radius: 18px;
-      font-size: 13px;
-      cursor: pointer;
-      background: rgba(212,168,67,0.06);
-      color: var(--white-dim, #e8e8e8);
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .df-chip input { width: 14px; height: 14px; accent-color: var(--gold, #d4a843); cursor: pointer; }
-    .df-chip:has(input:checked) {
-      background: rgba(212,168,67,0.2);
-      border-color: var(--gold, #d4a843);
-      color: var(--gold-light, #e8b84b);
-    }
-
-    /* TV·프레젠테이션 진입 — 모바일(≤768px) 에선 숨김. 큰 화면 기기(노트북·TV) 전용 */
+    /* TV 외부 화면 진입점 — 모바일(≤768px) 에선 숨김 */
     @media (max-width: 768px) {
       #tvEntry { display: none !important; }
     }
@@ -624,34 +365,34 @@
 </head>
 <body>
   <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">ntable — 새 모임 만들기</h1>
-  <header class="app-header">
-    <div class="nav-inner">
-      <a href="/" class="h-brand">ntable</a>
-    </div>
-  </header>
 
-  <div class="container">
-    <div class="welcome" id="welcomeMsg">어떤 자리인가요?</div>
+  <div class="ct-shell">
+    <header class="ct-top">
+      <a href="/" class="ct-back" aria-label="홈으로 돌아가기">‹</a>
+      <div class="ct-head">
+        <div class="ct-eyebrow" data-copy="create.eyebrow">새 모임</div>
+        <h2 class="ct-title"><span data-copy="create.title_line1">어떤 자리로</span><br><span data-copy="create.title_line2">꾸며볼까요?</span></h2>
+      </div>
+    </header>
 
-    <!-- 화면 1: 모임 선택 -->
-    <div class="card" id="selectScreen">
-      <!-- T-16 (2026-04-22): 5종 균등 카드. 둘이서는 "바로 시작" 뱃지로 1-tap 경로 표시. -->
-      <div class="pack-grid" id="packGrid" data-twe></div>
-    </div>
+    <!-- 화면 1: 필터 + 리스트 -->
+    <div id="selectScreen">
+      <div class="ct-filters" id="filterRail" role="tablist" aria-label="템플릿 카테고리"></div>
+      <div class="ct-list" id="packList" role="list"></div>
 
-    <!-- TV 페어링 진입점 (Case 2 전용: 폰으로 조작 + 외부 화면에 표시) -->
-    <!-- Case 1 (큰 화면 단독)은 여기 안 들어오고 일반 방 생성 플로우 그대로 타면 host.html 이 큰 레이아웃으로 렌더됨 -->
-    <div id="tvEntry" style="margin: 22px auto 0; text-align: center; max-width: 380px;">
-      <a href="/tv" style="color: var(--gold); font-size: 13.5px; text-decoration: none; display: inline-block; padding: 10px 16px; border: 1px solid var(--gold-border); border-radius: 999px; letter-spacing: 0.01em; background: var(--gold-dim-2);">
-        📺 외부 화면(TV·프로젝터)에 결과만 띄우기 →
-      </a>
-      <div style="margin-top: 8px; font-size: 11.5px; color: var(--text-dim); line-height: 1.5;">
-        폰으로 조작하고 외부 화면에는 결과만 보여줘요 (연결 필요)
+      <!-- TV 외부 화면 진입점 (데스크탑·노트북 전용 — 모바일에선 숨김) -->
+      <div id="tvEntry" style="margin: 22px auto 0; text-align: center; max-width: 380px;">
+        <a href="/tv" style="color: var(--gold); font-size: 13.5px; text-decoration: none; display: inline-block; padding: 10px 16px; border: 1px solid var(--gold-border); border-radius: 999px; letter-spacing: 0.01em; background: var(--gold-dim-2);">
+          📺 외부 화면(TV·프로젝터)에 결과만 띄우기 →
+        </a>
+        <div style="margin-top: 8px; font-size: 11.5px; color: var(--text-dim); line-height: 1.5;">
+          폰으로 조작하고 외부 화면에는 결과만 보여줘요
+        </div>
       </div>
     </div>
 
-    <!-- 화면 2: 확인 화면 (4개 모임에서만) -->
-    <div class="card" id="confirmScreen" hidden>
+    <!-- 화면 2: 확인 화면 (non-instant 템플릿에서만) -->
+    <div class="ct-confirm" id="confirmScreen" hidden>
       <div class="confirm-head">
         <div class="confirm-icon" id="confirmIcon"></div>
         <div class="confirm-title" id="confirmTitle"></div>
@@ -660,50 +401,58 @@
       <div class="confirm-section-head">이런 순서로 진행돼요</div>
       <div class="confirm-stages" id="confirmFeatures"></div>
 
-      <!-- 모임 시각 (선택) -->
       <div class="meeting-time-row">
         <label for="meetingAtInput" class="meeting-time-label">📅 모임 시각 <span class="opt-hint">선택</span></label>
         <div style="position:relative;">
-          <input type="datetime-local" id="meetingAtInput" class="meeting-time-input" style="padding-right:44px;" />
-          <!-- T-B0-8 (2026-04-22): 커스텀 📅 아이콘이 showPicker 트리거. 네이티브 indicator 는 CSS 에서 투명화. -->
-          <button type="button" id="meetingAtIcon" aria-label="날짜·시간 선택 열기" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:18px;color:#e8b84b;background:none;border:none;padding:6px;cursor:pointer;font-family:inherit;">📅</button>
+          <input type="datetime-local" id="meetingAtInput" class="meeting-time-input" />
+          <button type="button" id="meetingAtIcon" aria-label="날짜·시간 선택" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:18px;color:#e8b84b;background:none;border:none;padding:6px;cursor:pointer;font-family:inherit;">📅</button>
         </div>
         <div class="meeting-time-hint">QR·카카오 공유 메시지에 표시돼요. 비워두면 노출 안 됨.</div>
       </div>
 
-      <div class="confirm-actions">
-        <button type="button" class="btn-primary" id="confirmCreateBtn">모임 열기</button>
-      </div>
-      <div style="text-align:center;margin-top:10px;font-size:11.5px;color:var(--text-dim);letter-spacing:0.02em;">QR·참여 코드를 바로 받아요</div>
-      <div style="text-align:center;margin-top:18px;">
-        <button type="button" id="confirmBackBtn" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;font-family:inherit;letter-spacing:0.02em;padding:6px 12px;">← 다른 모임 보기</button>
+      <div style="text-align:center;margin-top:20px;">
+        <button type="button" class="confirm-back" id="confirmBackBtn">← 다른 모임 보기</button>
       </div>
       <div class="error-msg" id="errorMsg"></div>
     </div>
   </div>
 
+  <!-- Sticky 하단 액션 바 -->
+  <div class="ct-bottom" id="stickyBottom">
+    <div class="ct-bottom-inner">
+      <div class="ct-summary">
+        <span class="ct-summary-label" data-copy="create.selected_label">선택한 템플릿</span>
+        <span class="ct-summary-value" id="summaryValue">—</span>
+      </div>
+      <button type="button" class="ct-cta" id="primaryCta" disabled>
+        <span id="primaryCtaLabel" data-copy="create.cta_empty">템플릿을 선택해주세요</span>
+      </button>
+    </div>
+  </div>
+
   <script>
     let uuid = null;
-    // host_role 기본값 'participant' — 모임 생성 후 모임장 화면 설정 모달에서 토글 가능
-    const DEFAULT_HOST_ROLE = 'participant';
-    let selectedPack = null;
-    let packs = [];
+    let selectedId = null;
+    let activeCategory = 'all';
+    let _pendingKit = null;
 
     function escHtml(s) {
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // 5개 모임 카드 (Phase 1 확정 — 2026-04-19). 각 모임은 "바로 쓸 수 있는 완성 세트".
-    // 자유대화 메타는 v1 표시용. 실제 server 적용은 백로그.
+    // 활성 템플릿 (2026-04-22 현재): couples · playlist-share 2개만 실제 생성 가능.
+    // 스펙 B·재구성안 기준. 비활성 템플릿은 리스트에서 제외.
     const ROOM_KITS = [
       {
-        id: 'couples', icon: '👫', title: '둘이서',
-        desc: '2인 전용 — 가벼운 대화부터 깊은 질문까지',
-        examples: ['둘만의 밸런스게임 10문항', '서로 몰랐던 취향 발견', 'MBTI·가치관 교차 탐구'],
+        id: 'couples',
+        icon: '🙋‍♀️',
+        title: '둘이서',
+        meta: '2인 · 10–20분',
+        desc: '밸런스게임 10문항, 취향·MBTI 교차 탐구',
+        categories: ['2p'],
+        instant: true,
         defaults: {
           question_count: 10,
-          // T-26c (2026-04-22): pack_defaults.display_fields_default 와 일치 — couples 카드는 birth_year·mbti 만.
-          // 이전 ['birth_year','region','industry','interest'] 는 prefill 된 region/industry/interest 가 카드 노출되는 버그 원인.
           display_fields: ['birth_year', 'mbti'],
           birth_year_format: 'exact',
           host_role: 'participant', display_mode: 'mobile',
@@ -711,136 +460,18 @@
           free_chat_timer_minutes: 0, free_chat_chat_enabled: false, free_chat_topic_card_enabled: false,
         },
       },
-      // 2026-04-22: icebreaker 팩 create UI 에서 제외 (사용자 요청 — couples/playlist-share 만 오픈).
-      /*
       {
-        id: 'icebreaker', icon: '🤝', title: '처음 만나는 사이',
-        desc: '아이스브레이커 — 5분 안에 어색함을 해소',
-        examples: ['5문항 자기소개 투표', '오늘의 MVP 선정', 'AI 성향 카드 받기'],
-        detailedDesc: '간단한 5문항으로 어색함을 풀고, MVP 투표로 분위기를 마무리합니다.',
-        stages: [
-          { label: '입장', items: [
-            'QR 자동 입장 · 익명 닉네임',
-            '참가자 카드 자동 표시',
-          ] },
-          { label: '탐구·대화', items: [
-            '자기소개 A/B 5문항 (답 변경 가능)',
-            '자유대화 — 타이머 10분 · 주제카드',
-          ] },
-          { label: '마무리', items: [
-            '오늘의 MVP 투표',
-            'AI 성향 카드',
-          ] },
-        ],
-        defaults: {
-          question_count: 5,
-          display_fields: ['birth_year', 'region', 'interest'],
-          birth_year_format: 'decade_half',
-          host_role: 'participant', display_mode: 'mobile',
-          photo_enabled: true, region_detail: false,
-          free_chat_timer_minutes: 10, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
-        },
-      },
-      */
-      // 2026-04-22: dating 팩 create UI 에서 제외.
-      /*
-      {
-        id: 'dating', icon: '💘', title: '소개팅·연애',
-        desc: '밸런스 게임 + 상호 지명 매칭',
-        examples: ['10문항 A/B 상호 탐구', '사랑의 작대기 매칭'],
-        detailedDesc: '10문항으로 서로를 탐구하고, 사랑의 작대기로 매칭. 오늘의 케미 카드를 함께 확인해요.',
-        stages: [
-          { label: '입장', items: [
-            'QR 자동 입장 · 익명 닉네임',
-            '참가자 카드 자동 표시',
-          ] },
-          { label: '탐구·대화', items: [
-            '상호 탐구 A/B 10문항 · 실시간 호환도',
-            '자유대화 — 타이머 15분 · 익명채팅 · 주제카드',
-            '오늘의 MVP 투표',
-          ] },
-          { label: '마무리', items: [
-            '사랑의 작대기 매칭 (사진·공통답변)',
-            'AI 성향 카드',
-          ] },
-        ],
-        defaults: {
-          question_count: 10,
-          display_fields: ['birth_year', 'region', 'interest'],
-          birth_year_format: 'decade_half',
-          host_role: 'participant', display_mode: 'mobile',
-          photo_enabled: true, region_detail: false,
-          free_chat_timer_minutes: 15, free_chat_chat_enabled: true, free_chat_topic_card_enabled: true,
-        },
-      },
-      */
-      // 오랜만의 만남 — 2026-04-24 남산엔테이블 '나만의 플리 공유회' 를 위해 create UI 에서 일시 제외.
-      //  PACK_DEFAULTS / 질문 MD 는 유지되어 있음. 재활성화 시 아래 객체 주석만 풀면 됨.
-      // {
-      //   id: 'friends-reunion', icon: '🍻', title: '오랜만의 만남',
-      //   desc: '동창회 · 송년회 · 집들이',
-      //   detailedDesc: '8문항으로 지금의 서로를 새로 발견하고, 라운드별 다수의견을 함께 봅니다.',
-      //   features: [
-      //     'QR 자동 입장 · 익명 닉네임',
-      //     '참가자 카드 자동 표시',
-      //     '8문항 A/B 투표',
-      //     '자유대화 (타이머 20분 · 주제카드)',
-      //     '탐구 결과 공개',
-      //     'AI 성향 카드',
-      //   ],
-      //   defaults: {
-      //     question_count: 8,
-      //     display_fields: ['birth_year', 'region', 'interest'],
-      //     birth_year_format: 'decade_half',
-      //     host_role: 'participant', display_mode: 'mobile',
-      //     photo_enabled: true, region_detail: false,
-      //     free_chat_timer_minutes: 20, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
-      //   },
-      // },
-      // 나의 이야기 찾기 — 랜딩 5종에 맞춰 create UI 에서 일시 제외. PACK_DEFAULTS / 질문 MD 는 유지.
-      // {
-      //   id: 'nights-stories', icon: '🌙', title: '나의 이야기 찾기',
-      //   desc: '조용한 대화·성찰 소모임',
-      //   seriesLabel: 'ntable Nights',
-      //   detailedDesc: '내면·관계·지나온 선택을 들여다보는 A/B 10문항 탐구 → 자유대화 → 오늘의 주인공 발표.',
-      //   features: [
-      //     'QR 자동 입장 · 익명 닉네임',
-      //     '참가자 카드 자동 표시',
-      //     '10문항 A/B 내면 탐구',
-      //     '자유대화 (타이머 20분 · 익명채팅 · 주제카드)',
-      //     '오늘의 주인공 투표',
-      //     '탐구 결과 공개',
-      //     'AI 성향 카드',
-      //   ],
-      //   defaults: {
-      //     question_count: 10,
-      //     display_fields: ['birth_year', 'interest'],
-      //     birth_year_format: 'decade_half',
-      //     host_role: 'participant', display_mode: 'mobile',
-      //     photo_enabled: true, region_detail: false,
-      //     free_chat_timer_minutes: 20, free_chat_chat_enabled: true, free_chat_topic_card_enabled: true,
-      //   },
-      // },
-      {
-        id: 'playlist-share', icon: '🎵', title: '나만의 플리 공유회',
-        desc: '각자 15분 플리를 스피커로 공유 · BEST 플리 투표',
-        seriesLabel: 'ntable Plays',
-        examples: ['최애 플레이리스트 3분 설명', '숨은 명곡 HIDDEN GEM 투표', '익명 채팅 실시간 반응'],
+        id: 'playlist-share',
+        icon: '🎵',
+        title: '나만의 플리 공유회',
+        meta: '2–6인 · 90분',
+        desc: '각자 15분씩 플리 공유 · BEST 투표',
+        categories: ['music'],
         detailedDesc: '각자 15분 플리를 스피커로 공유하고, 익명 채팅으로 실시간 반응·BEST 플리 투표까지.',
         stages: [
-          { label: '입장', items: [
-            'QR 자동 입장 · 익명 닉네임',
-            '플레이리스트 링크 공유 (선택)',
-            '음악 취향 A/B 5문항',
-          ] },
-          { label: '탐구·대화', items: [
-            '자유대화 — 2시간 · 익명 채팅',
-            'BEST 플리 투표 — 모두가 한 표씩',
-            '탐구 결과 공개',
-          ] },
-          { label: '마무리', items: [
-            'AI 성향 카드',
-          ] },
+          { label: '입장', items: ['QR 자동 입장 · 익명 닉네임', '플레이리스트 링크 공유 (선택)', '음악 취향 A/B 5문항'] },
+          { label: '탐구·대화', items: ['자유대화 — 2시간 · 익명 채팅', 'BEST 플리 투표 — 모두가 한 표씩', '탐구 결과 공개'] },
+          { label: '마무리', items: ['AI 성향 카드'] },
         ],
         defaults: {
           question_count: 5,
@@ -852,119 +483,119 @@
           instagram_collect: true,
         },
       },
-      // 2026-04-22: teambuilding 팩 create UI 에서 제외.
-      /*
-      {
-        id: 'teambuilding', icon: '💼', title: '팀·회사',
-        desc: '팀빌딩 — 업무 스타일 탐구·신입 OT·워크숍',
-        examples: ['업무 스타일 10문항', '페어·MVP 발표', '팀 성향 AI 카드'],
-        detailedDesc: '업무 스타일 10문항으로 팀원의 성향을 파악하고, MVP·페어·결과 카드까지 한 번에.',
-        stages: [
-          { label: '입장', items: [
-            'QR 자동 입장 · 익명 닉네임',
-            '참가자 카드 자동 표시',
-          ] },
-          { label: '탐구·대화', items: [
-            '업무 스타일 A/B 10문항',
-            '자유대화 — 타이머 20분 · 주제카드',
-            '매칭 페어 공개',
-          ] },
-          { label: '마무리', items: [
-            '오늘의 MVP 투표',
-            '탐구 결과 공개',
-            'AI 성향 카드',
-          ] },
-        ],
-        defaults: {
-          question_count: 10,
-          display_fields: ['birth_year', 'region', 'interest'],
-          birth_year_format: 'decade_half',
-          host_role: 'participant', display_mode: 'mobile',
-          photo_enabled: true, region_detail: false,
-          free_chat_timer_minutes: 15, free_chat_chat_enabled: false, free_chat_topic_card_enabled: true,
-        },
-      },
-      */
     ];
 
-    function renderRoomCard(kit) {
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'pack-card' + (kit.id === 'couples' ? ' pack-card-instant' : '');
-      card.dataset.packId = kit.id;
-      // T-B0-6 (2026-04-22): seriesLabel → data-series (CSS 에서 시즌 시리즈 액센트 라인 렌더용)
-      const seriesSlug = kit.seriesLabel ? kit.seriesLabel.toLowerCase().replace(/\s+/g, '-') : '';
-      if (seriesSlug) card.dataset.series = seriesSlug;
-      // T-16 (2026-04-22): couples 카드만 "바로 시작" 뱃지 — 확인 화면 스킵, 즉시 생성
-      const instantBadge = kit.id === 'couples' ? '<span class="pack-badge-instant">바로 시작</span>' : '';
-      const examplesHtml = Array.isArray(kit.examples) && kit.examples.length
-        ? `<div class="pack-examples">${kit.examples.slice(0, 3).map(ex => `<span class="pack-ex-chip">${escHtml(ex)}</span>`).join('')}</div>`
-        : '';
-      card.innerHTML = `
-        ${instantBadge}
-        <span class="pack-cta" aria-hidden="true">→</span>
-        <div class="pack-head">
-          <span class="pack-icon">${escHtml(kit.icon)}</span>
-          <span class="pack-title">${escHtml(kit.title)}</span>
-        </div>
-        <div class="pack-desc">${escHtml(kit.desc)}</div>
-        ${examplesHtml}
-      `;
-      // couples 는 확인 화면 스킵 후 즉시 생성. 나머지는 확인 화면 경유.
-      card.addEventListener('click', () => {
-        if (kit.id === 'couples') createRoomFromKit(kit);
-        else showConfirmScreen(kit);
+    // 필터 pill 은 실제 활성 템플릿이 속한 카테고리만 노출. 전체 + 해당 카테고리만.
+    const FILTER_DEFS = [
+      { id: 'all',   copyKey: 'create.filter_all',   label: '전체' },
+      { id: '2p',    copyKey: 'create.filter_2p',    label: '2인' },
+      { id: 'music', copyKey: 'create.filter_music', label: '뮤직' },
+    ];
+
+    function renderFilters() {
+      const rail = document.getElementById('filterRail');
+      rail.innerHTML = '';
+      FILTER_DEFS.forEach(f => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ct-filter' + (f.id === activeCategory ? ' active' : '');
+        btn.dataset.cat = f.id;
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', String(f.id === activeCategory));
+        btn.innerHTML = `<span data-copy="${f.copyKey}">${escHtml(f.label)}</span>`;
+        btn.addEventListener('click', () => setCategory(f.id));
+        rail.appendChild(btn);
       });
-      return card;
+      if (typeof applyCopyToDOM === 'function') applyCopyToDOM(rail);
     }
 
-    function loadPacks() {
-      const grid = document.getElementById('packGrid');
-      grid.innerHTML = '';
-      const items = ROOM_KITS.slice();
-      // 시리즈 그루핑 — seriesLabel 없는 팩은 "빠른 시작" 그룹으로
-      const groups = new Map();
-      const QUICK = '빠른 시작';
-      groups.set(QUICK, []);
-      for (const k of items) {
-        const label = k.seriesLabel || QUICK;
-        if (!groups.has(label)) groups.set(label, []);
-        groups.get(label).push(k);
+    function filteredKits() {
+      if (activeCategory === 'all') return ROOM_KITS;
+      return ROOM_KITS.filter(k => (k.categories || []).includes(activeCategory));
+    }
+
+    function renderList() {
+      const list = document.getElementById('packList');
+      list.innerHTML = '';
+      filteredKits().forEach(kit => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'ct-row' + (kit.id === selectedId ? ' active' : '');
+        row.dataset.packId = kit.id;
+        row.setAttribute('role', 'listitem');
+        row.setAttribute('aria-pressed', String(kit.id === selectedId));
+        row.innerHTML = `
+          <span class="ct-row-tile" aria-hidden="true">${escHtml(kit.icon)}</span>
+          <span class="ct-row-body">
+            <span class="ct-row-titleline">
+              <span class="ct-row-title">${escHtml(kit.title)}</span>
+              <span class="ct-row-meta">· ${escHtml(kit.meta)}</span>
+            </span>
+            <span class="ct-row-desc">${escHtml(kit.desc)}</span>
+          </span>
+          <span class="ct-row-check" aria-hidden="true">✓</span>
+        `;
+        row.addEventListener('click', () => selectKit(kit));
+        list.appendChild(row);
+      });
+    }
+
+    function selectKit(kit) {
+      selectedId = kit.id;
+      renderList();
+      updateSummary(kit);
+      try {
+        const u = new URL(location.href);
+        u.searchParams.set('pack', kit.id);
+        history.replaceState(null, '', u);
+      } catch (_) {}
+    }
+
+    function updateSummary(kit) {
+      const valEl = document.getElementById('summaryValue');
+      const cta = document.getElementById('primaryCta');
+      const label = document.getElementById('primaryCtaLabel');
+      if (!kit) {
+        valEl.textContent = '—';
+        cta.disabled = true;
+        label.textContent = (window.t ? t('create.cta_empty') : '템플릿을 선택해주세요');
+        label.dataset.copy = 'create.cta_empty';
+        return;
       }
-      // 시리즈별 서브타이틀 (ntable Nights/Plays 구조 노출용)
-      const seriesSubtitles = {
-        'ntable Nights': '대화·창작 소모임',
-        'ntable Plays':  '음악 공유·연주 대회',
-        'ntable Draws':  '시·그림 창작 대회',
-        'ntable Pitches':'아이디어·포폴 대회',
-        'ntable Games':  '운동 기록 대회',
-      };
-      for (const [label, list] of groups) {
-        if (list.length === 0) continue;
-        const section = document.createElement('section');
-        section.className = 'pack-group';
-        const subtitle = seriesSubtitles[label] ? `<div class="pack-group-subtitle">${escHtml(seriesSubtitles[label])}</div>` : '';
-        section.innerHTML = `<h3 class="pack-group-title">${escHtml(label)}</h3>${subtitle}<div class="pack-group-grid"></div>`;
-        const gg = section.querySelector('.pack-group-grid');
-        list.forEach(kit => gg.appendChild(renderRoomCard(kit)));
-        grid.appendChild(section);
+      valEl.textContent = `${kit.icon} ${kit.title}`;
+      cta.disabled = false;
+      label.textContent = (window.t ? t('create.cta_next') : '다음 · 세부 설정');
+      label.dataset.copy = 'create.cta_next';
+    }
+
+    function setCategory(id) {
+      activeCategory = id;
+      try {
+        const u = new URL(location.href);
+        if (id === 'all') u.searchParams.delete('category');
+        else u.searchParams.set('category', id);
+        history.replaceState(null, '', u);
+      } catch (_) {}
+      renderFilters();
+      renderList();
+      // 선택된 킷이 필터에서 사라지면 선택 해제
+      if (selectedId && !filteredKits().find(k => k.id === selectedId)) {
+        selectedId = null;
+        updateSummary(null);
       }
     }
 
-    // T-16 (2026-04-22): couples hero 제거 — 카드 내 click 핸들러에서 직접 생성 처리
+    // Primary CTA 는 init 에서 onclick 단일 소스로 바인딩 (showConfirmScreen/showSelectScreen 내부에서
+    // 재할당할 때 이전 핸들러와 충돌·이중 POST 되는 이슈 때문에 addEventListener 는 쓰지 않음).
 
-    // 화면 전환
-    let _pendingKit = null;
+    // Confirm 화면
     function showConfirmScreen(kit) {
       _pendingKit = kit;
       document.getElementById('confirmIcon').textContent = kit.icon;
       document.getElementById('confirmTitle').textContent = kit.title;
-      // 화면 2의 desc는 detailed 우선 (화면 1과 동어반복 방지)
       document.getElementById('confirmDesc').textContent = kit.detailedDesc || kit.desc;
       const featuresEl = document.getElementById('confirmFeatures');
-      // T-B0-7 (2026-04-22): stages 가 있으면 3-블록 그룹 렌더, 없으면 기존 flat features 폴백
       if (Array.isArray(kit.stages) && kit.stages.length) {
-        featuresEl.className = 'confirm-stages';
         let counter = 0;
         featuresEl.innerHTML = kit.stages.map((stage, i) => {
           const stageIdx = String(i + 1).padStart(2, '0');
@@ -979,41 +610,44 @@
           </div>`;
         }).join('');
       } else {
-        featuresEl.className = 'confirm-features';
-        featuresEl.innerHTML = (kit.features || []).map(f => `<li>${escHtml(f)}</li>`).join('');
+        featuresEl.innerHTML = '';
       }
       document.getElementById('selectScreen').hidden = true;
       document.getElementById('confirmScreen').hidden = false;
-      // welcome·TV 진입점은 화면 1 전용 — 화면 2에서는 숨김
-      const wm = document.getElementById('welcomeMsg');
-      if (wm) wm.hidden = true;
-      const tv = document.getElementById('tvEntry');
-      if (tv) tv.hidden = true;
+      // Sticky bottom CTA 를 "모임 열기" 로 전환
+      const label = document.getElementById('primaryCtaLabel');
+      label.textContent = '모임 열기';
+      label.removeAttribute('data-copy');
+      // primaryCta 버튼을 confirm 전용 핸들러로 임시 재바인딩
+      const cta = document.getElementById('primaryCta');
+      cta.onclick = () => { if (_pendingKit) createRoomFromKit(_pendingKit); };
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function showSelectScreen() {
       document.getElementById('confirmScreen').hidden = true;
       document.getElementById('selectScreen').hidden = false;
-      const wm = document.getElementById('welcomeMsg');
-      if (wm) wm.hidden = false;
-      const tv = document.getElementById('tvEntry');
-      if (tv) tv.hidden = false;
       _pendingKit = null;
+      const kit = ROOM_KITS.find(k => k.id === selectedId);
+      updateSummary(kit || null);
+      // 기본 click 핸들러 복원
+      const cta = document.getElementById('primaryCta');
+      cta.onclick = () => {
+        const k = ROOM_KITS.find(x => x.id === selectedId);
+        if (!k) return;
+        if (k.instant) createRoomFromKit(k);
+        else showConfirmScreen(k);
+      };
     }
     document.getElementById('confirmBackBtn').addEventListener('click', showSelectScreen);
-    document.getElementById('confirmCreateBtn').addEventListener('click', () => {
-      if (_pendingKit) createRoomFromKit(_pendingKit);
-    });
 
     async function createRoomFromKit(kit) {
       const errMsg = document.getElementById('errorMsg');
-      errMsg.textContent = '';
+      if (errMsg) errMsg.textContent = '';
       const d = new Date();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       const title = `${kit.title} · ${mm}.${dd}`;
       const merged = { ...kit.defaults };
-      // 모임 시각 (선택)
       const meetingAtInput = document.getElementById('meetingAtInput');
       const meeting_at = meetingAtInput && meetingAtInput.value ? new Date(meetingAtInput.value).toISOString() : null;
       try {
@@ -1024,12 +658,10 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '모임 생성 실패');
-        // T-20 (2026-04-22): 호스트 진입 시 room_opened 토스트 표시용 플래그
         try { sessionStorage.setItem('nt_pending_toast', 'room_opened'); } catch (_) {}
-        // T-02 (2026-04-21): 모임장은 join wizard 우회 — 호스트 화면으로 직행. 프로필 입력은 host.html '내 정보 수정' 모달에서.
         window.location.href = `/room/${data.room_code}/host`;
       } catch (e) {
-        errMsg.textContent = e.message || '모임 생성 중 오류';
+        if (errMsg) errMsg.textContent = e.message || '모임 생성 중 오류';
       }
     }
 
@@ -1040,9 +672,31 @@
           : ('u-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36));
         try { localStorage.setItem('demo_uuid', uuid); } catch (_) {}
       }
-      // 실명·이메일 노출 0 — welcome은 generic 유지. 헤더 토글이 로그인 상태 표현.
-      loadPacks();
-      // T-B0-8 (2026-04-22): 커스텀 📅 아이콘 클릭 → 네이티브 datetime picker 열기
+
+      // URL query 로 카테고리·팩 복원
+      try {
+        const q = new URLSearchParams(location.search);
+        const cat = q.get('category');
+        if (cat && FILTER_DEFS.find(f => f.id === cat)) activeCategory = cat;
+        const prePack = q.get('pack');
+        if (prePack && ROOM_KITS.find(k => k.id === prePack)) selectedId = prePack;
+      } catch (_) {}
+
+      renderFilters();
+      renderList();
+      const kit = selectedId ? ROOM_KITS.find(k => k.id === selectedId) : null;
+      updateSummary(kit || null);
+
+      // Primary CTA 핸들러 단일 소스 — 선택 상태에 따라 instant / confirm 분기
+      const cta = document.getElementById('primaryCta');
+      cta.onclick = () => {
+        const k = ROOM_KITS.find(x => x.id === selectedId);
+        if (!k) return;
+        if (k.instant) createRoomFromKit(k);
+        else showConfirmScreen(k);
+      };
+
+      // 📅 아이콘 → 네이티브 picker
       try {
         const icon = document.getElementById('meetingAtIcon');
         const dt = document.getElementById('meetingAtInput');
@@ -1054,24 +708,27 @@
           });
         }
       } catch (_) {}
-      // T-B0-14 (2026-04-22): result.html 의 "다음 모임 열기" CTA 에서 넘어올 때 킷 자동 선택.
-      // ?pack=<id> 쿼리가 있으면 해당 킷의 확인 화면 진입 (couples 는 즉시 생성).
+
+      // result.html 의 "다음 모임 열기" 에서 ?pack=<id> 로 진입 시: instant 면 즉시 생성, 아니면 confirm
       try {
         const prePack = new URLSearchParams(location.search).get('pack');
         if (prePack) {
-          const kit = ROOM_KITS.find(k => k.id === prePack);
-          if (kit) {
-            if (kit.id === 'couples') createRoomFromKit(kit);
-            else showConfirmScreen(kit);
-          }
+          const kitAuto = ROOM_KITS.find(k => k.id === prePack);
+          if (kitAuto && kitAuto.instant) createRoomFromKit(kitAuto);
+          else if (kitAuto) showConfirmScreen(kitAuto);
         }
       } catch (_) {}
+
+      // brand.json 로드 후 data-copy 치환
+      if (typeof loadBrand === 'function') {
+        loadBrand().then(() => {
+          if (typeof applyCopyToDOM === 'function') applyCopyToDOM(document);
+          // summary label 은 실시간 계산되므로 재갱신
+          const k = ROOM_KITS.find(x => x.id === selectedId);
+          updateSummary(k || null);
+        }).catch(() => {});
+      }
     }
-
-    /* 로컬 헤더 토글·아코디언 로직 제거 (2026-04-20) — 공통 /auth-header.js 가 인증 pill 주입 */
-
-    // packSetup 폐기 (2026-04-19) — title/qcount/options 이벤트 리스너·createRoom 모두 createRoomFromPack 으로 대체.
-    // 옛 createRoom() 함수 본체와 packSetup DOM 참조 코드는 모두 제거됨. 기획 결정 후 5/7 카드로 grid 재구성 예정.
 
     init();
   </script>

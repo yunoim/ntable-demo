@@ -2,265 +2,285 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
 <meta name="color-scheme" content="dark">
 <link rel="stylesheet" href="/theme-lock.css">
 <link rel="stylesheet" href="/styles/tokens.css">
 <link rel="stylesheet" href="/styles/components.css">
 <script src="/samsung-dark-warn.js" defer></script>
-<!-- 2026-04-22: 사용자 OAuth 비활성화.
-<script src="/oauth-redirect.js"></script>
--->
 <script src="/pending-reveals.js" defer></script>
 <script src="/twemoji-brand.js" defer></script>
 <script src="/js/brand.js"></script>
-<title>ntable — 누구나 모임장이 되는 모임</title>
+<title>ntable — 누구나 모임장이 된다</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:ital,wght@1,500;1,600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; min-height: 100vh; }
   body {
-    background: #0e1628;
-    color: #ffffff;
+    background: var(--navy);
+    color: var(--white);
     font-family: var(--font-body);
-    line-height: 1.6;
-    padding: 0 24px;
-    padding-top: calc(82px + env(safe-area-inset-top));
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    line-height: 1.5;
+    min-height: 100dvh;
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    flex-direction: column;
+    padding: calc(env(safe-area-inset-top)) 24px calc(20px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+    text-wrap: pretty;
   }
 
-  /* HEADER — ntable.kr 랜딩 nav 구조 (.nav-inner max-width:1100px) 동일 적용 */
-  .app-header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    padding-top: env(safe-area-inset-top);
-    background: rgba(14,22,40,0.88);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(212,168,67,0.45);
-  }
-  .nav-inner {
-    max-width: 1100px; margin: 0 auto; padding: 0 32px;
-    height: 62px; display: flex; align-items: center; justify-content: space-between;
-  }
-  @media (max-width: 768px) {
-    .nav-inner { padding: 0 20px; }
-  }
-  .h-brand {
-    font-family: var(--font-heading);
-    font-size: 22px; font-weight: 600;
-    color: #d4a843; letter-spacing: 0.08em;
-    text-decoration: none;
-  }
-  /* login-col = create 페이지의 auth-header pill 과 동일한 래퍼 (padding·border·backdrop 포함) */
-  .login-col {
-    display: flex; flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    padding: 8px 14px 7px;
-    background: rgba(14,22,40,0.92);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(212,168,67,0.35);
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  }
-  .login-connected-mini {
-    font-size: 10.5px;
-    color: #7ee8a2;
-    letter-spacing: 0.02em;
-    padding-right: 4px;
-    line-height: 1.2;
-    font-weight: 500;
-  }
-  /* 헤더 우상단 토글 — create 페이지 auth-header pill 과 동일 치수 */
-  .login-toggle {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-size: 11.5px; color: #c0c0c0;
-    cursor: pointer; background: none; border: none;
-    padding: 0;
-    font-family: inherit;
-    line-height: 1.2;
-    transition: color 0.2s;
-  }
-  .login-toggle:hover { color: #e8b84b; }
-  .login-toggle .switch {
-    width: 30px; height: 16px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 999px; position: relative;
-    transition: background 0.2s;
-    flex-shrink: 0;
-  }
-  .login-toggle .switch::after {
-    content: ''; position: absolute; top: 2px; left: 2px;
-    width: 12px; height: 12px;
-    background: #c0c0c0; border-radius: 50%;
-    transition: left 0.2s, background 0.2s;
-  }
-  .login-toggle[data-on="true"] { color: #7ee8a2; }
-  .login-toggle[data-on="true"] .switch { background: rgba(126,232,162,0.45); }
-  .login-toggle[data-on="true"] .switch::after { left: 16px; background: #7ee8a2; }
-
-  /* 빠른 입장 섹션 — CTA 아래 */
-  .quick-login {
-    margin-top: 20px;
-    padding: 18px 16px;
-    background: rgba(212,168,67,0.04);
-    border: 1px solid rgba(212,168,67,0.22);
-    border-radius: 14px;
-    text-align: left;
-  }
-  .ql-label {
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    color: #d4a843;
-    text-transform: uppercase;
-    margin-bottom: 8px;
+  /* Header — 44px 고정, 로고 + 로그인 pill */
+  .nt-top {
+    height: 44px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    flex-shrink: 0;
   }
-  .ql-label-opt {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: #9aa0ac;
-    opacity: 0.8;
-    font-weight: 400;
-    text-transform: none;
+  .nt-top .brand {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 20px;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+    text-decoration: none;
   }
-  .ql-desc {
-    font-size: 11.5px; color: #9aa0ac;
-    letter-spacing: 0.02em; line-height: 1.5;
-    margin-bottom: 10px;
+  .nt-top .login-pill {
+    font-size: 12px;
+    font-family: var(--font-body);
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 6px 12px;
+    cursor: pointer;
+    text-decoration: none;
   }
-  .ql-btn {
-    display: block; width: 100%;
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 13.5px; font-weight: 600;
-    cursor: pointer; font-family: inherit;
-    margin-top: 8px;
-  }
-  .btn-google { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
-  .btn-kakao { background: #FEE500; color: #3a1d1d; border: none; font-weight: 700; }
-  .acc-connected {
-    text-align: center;
-    padding: 12px;
-    font-size: 13px;
-    color: #7ee8a2;
-    background: rgba(126,232,162,0.06);
-    border: 1px dashed rgba(126,232,162,0.25);
-    border-radius: 10px;
-    letter-spacing: 0.02em;
-  }
-  .acc-logout-hint {
-    margin-top: 6px;
-    font-size: 11px;
-    color: #9aa0ac;
-    letter-spacing: 0.02em;
-    font-weight: 400;
+  .nt-top .login-pill:hover { color: var(--gold-light); border-color: var(--gold-border); }
+
+  /* Main container */
+  .nt-shell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    padding-top: 36px;
   }
 
-  /* MAIN */
-  .root { width: 100%; max-width: 420px; text-align: center; }
-  .hero { margin-top: 24px; margin-bottom: 36px; }
-  .hero h1 {
-    font-family: var(--font-heading);
-    font-size: 38px; font-weight: 600;
-    color: #ffffff; line-height: 1.25;
+  /* Hero */
+  .nt-eyebrow {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     margin-bottom: 16px;
   }
-  .hero h1 em { font-style: italic; color: #e8b84b; }
-  .hero p {
-    font-size: 15px; color: #e8e8e8;
-    font-weight: 300; line-height: 1.7;
+  .nt-title {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    text-wrap: balance;
   }
-  .cta-primary {
-    display: block; width: 100%; padding: 18px;
-    background: #e8b84b; color: #0a0f1e;
-    border: none; border-radius: 14px;
-    font-size: 17px; font-weight: 700;
-    cursor: pointer; font-family: inherit;
-    box-shadow: 0 0 16px rgba(232,184,75,0.35);
-    text-decoration: none;
+  .nt-title em {
+    font-family: var(--font-heading);
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 600;
+    /* 세리프·이탤릭 강조. 앞뒤 공간 살짝 */
+    margin: 0 0.04em;
+  }
+  .nt-desc {
+    margin-top: 18px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  /* Spacer between hero & CTA */
+  .nt-spacer { flex: 1; min-height: 28px; }
+
+  /* Primary CTA */
+  .nt-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 54px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    border: none;
+    border-radius: 14px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(212,168,67,0.28);
     transition: transform 0.15s, box-shadow 0.2s;
+    text-decoration: none;
   }
-  .cta-primary:hover { transform: translateY(-1px); box-shadow: 0 0 26px rgba(232,184,75,0.5); }
-  .cta-primary:active { transform: scale(0.98); }
+  .nt-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(212,168,67,0.38); }
+  .nt-cta:active { transform: scale(0.98); }
+  .nt-cta .chev { font-size: 16px; line-height: 1; margin-top: 1px; }
 
-  .guest-info {
-    margin-top: 36px;
-    padding: 20px;
-    background: rgba(212,168,67,0.06);
-    border: 1px dashed rgba(212,168,67,0.3);
+  /* Divider with label */
+  .nt-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 12px;
+  }
+  .nt-divider::before,
+  .nt-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .nt-divider span {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+
+  /* Join code row (no card wrapper) */
+  .nt-join-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .nt-join-input {
+    flex: 1;
+    min-width: 0;
+    padding: 14px 16px;
+    background: var(--surface-2, #1a2442);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    font-size: 13.5px; color: #c0c0c0;
-    line-height: 1.6;
+    color: var(--white);
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-align: center;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.18s;
   }
-  .guest-info strong { color: #e8b84b; }
+  .nt-join-input:focus { border: 1.5px solid var(--gold); padding: 13.5px 15.5px; }
+  .nt-join-input::placeholder { color: var(--text-dim); letter-spacing: 0.28em; }
+  .nt-join-btn {
+    flex-shrink: 0;
+    padding: 0 20px;
+    min-height: 52px;
+    background: transparent;
+    border: 1px solid var(--gold-border);
+    border-radius: 12px;
+    color: var(--gold-light);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+  }
+  .nt-join-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .nt-join-btn:not(:disabled).ready {
+    background: linear-gradient(135deg, var(--gold), #a07828);
+    color: var(--navy);
+    border-color: transparent;
+    box-shadow: 0 6px 18px rgba(212,168,67,0.28);
+    font-weight: 700;
+  }
 
-  .footer-info {
-    margin-top: 36px;
-    font-size: 11.5px; color: #c0c0c0;
-    opacity: 0.7; line-height: 1.6;
+  /* Footer */
+  .nt-foot {
+    margin-top: 26px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    padding-bottom: 6px;
   }
-  .footer-info a { color: inherit; text-decoration: underline; }
+  .nt-foot a { color: inherit; text-decoration: none; }
+  .nt-foot a:hover { color: var(--text-muted); }
+
+  @media (max-width: 360px) {
+    .nt-title { font-size: 30px; }
+  }
+
+  /* Focus visible */
+  button:focus-visible, input:focus-visible, a:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
 </style>
 <script src="/sentry-init.js" data-page="welcome" defer></script>
 </head>
 <body>
 
-<header class="app-header">
-  <div class="nav-inner">
-    <a href="/" class="h-brand" style="text-decoration:none;">ntable</a>
-    <!-- 2026-04-22: OAuth/remember-me 비활성화 — .login-col 컨테이너 자체 주석 (빈 박스가 단추 모양으로 남는 문제).
-    <div class="login-col">
-      <button type="button" class="login-toggle" id="loginToggle" data-on="true" aria-pressed="true" title="내 정보 기억하기" hidden>
-        <span class="toggle-label">내 정보 기억하기</span>
-        <span class="switch" aria-hidden="true"></span>
-      </button>
-      <div class="login-connected-mini" id="loginConnectedMini" hidden>✓ <span id="miniProviderLabel">Google 계정 연결됨</span></div>
-    </div>
-    -->
-  </div>
+<header class="nt-top">
+  <a href="/" class="brand" aria-label="ntable 홈">ntable</a>
+  <!-- 로그인 pill 은 OAuth 비활성화로 숨김(2026-04-22). 레이아웃 균형용 자리만 남겨둠. -->
+  <span aria-hidden="true" style="visibility:hidden;font-size:12px;">&nbsp;</span>
 </header>
 
-<div class="root">
-  <div class="hero" data-twe>
-    <h1>QR 하나로 시작되는<br><em>모임 툴킷</em></h1>
-    <p>모임장이라면 새 모임을 열고,<br>참가자라면 아래에 참여 코드를 입력하세요.</p>
-  </div>
-
-  <button type="button" class="cta-primary" id="openRoomBtn" data-copy="buttons.open_room">모임 열기</button>
-
-  <!-- 토글 ON + 미인증일 때만 노출: OAuth 버튼. 인증되면 헤더 우상단 라벨만 사용. -->
-  <section class="quick-login" id="quickLogin" hidden>
-    <div class="ql-label">내 정보 저장하기 <span class="ql-label-opt">Google · 카카오</span></div>
-    <div class="ql-desc">한 번 연결해두면 다음 방문 시 자동 입장</div>
-    <button type="button" class="ql-btn btn-google" id="googleBtn" hidden>Google로 계속하기</button>
-    <button type="button" class="ql-btn btn-kakao" id="kakaoBtn" hidden>카카오로 계속하기</button>
+<main class="nt-shell">
+  <section class="nt-hero" data-twe>
+    <div class="nt-eyebrow" data-copy="home.eyebrow">QR 하나로 시작</div>
+    <h1 class="nt-title">
+      <span data-copy="home.hero_line1">어색함 없이</span><br>
+      <em data-copy="home.hero_line2_emph">빠르게</em><span data-copy="home.hero_line2_suffix"> 친해지는 자리</span>
+    </h1>
+    <p class="nt-desc">
+      <span data-copy="home.hero_desc_line1">모임장은 새 자리를 열고,</span><br>
+      <span data-copy="home.hero_desc_line2">참가자는 QR이나 코드로 들어와요.</span>
+    </p>
   </section>
 
-  <div class="guest-info" id="guestSection">
-    <div style="font-size:14px;color:#ffffff;margin-bottom:10px;font-weight:600;">참가자이신가요?</div>
-    QR·링크를 받으셨다면 바로 입장돼요.<br>참여 코드만 받으셨다면 아래에 입력해주세요.
-    <div style="display:flex;gap:8px;margin-top:14px;">
-      <input type="text" id="joinCodeInput" maxlength="6" placeholder="ABC123" autocapitalize="characters" autocomplete="off" aria-label="참여 코드 6자리" style="flex:1;min-width:0;padding:12px;background:rgba(212,168,67,0.06);border:1px solid rgba(212,168,67,0.4);border-radius:10px;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.04em;text-align:center;font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); document.getElementById('joinCodeBtn').disabled = this.value.length !== 6;" />
-      <button type="button" id="joinCodeBtn" disabled style="flex-shrink:0;white-space:nowrap;padding:0 18px;background:#e8b84b;color:#0a0f1e;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;">입장</button>
-    </div>
-    <div style="font-size:11px;color:#9aa0ac;margin-top:8px;letter-spacing:0.02em;">참여 코드 6자리 (영문·숫자, 대소문자 무관)</div>
+  <div class="nt-spacer"></div>
+
+  <button type="button" class="nt-cta" id="openRoomBtn" aria-label="새 모임 열기">
+    <span data-copy="home.cta_primary">새 모임 열기</span>
+    <span class="chev" aria-hidden="true">›</span>
+  </button>
+
+  <div class="nt-divider"><span data-copy="home.divider_label">참여 코드를 받았다면</span></div>
+
+  <div class="nt-join-row" id="guestSection">
+    <input
+      type="text"
+      id="joinCodeInput"
+      class="nt-join-input"
+      maxlength="6"
+      placeholder="ABC123"
+      autocapitalize="characters"
+      autocomplete="off"
+      aria-label="참여 코드 6자리"
+      inputmode="latin"
+    />
+    <button type="button" id="joinCodeBtn" class="nt-join-btn" disabled data-copy="home.join_code_btn">입장</button>
   </div>
 
-  <div class="footer-info">
-    <a href="https://ntable.kr/privacy.html">개인정보처리방침</a> ·
-    <a href="https://ntable.kr/terms.html">이용약관</a><br>
-    More Life. People Connect. · © 2026 ntable
+  <div class="nt-foot">
+    <a href="https://ntable.kr/privacy.html">개인정보처리방침</a>
+    ·
+    <a href="https://ntable.kr/terms.html">이용약관</a>
+    &nbsp;·&nbsp;
+    © 2026 ntable
   </div>
-</div>
+</main>
 
 <script>
 function ensureUuid() {
@@ -274,6 +294,8 @@ function ensureUuid() {
   return uuid;
 }
 
+ensureUuid();
+
 document.getElementById('openRoomBtn').addEventListener('click', () => {
   ensureUuid();
   const next = new URLSearchParams(location.search).get('next');
@@ -284,17 +306,14 @@ document.getElementById('openRoomBtn').addEventListener('click', () => {
   }
 });
 
-ensureUuid();
-
-// T-23 (2026-04-22): brand.json 로드 후 data-copy 요소(버튼 라벨 등) 치환
+// brand.json 로드 후 data-copy 치환
 if (typeof loadBrand === 'function') {
   loadBrand().then(() => {
     if (typeof applyCopyToDOM === 'function') applyCopyToDOM(document);
   }).catch(() => {});
 }
 
-// OAuth 콜백 토큰 처리는 /oauth-redirect.js 가 담당 (전 페이지 공통)
-// login.html은 추가로 auth_error 쿼리 정리만 담당
+// auth_error 쿼리 정리 (OAuth 비활성화 상태 — 2026-04-22)
 (() => {
   const url = new URL(location.href);
   if (url.searchParams.has('auth_error')) {
@@ -302,51 +321,32 @@ if (typeof loadBrand === 'function') {
   }
 })();
 
-// 2026-04-22: OAuth / remember-me / quick-login / provider 버튼 로직 전체 비활성화 (사용자 요청 — admin 제외).
-// 참조하던 DOM 요소(loginToggle · loginConnectedMini · googleBtn · kakaoBtn)가 HTML 주석 처리돼 null 참조로
-// 스크립트가 크래시했고, 그 여파로 joinCodeBtn 바인딩까지 실행되지 않아 "참여 코드 입장" 버튼이 작동하지 않았음.
-// 아래 블록 전체 주석. ?role=guest 자동 스크롤만 별도 IIFE 로 보존.
-/*
-const quickLogin = document.getElementById('quickLogin');
-const loginToggle = document.getElementById('loginToggle');
-const loginConnectedMini = document.getElementById('loginConnectedMini');
-const miniProviderLabel = document.getElementById('miniProviderLabel');
-let isAuthed = false;
-function applyView() { ... }
-function setToggle(on) { ... }
-function setProviderLabel(me) { ... }
-(async () => { ... OAuth config + 토글 초기화 ... })();
-loginToggle.addEventListener('click', ...);
-document.getElementById('googleBtn').addEventListener('click', ...);
-document.getElementById('kakaoBtn').addEventListener('click', ...);
-*/
-
-// ?role=guest 자동 스크롤 — OAuth 와 무관하게 유지.
+// ?role=guest 로 진입하면 입력 포커스
 (() => {
   try {
     if (new URLSearchParams(location.search).get('role') !== 'guest') return;
-    const guest = document.getElementById('guestSection');
     const input = document.getElementById('joinCodeInput');
-    if (guest) {
-      const rect = guest.getBoundingClientRect();
-      const offsetY = window.scrollY + rect.top - window.innerHeight / 2 + rect.height / 2;
-      window.scrollTo({ top: Math.max(0, offsetY), behavior: 'smooth' });
-    }
-    if (input) setTimeout(() => input.focus(), 400);
+    if (input) setTimeout(() => input.focus(), 300);
   } catch (_) {}
 })();
 
-// 참여 코드 입장
-document.getElementById('joinCodeBtn').addEventListener('click', () => {
-  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+// 참여 코드 입력: 6자리 되면 primary 골드로 승격
+const joinInput = document.getElementById('joinCodeInput');
+const joinBtn = document.getElementById('joinCodeBtn');
+joinInput.addEventListener('input', () => {
+  joinInput.value = joinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const ready = joinInput.value.length === 6;
+  joinBtn.disabled = !ready;
+  joinBtn.classList.toggle('ready', ready);
+});
+joinBtn.addEventListener('click', () => {
+  const code = joinInput.value.trim().toUpperCase();
   if (code.length !== 6) return;
   ensureUuid();
   location.href = `/room/${code}`;
 });
-document.getElementById('joinCodeInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !document.getElementById('joinCodeBtn').disabled) {
-    document.getElementById('joinCodeBtn').click();
-  }
+joinInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !joinBtn.disabled) joinBtn.click();
 });
 </script>
 </body>
