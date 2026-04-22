@@ -3527,10 +3527,12 @@ async function loadQR() {
     const data = await res.json();
     if (data.qr_data_url) {
       img.src = data.qr_data_url;
-      // 모임장이 모임에 처음 도착하면 게스트 초대 모달을 자동 노출 (세션당 1회)
+      // 모임장이 모임에 처음 도착하면 게스트 초대 모달을 자동 노출 (세션당 1회).
+      // couples 팩은 2인 전용이라 자동 QR 모달 불필요 — suppress (2026-04-22 사용자 요청).
       try {
         const flag = `host_invite_shown_${state.roomCode}`;
-        if (!sessionStorage.getItem(flag)) {
+        const packId = state.room && state.room.pack_id;
+        if (!sessionStorage.getItem(flag) && packId !== 'couples') {
           sessionStorage.setItem(flag, '1');
           setTimeout(() => openQRModal(), 400);
         }
