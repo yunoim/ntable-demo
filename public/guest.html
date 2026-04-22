@@ -476,6 +476,37 @@
     animation: lazyPromptIn 0.32s cubic-bezier(0.4,0,0.2,1);
   }
   #lazyPromptCard[hidden] { display: none; }
+  /* 2026-04-22: 펼친 카드를 채팅창(#persistentChat, 하단 44vh) 바로 위 영역에 고정.
+     bottom 을 44vh+10px 로 잡아 채팅과 겹치지 않게 하고, top 은 top-bar 아래 60px 부터. */
+  #lazyPromptCard.open {
+    position: fixed;
+    z-index: 100;
+    left: 14px;
+    right: 14px;
+    top: 60px;
+    bottom: calc(44vh + 10px + env(safe-area-inset-bottom));
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -10px 32px rgba(0,0,0,0.5);
+    background: rgba(10,15,30,0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  /* waiting 화면은 채팅 높이가 동일 44vh, free 화면은 채팅이 top:108px~bottom:0 이라 카드 펼침은 intro/waiting 전용으로 제한 — 그 외 화면에서는 원래 flow 유지. */
+  body:not(.screen-intro):not(.screen-waiting) #lazyPromptCard.open {
+    position: static;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 14px 16px 10px;
+    max-height: 78vh;
+    box-shadow: none;
+    backdrop-filter: none;
+    background: rgba(212,168,67,0.08);
+  }
   @keyframes lazyPromptIn {
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
@@ -506,12 +537,18 @@
     border-top: 1px solid rgba(212,168,67,0.2);
     flex-direction: column;
     gap: 12px;
-    /* 하단 고정 채팅 패널(44vh)이 MBTI 이하를 가리는 문제: 카드 body 자체에서 스크롤 허용 */
     max-height: 42vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
   #lazyPromptCard.open .lazy-prompt-body { display: flex; }
+  /* 2026-04-22: 펼침 상태(fixed) — 카드가 flex 컨테이너이므로 body 가 flex:1 로 남은 공간 채우고 내부 스크롤. */
+  #lazyPromptCard.open .lazy-prompt-body {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
   .lazy-field { display: flex; flex-direction: column; gap: 5px; }
   .lazy-field-label {
     font-size: 11.5px;
@@ -1224,10 +1261,21 @@
     padding: 18px 16px 8px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0; /* 2026-04-22: 호스트 스타일 한 줄 포맷 — border-bottom 으로 구분, 간격은 .chat-msg padding 으로. */
     -webkit-overflow-scrolling: touch;
   }
   .chat-area::-webkit-scrollbar { display: none; }
+  /* 2026-04-22: 호스트 스타일 채팅 한 줄 포맷 통일. 레거시 .chat-bubble* / .chat-time 유지하되 실제 렌더는 .chat-msg 사용. */
+  .chat-msg {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(212,168,67,0.08);
+    line-height: 1.5;
+    color: var(--text-muted);
+    font-size: 14px;
+    word-break: break-word;
+  }
+  .chat-msg:last-child { border-bottom: none; }
+  .chat-msg strong { color: var(--gold-light); font-weight: 700; }
   .chat-bubble-wrap {
     display: flex;
     align-items: flex-end;
@@ -2049,6 +2097,14 @@ async function submitNickname() {
       toast(t('toasts.welcome_guest', { nick: nickname }));
     }
     connectWS();
+    // 2026-04-22: 닉네임 다음 단계로 이모지 카테고리 선택 모달 자동 호출 — 사용자 요청 (무조건 노출).
+    // join API 응답에 emoji 가 있으면 prefill 만 해두고 모달은 여전히 띄움 (사용자가 건너뛸 수 있도록 스킵 버튼 제공).
+    if (data && typeof data.emoji === 'string' && data.emoji) {
+      STATE.myProfile.emoji = data.emoji;
+    }
+    setTimeout(() => {
+      try { openEmojiPicker({ autoAfterJoin: true }); } catch (_) {}
+    }, 280);
   } catch (e) {
     msg.textContent = (typeof t === 'function' ? t('error_copy.server_down') : '서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.');
     btn.disabled = false;
@@ -2285,7 +2341,9 @@ function updateConnDot(status) {
 async function handleWSMessage(msg) {
   switch (msg.type) {
     case 'approved':
-      if (msg.uuid === STATE.uuid) {
+      // 2026-04-22: 탐구/자유대화/마무리 진행 중에 재송신된 approved 이벤트로 인해
+      // 화면이 intro 로 튕기는 문제(모바일 WS 재연결 등) 방어 — waiting 상태에서만 intro 로 이동.
+      if (msg.uuid === STATE.uuid && (STATE.currentState === 'waiting' || STATE.currentState === 'loading')) {
         await loadIntroData();
         switchScreen('intro');
       }
@@ -3291,19 +3349,12 @@ function anonLabel(u) {
 }
 
 function appendChat(message, side, fromUuid) {
+  // 2026-04-22: 호스트 페이지 채팅 포맷(.chat-msg 인라인 한 줄)에 맞춤 — 사용자 요청.
   const area = document.getElementById('chatArea');
   const wrap = document.createElement('div');
-  wrap.className = `chat-bubble-wrap ${side}`;
-
-  const now = new Date();
-  const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  wrap.className = 'chat-msg';
   const label = side === 'mine' ? '나' : anonLabel(fromUuid);
-
-  wrap.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:${side==='mine'?'flex-end':'flex-start'};gap:3px">
-      <div class="chat-time">${escHtml(label)} · ${time}</div>
-      <div class="chat-bubble ${side}">${escHtml(message)}</div>
-    </div>`;
+  wrap.innerHTML = `<strong>${escHtml(label)}</strong> · ${escHtml(message)}`;
   area.appendChild(wrap);
   area.scrollTop = area.scrollHeight;
 }
@@ -3329,44 +3380,103 @@ const PHOTO_MAX_BYTES = 250000; // ~180KB raw base64
 // 사진 업로드 기능 폐기 (2026-04-20) — 이모지 picker로 대체
 function openPhotoUpload() { openEmojiPicker(); }
 
-// 아바타 이모지 picker (inline modal)
-function openEmojiPicker() {
-  const EMOJI_CHOICES = ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦄','🐸','🦉','🦋','🌸','🌷','🌙','⭐','🔥','✨','🍀','💎'];
+// 2026-04-22: 카테고리별 이모지 피커 — join.html 의 EMOJI_CATEGORIES 구조 재사용.
+// 닉네임 입장 직후 자동 호출(autoAfterJoin) 또는 아바타 탭으로 수동 호출 모두 지원.
+const GUEST_EMOJI_CATEGORIES = [
+  { label: '표정 · 기분', emojis: ['😀','😊','🥰','😍','🤩','🤔','😎','😴','🤗','🥳','😌','🙃'] },
+  { label: '동물',        emojis: ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦋','🐧','🦄','🐳'] },
+  { label: '운동 · 활동', emojis: ['⚽','🏀','🎾','🥊','🏋️','🚴','🏃','🏄','🧘','🏊','🤸','🧗'] },
+  { label: '자연 · 날씨', emojis: ['🌸','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌴','🌈','⚡','🌟'] },
+  { label: '음식 · 음료', emojis: ['🍎','🍕','🍣','🍰','🍫','🍷','☕','🍜','🍓','🍹','🥐','🍦'] },
+  { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼'] },
+  { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'] },
+];
+
+function openEmojiPicker(opts) {
+  const options = opts || {};
+  const autoAfterJoin = !!options.autoAfterJoin;
   const curEmoji = (STATE.myProfile && STATE.myProfile.emoji) || '';
-  // 이미 떠 있으면 닫기만
+  // 이미 떠 있으면 닫기만 (단 autoAfterJoin 은 재진입 금지)
   let existing = document.getElementById('emoji-picker-modal');
-  if (existing) { existing.remove(); return; }
+  if (existing) { if (!autoAfterJoin) existing.remove(); return; }
+
+  // 현재 이모지가 속한 카테고리를 기본 탭으로
+  let startCatIdx = 0;
+  if (curEmoji) {
+    const found = GUEST_EMOJI_CATEGORIES.findIndex(c => c.emojis.includes(curEmoji));
+    if (found >= 0) startCatIdx = found;
+  }
+  let activeCatIdx = startCatIdx;
+  let pickedEmoji = curEmoji;
+
   const modal = document.createElement('div');
   modal.id = 'emoji-picker-modal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:1600;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const renderTabs = () => GUEST_EMOJI_CATEGORIES.map((cat, idx) => `
+    <button type="button" data-cat-idx="${idx}" style="padding:7px 11px;border-radius:999px;border:1px solid ${idx===activeCatIdx?'var(--gold)':'var(--gold-border)'};background:${idx===activeCatIdx?'rgba(212,168,67,0.22)':'transparent'};color:${idx===activeCatIdx?'var(--gold-light)':'var(--text-muted)'};font-size:12px;font-family:inherit;letter-spacing:0.02em;cursor:pointer;white-space:nowrap;">${escHtml(cat.label)}</button>
+  `).join('');
+
+  const renderGrid = () => {
+    const cat = GUEST_EMOJI_CATEGORIES[activeCatIdx] || GUEST_EMOJI_CATEGORIES[0];
+    return cat.emojis.map(e => {
+      const sel = pickedEmoji === e;
+      return `<button type="button" data-ep="${e}" style="font-size:24px;padding:8px 10px;background:${sel?'rgba(212,168,67,0.22)':'rgba(212,168,67,0.06)'};border:1px solid ${sel?'var(--gold)':'var(--gold-border)'};border-radius:10px;cursor:pointer;font-family:inherit;">${e}</button>`;
+    }).join('');
+  };
+
+  const titleText = autoAfterJoin ? '한 가지 이모지로 나를 표현해주세요' : '아바타 이모지';
+  const subText = autoAfterJoin ? '카테고리에서 골라도 좋고 직접 입력해도 돼요.' : '나를 표현하는 이모지 하나';
+  const skipBtn = autoAfterJoin
+    ? `<button type="button" id="emoji-picker-skip" style="flex:1;padding:11px;background:transparent;border:1px solid var(--gold-border);color:var(--text-muted);border-radius:10px;font-family:inherit;cursor:pointer;">건너뛰기</button>`
+    : `<button type="button" id="emoji-picker-cancel" style="flex:1;padding:11px;background:transparent;border:1px solid var(--gold-border);color:var(--white-dim);border-radius:10px;font-family:inherit;cursor:pointer;">취소</button>`;
+
   modal.innerHTML = `
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);" onclick="document.getElementById('emoji-picker-modal').remove()"></div>
-    <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:22px;max-width:420px;width:100%;">
-      <div style="font-family: var(--font-heading);font-size:20px;color:#fff;margin-bottom:6px;text-align:center;">아바타 이모지</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center;">나를 표현하는 이모지 하나</div>
-      <input type="text" id="emoji-picker-input" maxlength="4" value="${curEmoji}" placeholder="🙂 직접 입력" style="width:100%;text-align:center;font-size:28px;padding:12px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;color:#fff;font-family:inherit;margin-bottom:14px;">
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;">
-        ${EMOJI_CHOICES.map(e => `<button type="button" data-ep="${e}" style="font-size:24px;padding:8px 10px;background:${curEmoji===e?'rgba(212,168,67,0.22)':'rgba(212,168,67,0.06)'};border:1px solid ${curEmoji===e?'var(--gold)':'var(--gold-border)'};border-radius:10px;cursor:pointer;font-family:inherit;">${e}</button>`).join('')}
-      </div>
+    <div id="emoji-picker-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.72);"></div>
+    <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:20px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;">
+      <div style="font-family: var(--font-heading);font-size:20px;color:#fff;margin-bottom:6px;text-align:center;">${titleText}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;text-align:center;">${subText}</div>
+      <div id="emoji-picker-tabs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${renderTabs()}</div>
+      <div id="emoji-picker-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:140px;">${renderGrid()}</div>
+      <div style="font-size:11px;color:var(--gold);letter-spacing:0.04em;margin-bottom:6px;">직접 입력</div>
+      <input type="text" id="emoji-picker-input" maxlength="4" value="${curEmoji}" placeholder="🙂 예: 🦄" style="width:100%;text-align:center;font-size:26px;padding:11px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;color:#fff;font-family:inherit;margin-bottom:16px;">
       <div style="display:flex;gap:8px;">
-        <button type="button" onclick="document.getElementById('emoji-picker-modal').remove()" style="flex:1;padding:11px;background:transparent;border:1px solid var(--gold-border);color:var(--white-dim);border-radius:10px;font-family:inherit;cursor:pointer;">취소</button>
+        ${skipBtn}
         <button type="button" id="emoji-picker-save" style="flex:2;padding:11px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:10px;font-weight:700;font-family:inherit;cursor:pointer;">저장</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
-  const inp = document.getElementById('emoji-picker-input');
-  const saveBtn = document.getElementById('emoji-picker-save');
-  modal.querySelectorAll('[data-ep]').forEach(b => {
-    b.addEventListener('click', () => {
-      inp.value = b.dataset.ep;
-      modal.querySelectorAll('[data-ep]').forEach(x => {
-        const isSel = x.dataset.ep === inp.value;
-        x.style.background = isSel ? 'rgba(212,168,67,0.22)' : 'rgba(212,168,67,0.06)';
-        x.style.borderColor = isSel ? 'var(--gold)' : 'var(--gold-border)';
-      });
-    });
+
+  const backdrop = modal.querySelector('#emoji-picker-backdrop');
+  const tabsWrap = modal.querySelector('#emoji-picker-tabs');
+  const gridWrap = modal.querySelector('#emoji-picker-grid');
+  const inp = modal.querySelector('#emoji-picker-input');
+  const saveBtn = modal.querySelector('#emoji-picker-save');
+  const skipOrCancel = modal.querySelector(autoAfterJoin ? '#emoji-picker-skip' : '#emoji-picker-cancel');
+
+  const close = () => { modal.remove(); };
+  backdrop.addEventListener('click', () => { if (!autoAfterJoin) close(); });
+  if (skipOrCancel) skipOrCancel.addEventListener('click', close);
+
+  tabsWrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-cat-idx]');
+    if (!btn) return;
+    activeCatIdx = Number(btn.dataset.catIdx) || 0;
+    tabsWrap.innerHTML = renderTabs();
+    gridWrap.innerHTML = renderGrid();
   });
+
+  gridWrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ep]');
+    if (!btn) return;
+    pickedEmoji = btn.dataset.ep;
+    inp.value = pickedEmoji;
+    gridWrap.innerHTML = renderGrid();
+  });
+
+  inp.addEventListener('input', () => { pickedEmoji = (inp.value || '').slice(0, 4); });
+
   saveBtn.addEventListener('click', async () => {
     const v = (inp.value || '').slice(0, 4) || null;
     saveBtn.disabled = true;
@@ -3388,14 +3498,15 @@ function openEmojiPicker() {
         if (me) me.emoji = v;
         renderCarousel();
       }
-      modal.remove();
+      close();
       if (typeof showMiniToast === 'function') showMiniToast('✓ 아바타 저장');
     } catch (e) {
       saveBtn.disabled = false;
-      saveBtn.textContent = (typeof t === 'function' ? '저장 실패 · ' + t('buttons.retry') : '저장 실패 · 재시도');
+      saveBtn.textContent = '저장 실패 · 재시도';
     }
   });
-  setTimeout(() => inp.focus(), 80);
+
+  setTimeout(() => { if (inp) inp.focus(); }, 80);
 }
 
 function clearMyPhoto() {

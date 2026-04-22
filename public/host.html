@@ -1960,8 +1960,7 @@
         <!-- 모바일에서만 #user-menu 가 JS 로 이 슬롯으로 재배치됨 (데스크탑은 #phase-bar) -->
         <div id="mobile-more-slot"></div>
       </div>
-      <!-- 운영 지표 위젯 — 누적 통계. 2026-04-21: intro 화면에서 '참가자 수' 로 오해 유발되어 기본 숨김.
-           DOM 은 유지 (renderHostStats / loadHostCumulativeStats 가 여전히 접근). 관리자 대시보드에서 확인 가능. -->
+      <!-- 2026-04-22: 호스트 누적 실적 위젯 전체 주석처리 (사용자 요청).
       <div id="host-stats" class="host-stats" hidden>
         <div class="stat-line"><span class="stat-icon">🏠</span><span class="stat-text">누적 <strong id="stat-cum-rooms">0</strong>개 모임</span></div>
         <div class="stat-line"><span class="stat-icon">👥</span><span class="stat-text">참석 <strong id="stat-cum-people">0</strong>명</span></div>
@@ -1969,6 +1968,8 @@
         <div class="stat-line"><span class="stat-icon">💌</span><span class="stat-text">인스타 교환 <strong id="stat-cum-insta">0</strong>건</span></div>
         <div id="stat-login-hint" class="stat-login-hint" hidden>다른 기기에서도 누적 유지하려면 <a href="#" id="stat-login-link">로그인</a></div>
       </div>
+      -->
+      <div id="host-stats" class="host-stats" hidden aria-hidden="true"></div>
     </div>
     <!-- 사이드바 액션 버튼들은 상단 [📋 모임장 도구] 드롭다운으로 이전됨. 코드 보존(hidden) — 호환·접근성. -->
     <button type="button" id="qr-expand-btn" onclick="openQRModal()" aria-label="QR 크게 보기" hidden>🔍 QR 크게 보기</button>
@@ -3005,10 +3006,12 @@ function renderHostStats() {
 }
 
 async function loadHostCumulativeStats() {
+  // 2026-04-22: 상단바 누적 실적 위젯 주석처리됨 — 네트워크 호출·DOM 갱신 스킵.
+  const bar = document.getElementById('host-stats');
+  if (bar) bar.hidden = true;
+  return;
+  // eslint-disable-next-line no-unreachable
   if (!state.uuid) return;
-  // T-B0-10 (2026-04-22): stat bar 는 dating 팩 + 누적 rooms >= 1 에서만 노출.
-  // 나머지 팩(playlist-share, teambuilding, icebreaker, couples)은 매칭/인스타 지표가 0 으로 고정돼
-  // 헤더 면적만 낭비. 네트워크 호출도 생략해 불필요 트래픽 제거.
   const packId = state.room && state.room.pack_id;
   if (packId !== 'dating') {
     const bar = document.getElementById('host-stats');

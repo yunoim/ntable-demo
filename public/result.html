@@ -719,6 +719,23 @@
     .insta-btn { padding: 13px; font-size: 14px; }
     .insta-reveal { font-size: 20px; }
   }
+
+  /* 2026-04-22: 인스타 공유·교환·이미지 저장 관련 UI 전체 비활성화 (사용자 요청 — 작동 안 함).
+     NOTE: #share-card 는 성향 분석 메인 카드라 제외. #couple-card-capture 는 오프스크린 캡처 타깃. */
+  #insta-exchange-card,
+  #insta-exchange-btn,
+  #insta-btn,
+  #insta-inline-input,
+  #insta-result,
+  .insta-btn,
+  .insta-reveal,
+  #save-image-btn,
+  #insta-share-btn,
+  #couple-card-share-btn,
+  .share-actions,
+  #couple-card-capture {
+    display: none !important;
+  }
 </style>
 <script src="/sentry-init.js" data-page="result" defer></script>
 </head>
@@ -1106,7 +1123,12 @@
             'icebreaker':     '🤝 다음 모임 열기',
           };
           nextCta.textContent = NEXT_BY_PACK[data.pack_id] || '✨ 다음 모임 열기';
-          nextCta.href = data.pack_id ? `/create?pack=${encodeURIComponent(data.pack_id)}` : '/create';
+          // 2026-04-22: 둘이서(couples) 모드 종료 후 CTA 는 app.ntable.kr 최초 페이지(/)로 이동.
+          if (data.pack_id === 'couples') {
+            nextCta.href = '/';
+          } else {
+            nextCta.href = data.pack_id ? `/create?pack=${encodeURIComponent(data.pack_id)}` : '/create';
+          }
         }
       } catch (_) {}
 
@@ -1179,11 +1201,12 @@
         // 팩 정책상 매칭 섹션·mutuals 호출 없음 — 바로 다음 흐름으로.
       } else if (isCouplesPack) {
         // 2026-04-22: couples 팩은 매칭 보기 UI(우리 연애 케미) 제거 — 사용자 요청.
-        // section[data-page="1"] + 해당 pager dot 제거. sync() 가 live 쿼리 기반이라 index 재매핑 자동.
+        // 2026-04-22 (재수정): remove() 로 삭제 시 swiper/pager index 재매핑 불일치로
+        // 오늘의 질문(page2) 카드가 로딩중에서 행걸림. display:none 으로 DOM 은 유지.
         const page1 = document.querySelector('section[data-page="1"]');
-        if (page1) page1.remove();
+        if (page1) page1.style.display = 'none';
         const dot1 = document.querySelector('#pager-dots .pager-dot[data-dot="1"]');
-        if (dot1) dot1.remove();
+        if (dot1) dot1.style.display = 'none';
       } else {
       const mutualHtml = mutualPairs.length > 0 ? `
         <div class="match-frame" style="padding:22px;margin-bottom:18px;">
@@ -1424,9 +1447,13 @@
       `;
       exploreEl.innerHTML = hlHtml || '<div style="color:var(--subtext);text-align:center;padding:20px 0;font-size:13px;">탐구 데이터가 없어요</div>';
     } catch {
-      document.getElementById('match-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
-      document.getElementById('summary-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
-      document.getElementById('explore-content').innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      // 2026-04-22: null 가드 — couples 등에서 match-content 가 제거된 케이스에 에러로 exploreEl 업데이트까지 끊기지 않도록.
+      const _mc = document.getElementById('match-content');
+      if (_mc) _mc.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      const _sc = document.getElementById('summary-content');
+      if (_sc) _sc.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
+      const _ec = document.getElementById('explore-content');
+      if (_ec) _ec.innerHTML = '<span style="color:var(--subtext)">불러올 수 없어요.</span>';
     }
   }
 
@@ -1843,8 +1870,9 @@
       if (slot) slot.innerHTML = '';
     }
     const exCard = document.getElementById('insta-exchange-card');
-    const enabled = packDefaults && packDefaults.insta_exchange_enabled === true;
-    if (exCard) exCard.style.display = enabled ? '' : 'none';
+    // 2026-04-22: 인스타 교환/공유 기능 전면 비활성화 (사용자 요청) — pack 상관없이 강제 숨김.
+    const enabled = false;
+    if (exCard) exCard.style.display = 'none';
     // dating 팩은 인스타 교환이 모임의 핵심 기능 — 버튼 카피·스타일 강조
     if (enabled && packId === 'dating') {
       const btn = document.getElementById('insta-exchange-btn');
