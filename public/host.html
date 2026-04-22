@@ -2571,6 +2571,8 @@ async function ensureHostJoinedForCouples(myMember) {
         if (typeof renderProfiles === 'function') renderProfiles();
         modal.style.display = 'none';
         document.removeEventListener('keydown', blockEsc, true);
+        // 2026-04-22: 호스트 닉네임 등록 직후 이모지 카테고리 모달 자동 호출 — 사용자 요청.
+        setTimeout(() => { try { openHostEmojiPicker(); } catch (_) {} }, 260);
         resolve();
       } catch (_) {
         errEl.textContent = '서버 오류 — 잠시 후 다시 시도해주세요.';
@@ -2586,6 +2588,94 @@ async function ensureHostJoinedForCouples(myMember) {
       submit();
     };
   });
+}
+
+// 2026-04-22: 호스트용 카테고리 이모지 피커 — guest.html 과 동일 UX.
+const HOST_EMOJI_CATEGORIES = [
+  { label: '표정 · 기분', emojis: ['😀','😊','🥰','😍','🤩','🤔','😎','😴','🤗','🥳','😌','🙃'] },
+  { label: '동물',        emojis: ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦋','🐧','🦄','🐳'] },
+  { label: '운동 · 활동', emojis: ['⚽','🏀','🎾','🥊','🏋️','🚴','🏃','🏄','🧘','🏊','🤸','🧗'] },
+  { label: '자연 · 날씨', emojis: ['🌸','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌴','🌈','⚡','🌟'] },
+  { label: '음식 · 음료', emojis: ['🍎','🍕','🍣','🍰','🍫','🍷','☕','🍜','🍓','🍹','🥐','🍦'] },
+  { label: '취미 · 문화', emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼'] },
+  { label: '상징 · 기타', emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'] },
+];
+function openHostEmojiPicker() {
+  if (document.getElementById('host-emoji-picker-modal')) return;
+  const cur = (state.myProfile && state.myProfile.emoji) || '';
+  let activeIdx = 0;
+  if (cur) {
+    const f = HOST_EMOJI_CATEGORIES.findIndex(c => c.emojis.includes(cur));
+    if (f >= 0) activeIdx = f;
+  }
+  let picked = cur;
+  const modal = document.createElement('div');
+  modal.id = 'host-emoji-picker-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:1700;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const esc = (s) => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const renderTabs = () => HOST_EMOJI_CATEGORIES.map((c,i)=>`<button type="button" data-cat-idx="${i}" style="padding:7px 11px;border-radius:999px;border:1px solid ${i===activeIdx?'var(--gold)':'var(--gold-border)'};background:${i===activeIdx?'rgba(212,168,67,0.22)':'transparent'};color:${i===activeIdx?'var(--gold-light)':'var(--text-dim)'};font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;">${esc(c.label)}</button>`).join('');
+  const renderGrid = () => {
+    const c = HOST_EMOJI_CATEGORIES[activeIdx] || HOST_EMOJI_CATEGORIES[0];
+    return c.emojis.map(e => { const s = picked===e; return `<button type="button" data-ep="${e}" style="font-size:24px;padding:8px 10px;background:${s?'rgba(212,168,67,0.22)':'rgba(212,168,67,0.06)'};border:1px solid ${s?'var(--gold)':'var(--gold-border)'};border-radius:10px;cursor:pointer;font-family:inherit;">${e}</button>`; }).join('');
+  };
+  modal.innerHTML = `
+    <div id="host-ep-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.72);"></div>
+    <div style="position:relative;background:#141d35;border:1px solid var(--gold-border);border-radius:18px;padding:20px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;">
+      <div style="font-family: var(--font-heading);font-size:20px;color:#fff;margin-bottom:6px;text-align:center;">한 가지 이모지로 나를 표현해주세요</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;text-align:center;">카테고리에서 골라도 좋고 직접 입력해도 돼요.</div>
+      <div id="host-ep-tabs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${renderTabs()}</div>
+      <div id="host-ep-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:140px;">${renderGrid()}</div>
+      <div style="font-size:11px;color:var(--gold);letter-spacing:0.04em;margin-bottom:6px;">직접 입력</div>
+      <input type="text" id="host-ep-input" maxlength="4" value="${esc(cur)}" placeholder="🙂 예: 🦄" style="width:100%;text-align:center;font-size:26px;padding:11px;background:rgba(212,168,67,0.06);border:1px solid var(--gold-border);border-radius:10px;color:#fff;font-family:inherit;margin-bottom:16px;">
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="host-ep-skip" style="flex:1;padding:11px;background:transparent;border:1px solid var(--gold-border);color:var(--text-dim);border-radius:10px;font-family:inherit;cursor:pointer;">건너뛰기</button>
+        <button type="button" id="host-ep-save" style="flex:2;padding:11px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border:none;border-radius:10px;font-weight:700;font-family:inherit;cursor:pointer;">저장</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.querySelector('#host-ep-backdrop').addEventListener('click', close);
+  modal.querySelector('#host-ep-skip').addEventListener('click', close);
+  const tabs = modal.querySelector('#host-ep-tabs');
+  const grid = modal.querySelector('#host-ep-grid');
+  const inp = modal.querySelector('#host-ep-input');
+  tabs.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cat-idx]');
+    if (!b) return;
+    activeIdx = Number(b.dataset.catIdx) || 0;
+    tabs.innerHTML = renderTabs();
+    grid.innerHTML = renderGrid();
+  });
+  grid.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ep]');
+    if (!b) return;
+    picked = b.dataset.ep;
+    inp.value = picked;
+    grid.innerHTML = renderGrid();
+  });
+  inp.addEventListener('input', () => { picked = (inp.value || '').slice(0,4); });
+  modal.querySelector('#host-ep-save').addEventListener('click', async () => {
+    const v = (inp.value || '').slice(0,4) || null;
+    const saveBtn = modal.querySelector('#host-ep-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중…';
+    try {
+      const r = await fetch(`/api/rooms/${state.roomCode}/me/profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid: state.uuid, emoji: v }),
+      });
+      if (!r.ok) throw new Error('fail');
+      if (state.myProfile) state.myProfile.emoji = v; else state.myProfile = { emoji: v };
+      if (typeof renderProfiles === 'function') renderProfiles();
+      close();
+    } catch (_) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '저장 실패 · 재시도';
+    }
+  });
+  setTimeout(() => inp && inp.focus(), 80);
 }
 
 // T-26 (2026-04-22): 호스트 lazy prompt — couples 결과 페이지 인스타 공유 이미지에 호스트 프로필(gender/mbti/birth_year)
