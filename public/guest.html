@@ -2615,6 +2615,18 @@ async function handleWSMessage(msg) {
 }
 
 // closing phase 별로 section 토글
+// playlist-share(베스트 플리) 팩에서 MVP 투표 섹션 문구 override — 섹션 타이틀 + 힌트.
+// 다른 팩은 기본 '🏆 오늘의 주인공' 유지.
+function applyMvpSectionPackLabels() {
+  const isPlaylistPack = STATE.room && STATE.room.pack_id === 'playlist-share';
+  const titleEl = document.querySelector('#mvpSection .section-title');
+  const hintEl = document.querySelector('#mvpSection .section-block-hint');
+  if (titleEl) titleEl.textContent = isPlaylistPack ? '🎵 오늘의 베스트 플리 뽑기' : '🏆 오늘의 주인공';
+  if (hintEl) hintEl.textContent = isPlaylistPack
+    ? '오늘 가장 듣고 싶은 플리 한 개를 선택해주세요. (다시 누르면 취소)'
+    : '오늘 가장 인상 깊었던 분 한 명을 선택해주세요. (다시 누르면 취소)';
+}
+
 function applyClosingPhase(phase) {
   // 1:1 모임의 탐구 결과 발표 phase
   if (phase === 'closing-explore-result') {
@@ -2625,8 +2637,10 @@ function applyClosingPhase(phase) {
   const matchSec = document.getElementById('matchSection');
   const wait = document.getElementById('closingWaitMsg');
   if (!mvpSec || !matchSec) return; // 1:1 자동스킵 시엔 closing-content 가 oneonone 으로 교체됨
+  const isPlaylistPack = STATE.room && STATE.room.pack_id === 'playlist-share';
   switch (phase) {
     case 'closing-mvp':
+      applyMvpSectionPackLabels();
       mvpSec.hidden = false;
       matchSec.hidden = true;
       if (wait) wait.hidden = true;
@@ -2634,7 +2648,11 @@ function applyClosingPhase(phase) {
     case 'closing-mvp-result':
       mvpSec.hidden = true;
       matchSec.hidden = true;
-      if (wait) { wait.hidden = false; wait.querySelector('div:not(.closing-wait-icon)').textContent = '🏆 오늘의 주인공 발표 중…'; }
+      if (wait) {
+        wait.hidden = false;
+        const tailEl = wait.querySelector('div:not(.closing-wait-icon)');
+        if (tailEl) tailEl.textContent = isPlaylistPack ? '🎵 오늘의 베스트 플리 발표 중…' : '🏆 오늘의 주인공 발표 중…';
+      }
       break;
     case 'closing-match':
       mvpSec.hidden = true;
