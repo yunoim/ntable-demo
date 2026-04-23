@@ -749,14 +749,23 @@ router.get('/stats', async (req, res) => {
     for (const code of activeRooms) {
       participants += wsModule.getRoomClients(code).length;
     }
-    // 누적 통계: 의미 있는 모임만 카운트 — 최소 2명 이상 참여한 방 (모임장 단독 테스트 제외)
-    // 모든 통계가 동일 기준(2명+) 이어야 정합 — total_attendances · unique_people 도 1명짜리 방 제외
+    // 누적 통계: "모임장 포함 참여자 2명 이상" = 게스트(비호스트 멤버) 최소 1명 있는 방만 카운트.
+    // 호스트가 room_members 에 insert 되어 있든 아니든 +1 로 보정되도록 설계 → backfill 불필요.
+    const QUALIFY = `EXISTS (SELECT 1 FROM room_members rm WHERE rm.room_id = r.id AND rm.uuid <> r.host_uuid)`;
     const [totalRoomsRow, totalAttendRow, uniquePeopleRow] = await Promise.all([
-      pool.query('SELECT COUNT(*)::int AS cnt FROM rooms r WHERE (SELECT COUNT(*) FROM room_members rm WHERE rm.room_id = r.id) >= 2'),
-      pool.query(`SELECT COUNT(*)::int AS cnt FROM room_members rm
-                   WHERE (SELECT COUNT(*) FROM room_members rm2 WHERE rm2.room_id = rm.room_id) >= 2`),
-      pool.query(`SELECT COUNT(DISTINCT rm.uuid)::int AS cnt FROM room_members rm
-                   WHERE (SELECT COUNT(*) FROM room_members rm2 WHERE rm2.room_id = rm.room_id) >= 2`),
+      pool.query(`SELECT COUNT(*)::int AS cnt FROM rooms r WHERE ${QUALIFY}`),
+      pool.query(`SELECT COALESCE(SUM(n), 0)::int AS cnt FROM (
+                    SELECT 1 + COUNT(DISTINCT rm.uuid)::int AS n
+                      FROM rooms r
+                      JOIN room_members rm ON rm.room_id = r.id AND rm.uuid <> r.host_uuid
+                     GROUP BY r.id
+                  ) t`),
+      pool.query(`SELECT COUNT(DISTINCT u)::int AS cnt FROM (
+                    SELECT r.host_uuid AS u FROM rooms r WHERE ${QUALIFY}
+                    UNION
+                    SELECT rm.uuid AS u FROM rooms r
+                      JOIN room_members rm ON rm.room_id = r.id AND rm.uuid <> r.host_uuid
+                  ) z`),
     ]);
     res.json({
       active_rooms: activeRooms.length,
