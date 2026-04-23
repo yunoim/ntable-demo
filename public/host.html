@@ -2487,8 +2487,8 @@
         <div class="card-head">⏱ 자유대화 타이머</div>
         <div id="free-timer-display" style="font-size:34px;text-align:center;color:var(--gold-light);font-weight:700;letter-spacing:0.04em;padding:12px 0;font-variant-numeric:tabular-nums;">--:--</div>
         <div style="display:flex;gap:8px;justify-content:center;margin:8px 0 6px;">
+          <button type="button" class="btn btn-outline" id="timer-add-5" style="padding:8px 14px;font-size:13px;">+5분</button>
           <button type="button" class="btn btn-outline" id="timer-add-10" style="padding:8px 14px;font-size:13px;">+10분</button>
-          <button type="button" class="btn btn-outline" id="timer-add-20" style="padding:8px 14px;font-size:13px;">+20분</button>
           <button type="button" class="btn btn-outline" id="timer-add-30" style="padding:8px 14px;font-size:13px;">+30분</button>
         </div>
         <p style="font-size:12px;color:var(--text-muted);text-align:center;line-height:1.5;">자동 종료는 안 됩니다. 시간 보고 마무리로 →</p>
@@ -4583,7 +4583,7 @@ function bindEvents() {
 
   // 자리 셔플 폐기 — nudge 버튼 제거됨
   // 자유대화 타이머 +N분 추가 핸들러
-  ['timer-add-10', 'timer-add-20', 'timer-add-30'].forEach(id => {
+  ['timer-add-5', 'timer-add-10', 'timer-add-30'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
     btn.addEventListener('click', () => {
