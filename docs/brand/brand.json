@@ -1,7 +1,7 @@
 {
   "_comment": "ntable 카피 단일 소스. 하드코딩 방지용 참조 문서. 변경 시 docs/brand/ntable-brand-guide.md + Notion 원본도 동시 동기화.",
-  "_version": "1.3.0",
-  "_updated_at": "2026-04-23",
+  "_version": "1.4.0",
+  "_updated_at": "2026-04-30",
   "_applies_to": "ntable-app (app.ntable.kr) + ntable-landing (ntable.kr)",
 
   "name": "ntable",
@@ -214,6 +214,22 @@
     "start_need_one": "모임 시작 · 1명 더 필요해요",
     "room_code_copied": "✓ 복사됐어요"
   },
+
+  "lobby_tabs": {
+    "people": "사람",
+    "chat": "채팅",
+    "people_icon": "👥",
+    "chat_icon": "💬",
+    "system_intro": "── 익명으로 대화해요 ──",
+    "input_placeholder": "익명으로 보내기",
+    "send_aria": "보내기",
+    "tag_host": "호스트",
+    "tag_me": "나",
+    "guest_cta_hint": "모임장이 다음 순서를 준비하고 있어요"
+  },
+
+  "_lobby_tabs_policy": "2026-04-30 대기실 익명 채팅 통합 v1.0 (A안 · 세그먼트 탭). 호스트 #panel-intro / 게스트 #screenIntro 양쪽 동일 컴포넌트. 참가자 ↔ 채팅 토글, 채팅 탭 활성 시 호스트는 모임 시작 CTA → 입력창으로 swap, 게스트는 안내 텍스트 → 입력창으로 swap. tag_host/tag_me 는 말풍선 위 태그(닉네임 노출 X). guest_cta_hint 는 사람 탭에서 게스트가 보는 안내. system_intro 는 채팅 영역 첫 줄 시스템 텍스트.",
+
 
   "wizard": {
     "nickname": {

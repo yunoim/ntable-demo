@@ -1576,6 +1576,79 @@
     .matching-emoji { font-size: 46px; margin-bottom: 14px; }
     .matching-title { font-size: 20px; }
   }
+
+  /* === Lobby Tabs · 대기실 익명 채팅 통합 v1.0 (2026-04-30) ===
+   * screen-intro 에서만 노출. 참가자 ↔ 채팅 토글로 본문/채팅 swap.
+   * primitives 는 components.css 의 .lobby-tabs / .chat-bubble-v2 / .lobby-chat-input.
+   * 채팅 탭 활성 시 #persistentChat 을 풀 사이즈 (44vh → top:116px ~ bottom:0) 로 확장.
+   */
+  #lobby-tabs-guest {
+    padding: 12px 16px 8px;
+    margin: 0;
+    background: var(--navy);
+    position: relative;
+    z-index: 92;
+    flex-shrink: 0;
+  }
+  body:not(.screen-intro) #lobby-tabs-guest { display: none; }
+
+  /* people 탭 (default) — 채팅 숨김, 캐러셀 노출, 본문 padding 유지하되 sticky hint 자리 확보 */
+  body.screen-intro:not(.lobby-tab-chat) #persistentChat { display: none !important; }
+  body.screen-intro:not(.lobby-tab-chat) #screenIntro { padding-bottom: 64px !important; }
+
+  /* chat 탭 — 캐러셀/리스트 숨김, 채팅 풀 사이즈 */
+  body.screen-intro.lobby-tab-chat #lazyPromptCard,
+  body.screen-intro.lobby-tab-chat .carousel-wrapper,
+  body.screen-intro.lobby-tab-chat .carousel-hint,
+  body.screen-intro.lobby-tab-chat .carousel-indicators,
+  body.screen-intro.lobby-tab-chat #guest-mp-list-wrap {
+    display: none !important;
+  }
+  body.screen-intro.lobby-tab-chat #screenIntro { padding-bottom: 0 !important; }
+  body.screen-intro.lobby-tab-chat #persistentChat {
+    height: auto !important;
+    top: 116px !important; /* 56(top-bar) + 60(lobby-tabs sticky) */
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+  }
+
+  /* chat 탭 전용 v2 bubble 로그 — #chatArea 와 sibling */
+  #lobby-chat-log {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px 8px;
+    flex-direction: column;
+    -webkit-overflow-scrolling: touch;
+  }
+  #lobby-chat-log::-webkit-scrollbar { display: none; }
+  body.screen-intro.lobby-tab-chat #lobby-chat-log { display: flex; }
+  body.screen-intro.lobby-tab-chat #chatArea { display: none !important; }
+  #lobby-chat-log:empty::before {
+    content: attr(data-empty);
+    display: block;
+    color: var(--text-muted);
+    text-align: center;
+    font-size: 12.5px;
+    padding: 24px 0;
+  }
+
+  /* people 탭 하단 안내 — "모임장이 다음 순서를 준비하고 있어요" */
+  .lobby-cta-hint {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(10,15,30,0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    z-index: 95;
+  }
+  body:not(.screen-intro) .lobby-cta-hint,
+  body.screen-intro.lobby-tab-chat .lobby-cta-hint { display: none; }
 </style>
 <script src="/sentry-init.js" data-page="guest" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
@@ -1805,6 +1878,19 @@
     <span class="tab-indicator">👋 소개</span>
     <span class="room-tag" id="introRoomTag">—</span>
   </div>
+  <!-- §5 Lobby Tabs (v1.0 · 2026-04-30): 사람 ↔ 채팅. 호스트 #panel-intro 와 동일 패턴. -->
+  <div class="lobby-tabs" id="lobby-tabs-guest" role="tablist">
+    <button type="button" class="lobby-tab active" data-lobby-tab="people" role="tab" aria-selected="true">
+      <span class="lobby-tab-icon" aria-hidden="true">👥</span>
+      <span data-copy="lobby_tabs.people">사람</span>
+      <span class="lobby-tab-count" id="lobby-people-count">0</span>
+    </button>
+    <button type="button" class="lobby-tab" data-lobby-tab="chat" role="tab" aria-selected="false">
+      <span class="lobby-tab-icon" aria-hidden="true">💬</span>
+      <span data-copy="lobby_tabs.chat">채팅</span>
+      <span class="lobby-tab-badge" id="lobby-chat-unread" hidden>0</span>
+    </button>
+  </div>
   <!-- T-01 lazy prompt: 미입력 필드가 있을 때만 렌더됨 (JS: renderLazyPrompt) -->
   <div id="lazyPromptCard" hidden></div>
   <div class="carousel-wrapper" id="carouselWrapper"
@@ -1822,6 +1908,8 @@
     </button>
     <div id="guest-mp-list-body" class="mp-list-body"></div>
   </div>
+  <!-- §5 Lobby Tabs (v1.0 · 2026-04-30): people 탭에서만 노출되는 안내 (CSS) -->
+  <div class="lobby-cta-hint" id="lobbyGuestHint" data-copy="lobby_tabs.guest_cta_hint">모임장이 다음 순서를 준비하고 있어요</div>
 </div>
 
 <!-- Explore Screen -->
@@ -1868,6 +1956,8 @@
     <button type="button" class="qc-close" onclick="closeQuestionBanner()" aria-label="닫기">×</button>
   </div>
   <div class="chat-area" id="chatArea"></div>
+  <!-- §5 Lobby Tabs (v1.0 · 2026-04-30): screen-intro chat 탭 전용 v2 bubble 로그. 다른 컨텍스트에선 CSS 로 숨김. -->
+  <div id="lobby-chat-log" data-empty="아직 조용하네요. 첫 이야기를 꺼내볼까요?"></div>
   <!-- 플리 공유회 전용 빠른 반응 템플릿 (pack_id=playlist-share 일 때만 노출) -->
   <div id="guestChatTemplates" hidden style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0;"></div>
   <div class="chat-input-bar">
@@ -3459,6 +3549,8 @@ function renderCarousel() {
   const track = document.getElementById('carouselTrack');
   const indicators = document.getElementById('carouselIndicators');
   console.log('[guest] renderCarousel members:', STATE.members.length, 'track:', !!track);
+  // §5 Lobby Tabs (v1.0) — 사람 탭 카운트 동기.
+  if (typeof updateLobbyPeopleCount === 'function') updateLobbyPeopleCount(STATE.members.length);
   track.innerHTML = '';
   indicators.innerHTML = '';
 
@@ -3850,6 +3942,77 @@ function appendChat(message, side, fromUuid) {
   wrap.innerHTML = `<strong>${escHtml(label)}</strong> · ${escHtml(message)}`;
   area.appendChild(wrap);
   area.scrollTop = area.scrollHeight;
+  // §5 Lobby Tabs (v1.0 · 2026-04-30) — screen-intro chat 탭 전용 v2 bubble 동기 렌더 + 미수신 배지 업데이트.
+  try { appendLobbyChatBubble({ uuid: fromUuid, message: message, _isMine: side === 'mine' }); lobbyChatNotify(); } catch (_) {}
+}
+
+// === Lobby Tabs (대기실 익명 채팅 통합 v1.0 · 2026-04-30) ===
+let _lobbyChatUnread = 0;
+function setLobbyTab(tab) {
+  document.body.classList.remove('lobby-tab-people', 'lobby-tab-chat');
+  document.body.classList.add(`lobby-tab-${tab}`);
+  document.querySelectorAll('#lobby-tabs-guest .lobby-tab').forEach(btn => {
+    const isActive = btn.dataset.lobbyTab === tab;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  if (tab === 'chat') {
+    _lobbyChatUnread = 0;
+    updateLobbyChatBadge();
+    setTimeout(() => { try { document.getElementById('chatInput')?.focus(); } catch (_) {} }, 50);
+  } else {
+    try { document.getElementById('chatInput')?.blur(); } catch (_) {}
+  }
+}
+function updateLobbyChatBadge() {
+  const el = document.getElementById('lobby-chat-unread');
+  if (!el) return;
+  if (_lobbyChatUnread > 0) {
+    el.textContent = _lobbyChatUnread > 99 ? '99+' : String(_lobbyChatUnread);
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+function updateLobbyPeopleCount(n) {
+  const el = document.getElementById('lobby-people-count');
+  if (el) el.textContent = String(n || 0);
+}
+function appendLobbyChatBubble(msg) {
+  const log = document.getElementById('lobby-chat-log');
+  if (!log) return;
+  const isMe = !!msg._isMine || (msg.uuid && msg.uuid === STATE.uuid);
+  const hostUuid = STATE.room && STATE.room.host_uuid;
+  const isHost = hostUuid && msg.uuid && msg.uuid === hostUuid;
+  const row = document.createElement('div');
+  row.className = `chat-bubble-v2-row${isMe ? ' me' : ''}`;
+  let tag = '';
+  if (isMe) tag = (typeof t === 'function' ? t('lobby_tabs.tag_me') : null) || '나';
+  else if (isHost) tag = (typeof t === 'function' ? t('lobby_tabs.tag_host') : null) || '호스트';
+  if (tag) {
+    const tagEl = document.createElement('div');
+    tagEl.className = 'chat-bubble-v2-tag';
+    tagEl.textContent = tag;
+    row.appendChild(tagEl);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble-v2';
+  bubble.textContent = msg.message || msg.text || '';
+  row.appendChild(bubble);
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+function lobbyChatNotify() {
+  // screen-intro 의 chat 탭에 머무를 땐 배지 증가 X
+  if (document.body.classList.contains('screen-intro') && document.body.classList.contains('lobby-tab-chat')) return;
+  _lobbyChatUnread++;
+  updateLobbyChatBadge();
+}
+function initLobbyTabsGuest() {
+  document.querySelectorAll('#lobby-tabs-guest .lobby-tab').forEach(btn => {
+    btn.addEventListener('click', () => setLobbyTab(btn.dataset.lobbyTab));
+  });
+  setLobbyTab('people'); // default
 }
 
 function escHtml(s) {
@@ -4112,6 +4275,9 @@ function onIntroInput(e) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // §5 Lobby Tabs (v1.0 · 2026-04-30) — 대기실 익명 채팅 탭 초기화
+  if (typeof initLobbyTabsGuest === 'function') initLobbyTabsGuest();
+
   const input = document.getElementById('photoFileInput');
   if (!input) return;
   input.addEventListener('change', async (e) => {

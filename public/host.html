@@ -2337,6 +2337,59 @@
   @media (max-width: 768px) {
     body.tab-intro #lazyPromptCard:not(.nt-force-show) { display: none !important; }
   }
+
+  /* === Lobby Tabs · 대기실 익명 채팅 통합 v1.0 (2026-04-30) ===
+   * tab-intro 에서만 노출. people ↔ chat 토글로 본문/채팅 swap.
+   * primitives 는 components.css 의 .lobby-tabs / .chat-bubble-v2 / .lobby-chat-input.
+   */
+  /* 기본: tab-intro 진입 시 lobby-tab-people 자동 적용 (JS) */
+  body:not(.tab-intro) #lobby-tabs-host,
+  body:not(.tab-intro) #lobby-pane-chat,
+  body:not(.tab-intro) #lobby-chat-input-row {
+    display: none !important;
+  }
+  /* people 탭 (default) — 채팅 영역 숨김 */
+  body.tab-intro:not(.lobby-tab-chat) #lobby-pane-chat { display: none !important; }
+  /* chat 탭 — 사람 컨텐츠 + 기존 persistent 채팅 카드 + nudge + CTA 숨김, 입력창 swap */
+  body.tab-intro.lobby-tab-chat #profile-carousel,
+  body.tab-intro.lobby-tab-chat #mp-list-wrap,
+  body.tab-intro.lobby-tab-chat #no-approved,
+  body.tab-intro.lobby-tab-chat #lazyPromptCard,
+  body.tab-intro.lobby-tab-chat #persistentChatHost,
+  body.tab-intro.lobby-tab-chat #nt-lobby-nudge,
+  body.tab-intro.lobby-tab-chat #action-bar .primary-btn-wrap,
+  body.tab-intro.lobby-tab-chat #action-bar #close-room-btn,
+  body.tab-intro.lobby-tab-chat #action-bar .action-left {
+    display: none !important;
+  }
+  body.tab-intro.lobby-tab-chat #action-bar .action-right {
+    width: 100%;
+    flex: 1;
+  }
+  body.tab-intro.lobby-tab-chat #lobby-chat-input-row { display: flex !important; }
+
+  /* lobby-pane-chat: 채팅 로그 영역 */
+  #lobby-pane-chat {
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+  }
+  #lobby-chat-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+  }
+  #lobby-chat-log:empty::before {
+    content: attr(data-empty);
+    display: block;
+    color: var(--text-muted);
+    text-align: center;
+    font-size: 12.5px;
+    padding: 24px 0;
+  }
 </style>
 <script src="/sentry-init.js" data-page="host" defer></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
@@ -2452,6 +2505,24 @@
 
     <!-- INTRO -->
     <div class="panel active" id="panel-intro">
+      <!-- §5 Lobby Tabs (v1.0 · 2026-04-30): 사람 ↔ 채팅 토글. tab-intro 에서만 노출. -->
+      <div class="lobby-tabs" id="lobby-tabs-host" role="tablist">
+        <button type="button" class="lobby-tab active" data-lobby-tab="people" role="tab" aria-selected="true">
+          <span class="lobby-tab-icon" aria-hidden="true">👥</span>
+          <span data-copy="lobby_tabs.people">사람</span>
+          <span class="lobby-tab-count" id="lobby-people-count">0</span>
+        </button>
+        <button type="button" class="lobby-tab" data-lobby-tab="chat" role="tab" aria-selected="false">
+          <span class="lobby-tab-icon" aria-hidden="true">💬</span>
+          <span data-copy="lobby_tabs.chat">채팅</span>
+          <span class="lobby-tab-badge" id="lobby-chat-unread" hidden>0</span>
+        </button>
+      </div>
+      <!-- chat 탭 컨테이너: people 탭에선 CSS 로 숨김 -->
+      <div id="lobby-pane-chat" role="tabpanel" aria-labelledby="lobby-tab-chat">
+        <div class="chat-system-intro" data-copy="lobby_tabs.system_intro">── 익명으로 대화해요 ──</div>
+        <div id="lobby-chat-log" data-empty="아직 조용하네요. 첫 이야기를 꺼내볼까요?"></div>
+      </div>
       <!-- 2026-04-22: lazyPromptCard 는 상단 qr-side 로 이동 (사용자 요청). 이 자리는 placeholder. -->
       <div id="profile-carousel"></div>
       <!-- 모바일 전용 접이식 참가자 리스트 (PC 에서는 profile-carousel 사용) -->
@@ -2605,6 +2676,11 @@
         <span id="primary-btn-hint" style="display:none;"></span>
       </div>
       <button type="button" class="btn btn-red" id="close-room-btn" style="display:none;">모임 종료</button>
+      <!-- §5 Lobby Tabs (v1.0 · 2026-04-30): 채팅 탭 활성 시 CTA 자리에 노출되는 입력창. -->
+      <div id="lobby-chat-input-row" class="lobby-chat-input" hidden>
+        <input type="text" id="lobby-chat-input-field" maxlength="200" data-copy="lobby_tabs.input_placeholder" data-copy-attr="placeholder" placeholder="익명으로 보내기" aria-label="익명 채팅 메시지">
+        <button type="button" id="lobby-chat-input-send" data-copy="lobby_tabs.send_aria" data-copy-attr="aria-label" aria-label="보내기">↑</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4220,6 +4296,8 @@ function renderApprovedList() {
   const count = document.getElementById('approved-count');
   list.innerHTML = '';
   count.textContent = state.approvedUsers.length;
+  // §5 Lobby Tabs (v1.0) — 사람 탭 카운트 동기.
+  if (typeof updateLobbyPeopleCount === 'function') updateLobbyPeopleCount(state.approvedUsers.length);
   renderHostStats();
   // intro 단계 시작 버튼 실시간 갱신 (참가자 증감 반영)
   if (typeof updatePrimaryButton === 'function' && state.activeTab === 'intro') updatePrimaryButton();
@@ -4682,6 +4760,87 @@ function appendChatMsg(msg) {
   div.innerHTML = `<strong>${escHtml(label)}</strong> · ${escHtml(msg.message || msg.text || '')}`;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+  // §5 Lobby Tabs (v1.0 · 2026-04-30) — 대기실 익명 채팅 v2 bubble 동기 렌더 + 미수신 배지 업데이트.
+  try { appendLobbyChatBubble(msg); lobbyChatNotify(); } catch (_) {}
+}
+
+// === Lobby Tabs (대기실 익명 채팅 통합 v1.0 · 2026-04-30) ===
+let _lobbyChatUnread = 0;
+function setLobbyTab(tab) {
+  document.body.classList.remove('lobby-tab-people', 'lobby-tab-chat');
+  document.body.classList.add(`lobby-tab-${tab}`);
+  document.querySelectorAll('#lobby-tabs-host .lobby-tab').forEach(btn => {
+    const isActive = btn.dataset.lobbyTab === tab;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  if (tab === 'chat') {
+    _lobbyChatUnread = 0;
+    updateLobbyChatBadge();
+    setTimeout(() => { try { document.getElementById('lobby-chat-input-field')?.focus(); } catch (_) {} }, 50);
+  }
+}
+function updateLobbyChatBadge() {
+  const el = document.getElementById('lobby-chat-unread');
+  if (!el) return;
+  if (_lobbyChatUnread > 0) {
+    el.textContent = _lobbyChatUnread > 99 ? '99+' : String(_lobbyChatUnread);
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+function updateLobbyPeopleCount(n) {
+  const el = document.getElementById('lobby-people-count');
+  if (el) el.textContent = String(n || 0);
+}
+function appendLobbyChatBubble(msg) {
+  const log = document.getElementById('lobby-chat-log');
+  if (!log) return;
+  const isMe = msg.uuid && msg.uuid === state.uuid;
+  const hostUuid = state.room && state.room.host_uuid;
+  const isHost = hostUuid && msg.uuid && msg.uuid === hostUuid;
+  const row = document.createElement('div');
+  row.className = `chat-bubble-v2-row${isMe ? ' me' : ''}`;
+  let tag = '';
+  if (isMe) tag = (typeof t === 'function' ? t('lobby_tabs.tag_me') : null) || '나';
+  else if (isHost) tag = (typeof t === 'function' ? t('lobby_tabs.tag_host') : null) || '호스트';
+  if (tag) {
+    const tagEl = document.createElement('div');
+    tagEl.className = 'chat-bubble-v2-tag';
+    tagEl.textContent = tag;
+    row.appendChild(tagEl);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble-v2';
+  bubble.textContent = msg.message || msg.text || '';
+  row.appendChild(bubble);
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+function lobbyChatNotify() {
+  // tab-intro 의 chat 탭에 머무를 땐 배지 증가 X (이미 보고 있음)
+  if (document.body.classList.contains('tab-intro') && document.body.classList.contains('lobby-tab-chat')) return;
+  _lobbyChatUnread++;
+  updateLobbyChatBadge();
+}
+function initLobbyTabsHost() {
+  document.querySelectorAll('#lobby-tabs-host .lobby-tab').forEach(btn => {
+    btn.addEventListener('click', () => setLobbyTab(btn.dataset.lobbyTab));
+  });
+  setLobbyTab('people'); // default
+  const inp = document.getElementById('lobby-chat-input-field');
+  const send = document.getElementById('lobby-chat-input-send');
+  const submit = () => {
+    const text = (inp && inp.value || '').trim();
+    if (!text) return;
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      state.ws.send(JSON.stringify({ type: 'chat', message: text }));
+    }
+    inp.value = '';
+  };
+  if (send) send.addEventListener('click', submit);
+  if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
 }
 
 // ── PRIMARY BUTTON UPDATE ─────────────────────────
@@ -4908,6 +5067,9 @@ function bindEvents() {
   };
   if (chatSend) chatSend.addEventListener('click', sendChat);
   if (chatInp) chatInp.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+
+  // §5 Lobby Tabs (v1.0 · 2026-04-30) — 대기실 익명 채팅 탭 초기화
+  if (typeof initLobbyTabsHost === 'function') initLobbyTabsHost();
 
   document.getElementById('primary-btn').addEventListener('click', onPrimary);
   document.getElementById('back-btn').addEventListener('click', onBack);
