@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "prepare": "husky"
   },
   "dependencies": {
     "@sentry/node": "^10.49.0",
@@ -18,5 +19,8 @@
     "qrcode": "^1.5.4",
     "uuid": "^10.0.0",
     "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
