@@ -315,6 +315,16 @@ joinInput.addEventListener('keydown', (e) => {
     if (demo !== 'ntable') return;
     const TARGET = '/room/DEMONT';
 
+    // 호스트 흔적 제거 — admin OAuth 로 데모 호스트 한 번 진입했던 같은 브라우저에서
+    // /demo 다시 들어오면 demo_uuid='demo-host-001' 이 박혀 호스트로 인식됨. 강제 clear.
+    try {
+      const cur = localStorage.getItem('demo_uuid');
+      if (cur === 'demo-host-001') {
+        localStorage.removeItem('demo_uuid');
+        localStorage.removeItem('preferred_nickname');
+      }
+    } catch (_) {}
+
     // 호스트 카드 — 기존 listener 가 /create 또는 next 로 보내려 함.
     // cloneNode 로 기존 listener 제거 후 데모방 게스트 진입으로 교체.
     const hostBtn = document.getElementById('roleHostBtn');
@@ -339,10 +349,9 @@ joinInput.addEventListener('keydown', (e) => {
         location.href = TARGET;
       });
 
-      // 코드 input 의 length 기반 disabled 토글이 우리 버튼을 다시 disable 하지 않게.
-      // 기존 listener 가 입력시 length !== 6 이면 disabled=true 로 만들지만, 데모 모드는 무관.
       const joinInputEl = document.getElementById('joinCodeInput');
       if (joinInputEl) {
+        // 코드 input 의 length 기반 disabled 토글이 우리 버튼을 다시 disable 하지 않게.
         joinInputEl.addEventListener('input', () => {
           newJoinBtn.disabled = false;
         });
@@ -350,6 +359,13 @@ joinInput.addEventListener('keydown', (e) => {
         joinInputEl.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') { e.preventDefault(); newJoinBtn.click(); }
         });
+      }
+
+      // 모달에 "데모: 아무 코드 OK" 안내 추가 (모달 sub 텍스트 옆 또는 input 위).
+      const subEl = document.querySelector('#joinModal .cd-body');
+      if (subEl && !subEl.dataset.demoNotice) {
+        subEl.innerHTML = '아무 6자리 코드든 입력해도 같은 데모방으로 들어가요.<br><span style="opacity:0.7;font-size:12px;">(예: DEMONT)</span>';
+        subEl.dataset.demoNotice = '1';
       }
     }
   } catch (_) {}

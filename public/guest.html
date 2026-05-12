@@ -1916,7 +1916,7 @@
 <div class="screen" id="screenExplore">
   <div class="top-bar">
     <span class="logo">ntable</span>
-    <span class="tab-indicator">🔍 질문</span>
+    <span class="room-tag" id="exploreCountdown" hidden style="background:rgba(212,168,67,0.18);color:#d4a843;border:1px solid rgba(212,168,67,0.4);"></span>
     <span class="room-tag" id="exploreProgress">0 / 13</span>
   </div>
   <div class="question-area" id="questionArea">
@@ -2733,6 +2733,27 @@ async function handleWSMessage(msg) {
     case 'state_update': {
       const { current_tab, question_index } = msg.state || {};
       console.log('[guest] state_update', current_tab, 'q=', question_index, 'curScreen=', STATE.currentState);
+      // 데모방 자동진행 ticker payload — countdown 시작 (top-bar 의 exploreCountdown span 갱신)
+      if (msg.demo && msg.demo.tick_started_at && msg.demo.tick_seconds) {
+        try {
+          const cdEl = document.getElementById('exploreCountdown');
+          const endsAt = Date.parse(msg.demo.tick_started_at) + msg.demo.tick_seconds * 1000;
+          if (window.__demoCdTimer) clearInterval(window.__demoCdTimer);
+          const drawCd = () => {
+            const left = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+            if (cdEl) {
+              cdEl.hidden = false;
+              cdEl.textContent = '⏱ ' + left + 's';
+            }
+            if (left <= 0 && window.__demoCdTimer) {
+              clearInterval(window.__demoCdTimer);
+              window.__demoCdTimer = null;
+            }
+          };
+          drawCd();
+          window.__demoCdTimer = setInterval(drawCd, 1000);
+        } catch (_) {}
+      }
       if (current_tab === 'intro') {
         switchScreen('intro');
         try { await loadIntroData(); } catch (e) { console.warn('loadIntroData', e); }

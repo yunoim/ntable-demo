@@ -149,7 +149,9 @@ app.get('/admin', (req, res) => {
 // /ai    → AI 강의 도입부용 데모 (DEMOAI). 카드 분기 skip — 바로 /room/DEMOAI 진입.
 //          닉네임 슬림 온보딩은 join.html 이 처리.
 app.get('/demo', (req, res) => {
-  res.redirect(302, '/?demo=ntable&role=guest&code=DEMONT&next=/room/DEMONT');
+  // ?role=guest 제거 — 자동 모달 오픈 X, 카드 분기 화면 그대로 보여줌.
+  // 사용자가 게스트 카드를 직접 클릭해야 모달이 뜸 (의도된 UX).
+  res.redirect(302, '/?demo=ntable&next=/room/DEMONT');
 });
 app.get('/ai', (req, res) => {
   res.redirect(302, '/room/DEMOAI');
