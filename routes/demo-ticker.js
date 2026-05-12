@@ -62,6 +62,8 @@ async function sweepOnce() {
 
   for (const room of demoRooms) {
     try {
+      // ai 데모는 호스트가 핸드폰으로 직접 진행 — ticker 건너뜀.
+      if (room.demo_kind === 'ai') continue;
       const state = room.state_json || {};
       // 호스트 takeover timeout 처리 — host_active=true 인데 host_active_at 이
       // 30분 이전이면 자동으로 풀고 진행 재개 (호스트가 브라우저 닫고 안 돌아온 경우).

@@ -360,8 +360,10 @@ joinInput.addEventListener('keydown', (e) => {
       }
 
       // 모달에 "데모: 아무 코드 OK" 안내 추가 (모달 sub 텍스트 옆 또는 input 위).
+      // data-copy 제거 — 안 그러면 brand.js 의 applyCopyToDOM 이 async 로 home.role_modal_sub 로 덮어씀.
       const subEl = document.querySelector('#joinModal .cd-body');
       if (subEl && !subEl.dataset.demoNotice) {
+        subEl.removeAttribute('data-copy');
         subEl.innerHTML = '아무 6자리 코드든 입력해도 같은 데모방으로 들어가요.<br><span style="opacity:0.7;font-size:12px;">(예: DEMONT)</span>';
         subEl.dataset.demoNotice = '1';
       }

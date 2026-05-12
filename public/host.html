@@ -4944,9 +4944,13 @@ function updatePrimaryButton() {
     case 'intro':
       btn.style.display = 'inline-flex';
       // 최소 2명(모임장 포함) 이상이어야 시작 가능. 미충족 사유는 라벨에 통합 (§4).
+      // 단, 데모방은 게스트 0명 (호스트 단독) 으로도 시작 허용 (체험·시연 동선).
+      // 데모 시드는 host_role='host_only' 라 호스트가 approvedUsers 에 미포함 — minRequired=0.
       {
         const total = state.approvedUsers.length;
-        const canStart = total >= 2;
+        const isDemo = !!(state.room && state.room.demo_kind);
+        const minRequired = isDemo ? 0 : 2;
+        const canStart = total >= minRequired;
         btn.disabled = !canStart;
         if (canStart) {
           btn.textContent = (window.t ? t('lobby.start_ready') : '모임 시작');
@@ -4954,7 +4958,7 @@ function updatePrimaryButton() {
           btn.style.opacity = '';
           btn.style.cursor = '';
         } else {
-          const need = Math.max(1, 2 - total);
+          const need = Math.max(1, minRequired - total);
           btn.textContent = (window.t ? t('lobby.start_need_one') : `모임 시작 · ${need}명 더 필요해요`);
           btn.classList.add('btn-soft');
           btn.style.opacity = '';
