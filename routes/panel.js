@@ -144,11 +144,19 @@ router.get('/panel/rooms/:code', requireAdmin, async (req, res) => {
 router.post('/panel/rooms/:code/close', requireAdmin, async (req, res) => {
   const { code } = req.params;
   try {
+    // 영구 데모방은 admin 도 종료 불가 (잘못 누르면 /demo · /ai 가 깨짐).
     const result = await pool.query(
-      "UPDATE rooms SET status = 'closed' WHERE room_code = $1 RETURNING id",
+      "UPDATE rooms SET status = 'closed' WHERE room_code = $1 AND demo_kind IS NULL RETURNING id",
       [code]
     );
-    if (!result.rows.length) return res.status(404).json({ error: 'room not found' });
+    if (!result.rows.length) {
+      // 데모방이거나 미존재 — 사유 구분해서 응답
+      const check = await pool.query('SELECT id, demo_kind FROM rooms WHERE room_code = $1', [code]);
+      if (check.rows.length && check.rows[0].demo_kind) {
+        return res.status(403).json({ error: 'demo_room_cannot_be_closed' });
+      }
+      return res.status(404).json({ error: 'room not found' });
+    }
 
     const wsModule = require('./ws');
     try { wsModule.broadcastToRoom(code, { type: 'room_closed' }); } catch {}

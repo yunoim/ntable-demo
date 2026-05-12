@@ -634,12 +634,17 @@ router.post('/rooms/:code/close', async (req, res) => {
   const host_uuid = req.body.host_uuid || req.body.uuid;
 
   const room = await pool.query(
-    'SELECT id, host_uuid FROM rooms WHERE room_code = $1',
+    'SELECT id, host_uuid, demo_kind FROM rooms WHERE room_code = $1',
     [code]
   );
   if (room.rows.length === 0) return res.status(404).json({ error: 'room not found' });
   if (room.rows[0].host_uuid !== host_uuid) {
     return res.status(403).json({ error: 'not authorized' });
+  }
+  // 영구 데모방은 호스트가 종료 못함 — 잘못 누르면 /demo · /ai 가 깨짐.
+  // 대신 host_active=false 만 풀어 자동진행 재개. 종료 자체는 unreachable.
+  if (room.rows[0].demo_kind) {
+    return res.status(403).json({ error: 'demo_room_cannot_be_closed' });
   }
 
   await pool.query("UPDATE rooms SET status = 'closed' WHERE room_code = $1", [code]);

@@ -404,8 +404,9 @@ function init(server) {
           }
           rooms[room_code].hostGraceTimer = setTimeout(async () => {
             try {
+              // 영구 데모방은 host grace timeout 으로 닫지 않음 — 24시간 항상 open 유지.
               await pool.query(
-                "UPDATE rooms SET status = 'closed' WHERE room_code = $1 AND status != 'closed'",
+                "UPDATE rooms SET status = 'closed' WHERE room_code = $1 AND status != 'closed' AND demo_kind IS NULL",
                 [room_code]
               );
               broadcastToRoom(room_code, {
