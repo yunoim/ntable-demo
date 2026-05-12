@@ -2768,6 +2768,13 @@ async function handleWSMessage(msg) {
       } else if (current_tab === 'free') {
         switchScreen('free');
       } else if (current_tab === 'closing') {
+        // 데모방은 closing 진입 = 한 사이클 완료. 결과(AI 성향) 페이지로 즉시 이동.
+        // result.html 에서 본인 성향 카드 확인 → 시연 종료. 새 사이클은 새 게스트로 시작.
+        if (STATE.room && STATE.room.demo_kind) {
+          location.replace('/result?room=' + encodeURIComponent(STATE.roomCode)
+            + '&uuid=' + encodeURIComponent(STATE.uuid));
+          return;
+        }
         switchScreen('closing');
         try { await loadClosingData(); } catch (e) { console.warn('loadClosingData', e); }
         applyClosingPhase(msg.state.phase || 'closing');
@@ -2781,6 +2788,16 @@ async function handleWSMessage(msg) {
       break;
     case 'vote_result':
       renderVoteResult(msg.question_id, msg.counts);
+      // 데모방 실시간 voter 표시 — 다른 참가자가 답하면 상단 토스트.
+      if (msg.voter && msg.voter.uuid && msg.voter.uuid !== STATE.uuid) {
+        try {
+          const el = document.createElement('div');
+          el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);background:rgba(212,168,67,0.94);color:#0a0f1e;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.35);transition:opacity 0.3s;pointer-events:none;';
+          el.textContent = (msg.voter.emoji || '🙂') + ' ' + (msg.voter.nickname || '익명') + ' → ' + (msg.voter.answer || '');
+          document.body.appendChild(el);
+          setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 1800);
+        } catch (_) {}
+      }
       break;
     case 'nudge':
       showNudge(msg.message || '자리를 이동해볼까요 🔀');

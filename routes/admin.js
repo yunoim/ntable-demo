@@ -315,7 +315,19 @@ router.post('/rooms/:code/vote', async (req, res) => {
       if (ans) counts[ans] = (counts[ans] || 0) + 1;
     }
 
-    broadcastToRoom(code, { type: 'vote_result', question_id, counts });
+    // voter 정보 — 데모방 실시간 표시용 (누가 어느 옵션 골랐는지 닉/이모지)
+    let voter = null;
+    try {
+      const voterRes = await pool.query(
+        'SELECT nickname, emoji FROM room_members WHERE room_id = $1 AND uuid = $2',
+        [room_id, uuid]
+      );
+      if (voterRes.rows.length) {
+        voter = { uuid, nickname: voterRes.rows[0].nickname, emoji: voterRes.rows[0].emoji || '', answer };
+      }
+    } catch (_) { /* voter 조회 실패해도 vote_result 는 broadcast */ }
+
+    broadcastToRoom(code, { type: 'vote_result', question_id, counts, voter });
     res.json({ counts });
   } catch (err) {
     logDbError(res, 'POST /api/rooms/:code/vote', err, { code: req.params.code });

@@ -168,7 +168,7 @@ router.get('/rooms/:code', async (req, res) => {
   const { code } = req.params;
   try {
     const result = await pool.query(
-      'SELECT id, room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled, instagram_collect, meeting_at FROM rooms WHERE room_code = $1',
+      'SELECT id, room_code, title, host_uuid, host_role, status, question_count, pack_id, display_fields, birth_year_format, display_mode, photo_enabled, region_detail, closing_steps, free_chat_timer_minutes, free_chat_chat_enabled, free_chat_topic_card_enabled, instagram_collect, meeting_at, demo_kind FROM rooms WHERE room_code = $1',
       [code]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'room not found' });
