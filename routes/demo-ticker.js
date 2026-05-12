@@ -113,6 +113,9 @@ async function sweepOnce() {
         current_tab: phase === 'closing' ? 'closing' : 'explore',
         // 기존 게스트/호스트 화면 호환 — current_question_id 1-indexed.
         current_question_id: phase === 'closing' ? questionCount : qi + 1,
+        // guest.html state_update 핸들러가 보는 키 (0-indexed array index 용).
+        question_index: qi,
+        demo_phase: phase,
         demo_cycle_id: cycleId,
         demo_question_index: qi,
         demo_tick_started_at: new Date(startedAt).toISOString(),

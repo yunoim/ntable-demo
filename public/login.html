@@ -315,14 +315,12 @@ joinInput.addEventListener('keydown', (e) => {
     if (demo !== 'ntable') return;
     const TARGET = '/room/DEMONT';
 
-    // 호스트 흔적 제거 — admin OAuth 로 데모 호스트 한 번 진입했던 같은 브라우저에서
-    // /demo 다시 들어오면 demo_uuid='demo-host-001' 이 박혀 호스트로 인식됨. 강제 clear.
+    // 데모 시연 컨텍스트는 매 진입마다 신규 게스트가 의도 — localStorage 무조건 clear.
+    // 같은 시크릿 창 재진입이나 admin 호스트 진입 흔적('demo-host-001') 모두 정리.
+    // 효과: ensureUuid() 가 새 uuid 발급 → me.joined=false → /join 슬림 온보딩 정상 노출.
     try {
-      const cur = localStorage.getItem('demo_uuid');
-      if (cur === 'demo-host-001') {
-        localStorage.removeItem('demo_uuid');
-        localStorage.removeItem('preferred_nickname');
-      }
+      localStorage.removeItem('demo_uuid');
+      localStorage.removeItem('preferred_nickname');
     } catch (_) {}
 
     // 호스트 카드 — 기존 listener 가 /create 또는 next 로 보내려 함.
