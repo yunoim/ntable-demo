@@ -256,24 +256,25 @@ async function initDB() {
       if (e.code !== '42710' && e.code !== '42P07') throw e;
     }
 
-    // 데모방 사이클 — 일반 방은 0, 영구 데모방은 1씩 증가하며 누적.
-    // UNIQUE 키를 (uuid, room_id, cycle_id) 로 확장해 같은 게스트가 다른 사이클에
-    // 들어와도 충돌 없이 결과 보존. 일반 방은 cycle_id=0 으로 zero regression.
+    // 데모방 사이클 — 컬럼은 보존 (ticker 가 1씩 증가시켜 표시용).
+    // UNIQUE 키는 (uuid, room_id) 그대로. admin.js 의 4개 ON CONFLICT (uuid, room_id)
+    // 패턴(vote · vote/mvp · vote/match · finish)이 UNIQUE 재정의 시 ON CONFLICT
+    // specification 에러로 전면 다운되므로 (uuid, room_id) 키 유지가 필수.
+    // 데모방 multi-cycle 결과 영구 보존은 v2 — 현재는 row 1개에 cycle wrap 갱신.
     try {
       await client.query(`ALTER TABLE member_results ADD COLUMN cycle_id INTEGER NOT NULL DEFAULT 0`);
     } catch (e) {
       if (e.code !== '42701') throw e;
     }
-    // 기존 UNIQUE (uuid, room_id) 제약을 (uuid, room_id, cycle_id) 로 교체.
-    // 이미 위에서 (uuid, room_id) 가 붙어있는 상태이므로 drop 먼저.
+    // 0853e87 머지로 prod 에 (uuid, room_id, cycle_id) 제약이 잠깐 들어간 상태 복구.
     try {
-      await client.query(`ALTER TABLE member_results DROP CONSTRAINT IF EXISTS member_results_uuid_room_id_key`);
+      await client.query(`ALTER TABLE member_results DROP CONSTRAINT IF EXISTS member_results_uuid_room_cycle_key`);
     } catch (_) {}
     try {
       await client.query(`
         ALTER TABLE member_results
-        ADD CONSTRAINT member_results_uuid_room_cycle_key
-        UNIQUE (uuid, room_id, cycle_id)
+        ADD CONSTRAINT member_results_uuid_room_id_key
+        UNIQUE (uuid, room_id)
       `);
     } catch (e) {
       if (e.code !== '42710' && e.code !== '42P07') throw e;
