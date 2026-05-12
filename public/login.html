@@ -305,6 +305,55 @@ joinInput.addEventListener('keydown', (e) => {
     }
   } catch (_) {}
 })();
+
+// ?demo=ntable — 영구 데모방 진입 시 어떤 카드/액션을 골라도 DEMONT 게스트로 강제.
+// (/ai 는 server.js 에서 /room/DEMOAI 로 직접 redirect 하므로 여기 로직 안 거침.)
+(() => {
+  try {
+    const qs = new URLSearchParams(location.search);
+    const demo = (qs.get('demo') || '').toLowerCase();
+    if (demo !== 'ntable') return;
+    const TARGET = '/room/DEMONT';
+
+    // 호스트 카드 — 기존 listener 가 /create 또는 next 로 보내려 함.
+    // cloneNode 로 기존 listener 제거 후 데모방 게스트 진입으로 교체.
+    const hostBtn = document.getElementById('roleHostBtn');
+    if (hostBtn) {
+      const newHost = hostBtn.cloneNode(true);
+      hostBtn.parentNode.replaceChild(newHost, hostBtn);
+      newHost.addEventListener('click', () => {
+        try { ensureUuid(); } catch (_) {}
+        location.href = TARGET;
+      });
+    }
+
+    // 게스트 카드 — 클릭 시 모달 오픈은 그대로 유지. 모달 입장 버튼만 데모방으로 강제.
+    const oldJoinBtn = document.getElementById('joinCodeBtn');
+    if (oldJoinBtn) {
+      const newJoinBtn = oldJoinBtn.cloneNode(true);
+      newJoinBtn.disabled = false;
+      newJoinBtn.removeAttribute('disabled');
+      oldJoinBtn.parentNode.replaceChild(newJoinBtn, oldJoinBtn);
+      newJoinBtn.addEventListener('click', () => {
+        try { ensureUuid(); } catch (_) {}
+        location.href = TARGET;
+      });
+
+      // 코드 input 의 length 기반 disabled 토글이 우리 버튼을 다시 disable 하지 않게.
+      // 기존 listener 가 입력시 length !== 6 이면 disabled=true 로 만들지만, 데모 모드는 무관.
+      const joinInputEl = document.getElementById('joinCodeInput');
+      if (joinInputEl) {
+        joinInputEl.addEventListener('input', () => {
+          newJoinBtn.disabled = false;
+        });
+        // 엔터 키도 새 버튼 클릭으로
+        joinInputEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); newJoinBtn.click(); }
+        });
+      }
+    }
+  } catch (_) {}
+})();
 </script>
 </body>
 </html>

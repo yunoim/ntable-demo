@@ -144,14 +144,15 @@ app.get('/admin', (req, res) => {
 });
 
 // ── 영구 데모방 진입 경로 ──────────────────────────────────────────────
-// /demo  → ntable 홍보용 데모 (room_code: DEMONT, pack: ntable-showcase)
-// /ai    → AI 강의 도입부용 데모 (room_code: DEMOAI, pack: ai-workplace)
-// 게스트는 login.html 로 redirect (?next=/room/CODE) — 닉네임 입력 후 자동 입장.
+// /demo  → ntable 홍보용 데모 (DEMONT). 카드 분기 UI 유지 + 어떤 액션도 DEMONT 게스트로.
+//          login.html JS 의 ?demo=ntable 분기가 호스트 카드/모달 입장 모두 DEMONT 로 강제.
+// /ai    → AI 강의 도입부용 데모 (DEMOAI). 카드 분기 skip — 바로 /room/DEMOAI 진입.
+//          닉네임 슬림 온보딩은 join.html 이 처리.
 app.get('/demo', (req, res) => {
-  res.redirect(302, '/?next=/room/DEMONT');
+  res.redirect(302, '/?demo=ntable&role=guest&code=DEMONT&next=/room/DEMONT');
 });
 app.get('/ai', (req, res) => {
-  res.redirect(302, '/?next=/room/DEMOAI');
+  res.redirect(302, '/room/DEMOAI');
 });
 // 호스트 진입 (admin.ntable.kr → app.ntable.kr 핸드오프 endpoint).
 // URL fragment #host_grant=<token> 을 demo-redeem.html 이 redeem 한 뒤

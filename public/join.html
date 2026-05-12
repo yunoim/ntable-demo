@@ -1161,12 +1161,13 @@ function bindStep(key) {
     const slim = STEPS.length === 1;
     const btn = slim ? document.getElementById('submitBtn') : document.getElementById('nextBtn');
 
-    // T-34 (2026-04-23): slim 모드는 2–8자 · 한글/영문/숫자만 허용.
+    // 슬림 모드는 1–8자 · 한글/영문/숫자만 허용.
+    // 한글 자모(ㄱ-ㅎ, ㅏ-ㅣ)도 통과 — IME 조합 중 자모 단독 표시 단계에서 거르면 한글이 안 써짐.
     const validate = (v) => {
       if (!slim) return v.length >= 1;
-      return v.length >= 2 && v.length <= 8;
+      return v.length >= 1 && v.length <= 8;
     };
-    const cleanSlim = (raw) => (raw || '').replace(/[^A-Za-z0-9가-힣]/g, '').slice(0, 8);
+    const cleanSlim = (raw) => (raw || '').replace(/[^A-Za-z0-9가-힣ㄱ-ㅎㅏ-ㅣ]/g, '').slice(0, 8);
 
     btn.disabled = !validate(inp.value.trim());
 

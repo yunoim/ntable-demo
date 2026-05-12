@@ -143,8 +143,8 @@
     "avatar_label": "아이콘 선택",
     "nick_label": "닉네임",
     "nick_placeholder": "예: 별빛, lemon, J",
-    "nick_hint": "2–8자 · 한글·영문 가능",
-    "privacy_row": "🔒 익명  ·  ⏱ 모임 후 30일 자동삭제",
+    "nick_hint": "1–8자 · 한글·영문 가능",
+    "privacy_row": "🔒 익명  ·  ⏱ 모임 후 자동 삭제",
     "cta": "들어가기"
   },
 
