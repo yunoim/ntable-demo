@@ -2162,6 +2162,19 @@ const STATE = {
 
     document.querySelectorAll('.room-tag').forEach(el => el.textContent = room.title || STATE.roomCode);
 
+    // demo_kind='ai' 한정 — 강연자가 자기 폰에서 진행자 모드로 전환 가능 (join.html mirror).
+    // 청중도 누를 수 있으나 데모방 컨텍스트라 위험 낮음. admin OAuth 우회 동선.
+    if (room.demo_kind === 'ai' && room.host_uuid && room.host_uuid !== STATE.uuid) {
+      const sm = document.getElementById('speakerModeFloating');
+      if (sm) {
+        sm.hidden = false;
+        sm.addEventListener('click', () => {
+          try { localStorage.setItem('demo_uuid', room.host_uuid); } catch (_) {}
+          location.replace(`/room/${STATE.roomCode}/host`);
+        });
+      }
+    }
+
     // 본인이 이 모임에 join 했는지 확인 — 안 했으면 /join 페이지로
     const meRes = await fetch(`/api/rooms/${STATE.roomCode}/me?uuid=${encodeURIComponent(STATE.uuid)}`);
     let me = meRes.ok ? await meRes.json() : { joined: false };
@@ -4838,5 +4851,11 @@ async function revealInstagram() {
   @keyframes gcmFade { from { opacity: 0 } to { opacity: 1 } }
   @keyframes gcmRise { from { transform: translateY(14px); opacity: 0.6 } to { transform: translateY(0); opacity: 1 } }
 </style>
+
+<!-- demo_kind='ai' 한정 — 청중 화면에서 강연자가 진행자 모드로 전환. join.html mirror. -->
+<button type="button" id="speakerModeFloating" hidden
+  style="position:fixed;top:12px;right:12px;z-index:9999;padding:8px 14px;font-size:12px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(20,20,28,.85);color:#fff;cursor:pointer;backdrop-filter:blur(8px);box-shadow:0 4px 12px rgba(0,0,0,.3);">
+  🎤 진행자 모드
+</button>
 </body>
 </html>

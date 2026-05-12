@@ -431,6 +431,10 @@
     <div class="brand">ntable</div>
     <div class="room-tag" id="roomTag">참여 코드 —</div>
     <div class="room-title" id="roomTitle">—</div>
+    <button type="button" id="speakerModeBtn" hidden
+      style="margin-top:10px;padding:8px 14px;font-size:13px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;">
+      🎤 강연자라면 진행자 모드로
+    </button>
   </header>
 
   <div class="progress" id="progress"></div>
@@ -517,6 +521,19 @@ async function init() {
     if (ROOM.host_uuid && ROOM.host_uuid === UUID) {
       location.replace(`/room/${ROOM_CODE}/host`);
       return;
+    }
+
+    // demo_kind='ai' 한정 — 강연자가 자기 폰 QR 진입 화면에서 진행자 모드로 전환할 수 있게.
+    // admin OAuth 우회 (강연 현장 빠른 진입 동선). 청중도 누를 수 있으나 데모방 컨텍스트라 위험 낮음.
+    if (ROOM.demo_kind === 'ai' && ROOM.host_uuid) {
+      const speakerBtn = document.getElementById('speakerModeBtn');
+      if (speakerBtn) {
+        speakerBtn.hidden = false;
+        speakerBtn.addEventListener('click', () => {
+          try { localStorage.setItem('demo_uuid', ROOM.host_uuid); } catch (_) {}
+          location.replace(`/room/${ROOM_CODE}/host`);
+        });
+      }
     }
 
     // 이미 join 했으면 바로 게스트 화면으로 (단 ?edit=1이면 wizard 재진행 — 내 정보 수정용)
