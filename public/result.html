@@ -1507,6 +1507,11 @@
           const ed = await er.json();
           const myMember = (ed.members || []).find(m => m.uuid === uuid);
           const myVotes = (myMember && myMember.votes_json) || {};
+          // #27 (2026-05-13) 데모방은 실제 푼 문항만 표시 — 풀 다양화 후에도 본인이 답한 3개만.
+          // 일반방은 전체 표시 그대로 (미응답 문항도 노출해서 답한 비율 표시).
+          if (data.demo_kind) {
+            ed.questions = (ed.questions || []).filter(q => myVotes[String(q.id)] != null);
+          }
           if ((ed.questions || []).length) {
             const totalQs = ed.questions.length;
             const answered = ed.questions.filter(q => myVotes[String(q.id)]).length;
