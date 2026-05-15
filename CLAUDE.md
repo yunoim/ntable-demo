@@ -112,16 +112,29 @@
 - `config/pack-ui-overrides.json` manifest. `public/packs/_default/intro.html` fragment.
 - host.html intro panel 에 `#pack-intro-card-slot` 추가 + loader script tag.
 
-### Phase 3 (진행 중 — 2026-05-13)
-- 첫 실제 영역 추출: host.html `#no-approved` (참가자 없을 때 안내 텍스트) → `_default/intro.html` fragment 로 이동.
-- 신규 pack 이 `public/packs/{id}/intro.html` 작성하면 안내 텍스트를 pack-specific 으로 override 가능 (예: 팀빌딩 = "초대 링크를 팀 채널에 공유하세요").
-- `renderProfiles` 에 `noMsg` null safety + fragment load 완료 후 `renderProfiles` 재호출 (race 회피).
+### Phase 3 (완료 — 2026-05-13, `f6f0bfe`)
+- 첫 실제 영역 추출: host.html `#no-approved` → `_default/intro.html` fragment.
+- 신규 pack 은 `public/packs/{id}/intro.html` 작성해 안내 텍스트 override 가능.
+- `renderProfiles` null safety + fragment load 후 재호출 (race 회피).
 
-### Phase 4-6 (대기)
-- explore / free / ending phase 순차 분할 (각 phase 별도 commit + advisor 양끝 + prod 핵심 시나리오 수동 워크스루 + smoke test 도입).
+### Phase 4-6 (진행 중 — 2026-05-13)
+- explore / free / ending 3 phase 에 안내·tip slot 동시 보급: `#pack-explore-card-slot`, `#pack-free-card-slot`, `#pack-ending-card-slot`.
+- `_default/explore.html`, `_default/free.html`, `_default/ending.html` 빈 fragment (zero regression).
+- `loadRoomInfo` 에서 4-phase 모두 eager load (intro 는 P3 추출이라 재호출 콜백 포함, 나머지는 신규 영역이라 콜백 없음).
+- 신규 pack 이 phase tip 원하면 `public/packs/{id}/{phase}.html` 작성.
 
 ### Phase 7 (대기)
-- cleanup (legacy dead code 제거) + 신규 pack 추가 가이드 문서.
+- 신규 pack 추가 가이드 문서 (`docs/PACK_GUIDE.md`).
+- `routes/question-sources.js` 의 임시 dead block (`if (false) { _REMOVED = {...} }`) 제거.
+
+### 신규 Pack 추가 흐름 (현재 가능한 영역)
+1. `questions/packs/{id}.md` — 탐구 질문·자유대화 주제 (4-tier · 3-group).
+2. `config/pack-defaults.json` — 메타 entry (series, content_kind, flow, wizard_*, result_sections, labels 등).
+3. (선택) `public/packs/{id}/intro.html` — 빈 방 안내 텍스트 override.
+4. (선택) `public/packs/{id}/{explore|free|ending}.html` — 각 phase 안내·tip 카드.
+5. (선택) `config/pack-ui-overrides.json` — 향후 UI override manifest 필요 시.
+
+위 1-2번이 필수, 3-5번이 optional. **현재 단계의 한계**: host.html 의 기존 큰 영역 (lobby tabs, profile carousel, vote bars 등) 은 아직 in-place — pack-specific 변경 시 host.html 직접 수정 필요.
 
 ### 합의된 규약 (다음 PR 의 fragment 로더가 이 규약 전제로 구현)
 

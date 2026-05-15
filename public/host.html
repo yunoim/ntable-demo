@@ -2569,6 +2569,8 @@
       <div class="vote-progress" id="vote-progress" hidden></div>
       <div class="vote-bars" id="vote-bars"></div>
       <div id="host-vote-btns"></div>
+      <!-- P4 (2026-05-13): Pack-별 explore 안내·tip slot. _default 빈 fragment 또는 packs/{id}/explore.html override. -->
+      <div id="pack-explore-card-slot" data-pack-phase="explore"></div>
     </div>
 
     <!-- FREE -->
@@ -2632,6 +2634,8 @@
       </div>
 
       <!-- #free-chat-card 는 #persistentChatHost 로 이동 — intro + free 탭 공통 노출 -->
+      <!-- P5 (2026-05-13): Pack-별 free 안내·tip slot. _default 빈 fragment 또는 packs/{id}/free.html override. -->
+      <div id="pack-free-card-slot" data-pack-phase="free"></div>
     </div>
 
     <!-- 상시 익명 채팅 — intro · free 탭에서만 표시 (CSS: body.tab-intro / body.tab-free) -->
@@ -2678,6 +2682,8 @@
           <div id="match-pairs"></div>
         </div>
       </div>
+      <!-- P6 (2026-05-13): Pack-별 ending 안내·tip slot. _default 빈 fragment 또는 packs/{id}/ending.html override. -->
+      <div id="pack-ending-card-slot" data-pack-phase="ending"></div>
     </div>
 
   </div>
@@ -3073,17 +3079,22 @@ async function loadRoomInfo() {
     if (room.pack_id) {
       document.body.classList.forEach(c => { if (c.startsWith('pack-')) document.body.classList.remove(c); });
       document.body.classList.add('pack-' + String(room.pack_id).replace(/[^a-z0-9-]/gi, ''));
-      // Pack 별 intro 안내 카드 fragment 로드 (Phase 2 POC → Phase 3 실제 추출).
-      // _default 또는 pack-specific fragment 를 #pack-intro-card-slot 에 inject.
-      // P3 (2026-05-13): #no-approved 가 fragment 에서 inject 되므로 load 후 renderProfiles 재호출 (race 회피).
+      // Pack 별 4-phase fragment eager load (P3 intro 추출 + P4-6 explore·free·ending slot 보급).
+      // _default 또는 pack-specific fragment 를 각 phase slot 에 inject. 빈 _default 는 zero regression.
+      // P3 (2026-05-13): intro 는 #no-approved fragment 추출이라 load 후 renderProfiles 재호출 (race 회피).
+      // P4-6: 신규 영역 추가만이라 기존 함수 재호출 불필요.
       if (typeof window.ntPackFragment === 'object' && window.ntPackFragment) {
-        window.ntPackFragment.load({ pack_id: room.pack_id, phase: 'intro', slotId: 'pack-intro-card-slot' })
-          .then(injected => {
-            if (injected && typeof renderProfiles === 'function') {
-              try { renderProfiles(); } catch (_) { /* state 미준비 — 다음 호출에서 정상화 */ }
-            }
-          })
-          .catch(err => console.warn('[pack-fragment] intro load fail', err && err.message));
+        const slots = [
+          { phase: 'intro',   slotId: 'pack-intro-card-slot',   after: () => { if (typeof renderProfiles === 'function') { try { renderProfiles(); } catch (_) {} } } },
+          { phase: 'explore', slotId: 'pack-explore-card-slot', after: null },
+          { phase: 'free',    slotId: 'pack-free-card-slot',    after: null },
+          { phase: 'ending',  slotId: 'pack-ending-card-slot',  after: null },
+        ];
+        for (const s of slots) {
+          window.ntPackFragment.load({ pack_id: room.pack_id, phase: s.phase, slotId: s.slotId })
+            .then(injected => { if (injected && s.after) s.after(); })
+            .catch(err => console.warn('[pack-fragment]', s.phase, 'load fail', err && err.message));
+        }
       }
     }
     // T-B0-10 (2026-04-22): pack_id 확정 후 stat bar 로드 시도 (dating 외는 내부에서 조기 return)
