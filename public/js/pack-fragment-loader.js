@@ -43,6 +43,11 @@
     if (!html) return false;
     if (replace) slot.innerHTML = html;
     else slot.insertAdjacentHTML('beforeend', html);
+    // P3 (2026-05-13): inject 된 element 의 data-copy 치환 — brand.js 의 applyCopyToDOM 자동 호출.
+    // 호출 안 하면 DOMContentLoaded 이후 inject 된 fragment 의 data-copy 가 raw 마크다운으로 노출됨.
+    try {
+      if (typeof window.applyCopyToDOM === 'function') window.applyCopyToDOM(slot);
+    } catch (err) { console.warn('[pack-fragment] applyCopyToDOM skipped', err && err.message); }
     return true;
   }
 

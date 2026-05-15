@@ -2555,12 +2555,9 @@
         </button>
         <div id="mp-list-body" class="mp-list-body"></div>
       </div>
-      <div id="no-approved" class="empty-msg" data-copy="empty_states.no_members" style="text-align:center; padding: 40px 0; font-size: 16px;">
-        아직 참가자가 없어요. QR을 공유해 모임을 시작해보세요.
-      </div>
-      <!-- Pack-별 intro 안내 카드 slot (2026-05-12 모듈화 Phase 2 POC).
-           ntPackFragment.load() 가 /pack/:pack_id/intro fragment 를 inject.
-           Pack 미정의 시 _default 로 fallback, 그것도 없으면 빈 채로 유지 (zero regression). -->
+      <!-- Pack-별 intro 안내 카드 slot (2026-05-12 Phase 2 POC → 2026-05-13 Phase 3 실제 추출).
+           #no-approved (참가자 없을 때 안내) 는 _default/intro.html 로 이동됨.
+           Fragment loader 가 /pack/:pack_id/intro 를 inject. Pack-specific override 가능. -->
       <div id="pack-intro-card-slot" data-pack-phase="intro"></div>
     </div>
 
@@ -3076,10 +3073,16 @@ async function loadRoomInfo() {
     if (room.pack_id) {
       document.body.classList.forEach(c => { if (c.startsWith('pack-')) document.body.classList.remove(c); });
       document.body.classList.add('pack-' + String(room.pack_id).replace(/[^a-z0-9-]/gi, ''));
-      // Pack 별 intro 안내 카드 fragment 로드 (2026-05-12 모듈화 Phase 2 POC).
-      // _default 또는 pack-specific fragment 가 있으면 #pack-intro-card-slot 에 inject. 없으면 silent skip.
+      // Pack 별 intro 안내 카드 fragment 로드 (Phase 2 POC → Phase 3 실제 추출).
+      // _default 또는 pack-specific fragment 를 #pack-intro-card-slot 에 inject.
+      // P3 (2026-05-13): #no-approved 가 fragment 에서 inject 되므로 load 후 renderProfiles 재호출 (race 회피).
       if (typeof window.ntPackFragment === 'object' && window.ntPackFragment) {
         window.ntPackFragment.load({ pack_id: room.pack_id, phase: 'intro', slotId: 'pack-intro-card-slot' })
+          .then(injected => {
+            if (injected && typeof renderProfiles === 'function') {
+              try { renderProfiles(); } catch (_) { /* state 미준비 — 다음 호출에서 정상화 */ }
+            }
+          })
           .catch(err => console.warn('[pack-fragment] intro load fail', err && err.message));
       }
     }
@@ -4428,13 +4431,16 @@ async function kickUser(targetUuid, nickname) {
 
 function renderProfiles() {
   const carousel = document.getElementById('profile-carousel');
+  // P3 (2026-05-13): #no-approved 는 _default/intro.html fragment 에서 inject.
+  // Fragment fetch 비동기라 첫 renderProfiles 호출 시점에 null 가능 — null safe 분기.
   const noMsg = document.getElementById('no-approved');
+  if (!carousel) return; // 방어막 — 호스트 phase 전환 timing edge case
   carousel.innerHTML = '';
   if (!state.approvedUsers.length) {
-    noMsg.style.display = 'block';
+    if (noMsg) noMsg.style.display = 'block';
     return;
   }
-  noMsg.style.display = 'none';
+  if (noMsg) noMsg.style.display = 'none';
   const now = new Date().getFullYear();
   const df = state.displayFields || ['birth_year','region','industry','interest'];
   const fmt = state.birthYearFormat || 'exact';

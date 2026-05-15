@@ -1,7 +1,13 @@
 <!--
-  Pack-별 intro 안내 카드 fragment — _default (모든 pack 의 fallback).
+  Pack-별 intro 안내 카드 fragment — _default (모든 pack 의 fallback, 2026-05-13 Phase 3).
   Fragment loader 가 host.html 의 #pack-intro-card-slot 에 주입.
-  신규 pack 이 자체 카드를 원하면 public/packs/{pack_id}/intro.html 작성 → config/pack-ui-overrides.json 에 entry 추가.
-  본 파일은 의도적으로 빈 채로 둠 (zero regression — 기존 모임은 시각적 변화 없음).
+  신규 pack 이 자체 안내 텍스트 원하면 public/packs/{pack_id}/intro.html 작성 →
+    예: 팀빌딩은 "초대 링크를 팀 채널에 공유하세요" 등으로 톤 변경.
+  본 fragment 는 host.html 에서 추출된 #no-approved 영역. JS (renderProfiles) 가 직접 접근하므로
+  id 는 그대로 유지 — pack override 시에도 id="no-approved" 와 data-copy="empty_states.no_members" 유지 권장.
 -->
-<section class="pack-panel" id="panel-intro-pack-_default" hidden></section>
+<section class="pack-panel" id="panel-intro-pack-_default">
+  <div id="no-approved" class="empty-msg" data-copy="empty_states.no_members" style="text-align:center; padding: 40px 0; font-size: 16px;">
+    아직 참가자가 없어요. QR을 공유해 모임을 시작해보세요.
+  </div>
+</section>

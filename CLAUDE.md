@@ -106,9 +106,22 @@
 - **PACK_DEFAULTS JSON 추출**: 코드 hard-coded 였던 9개 pack 정의를 `config/pack-defaults.json` 으로 이동. 신규 pack 추가 = JSON entry + `questions/packs/{id}.md` (코드 변경 불필요).
 - `routes/question-sources.js` 의 PACK_DEFAULTS · PACK_FLOW_DEFAULTS 는 JSON 에서 derived. exports API 호환 유지.
 
-### Phase 2+ (진행 중)
-- Fragment loader 인프라: `/pack/:id/:tab` server route, `public/packs/${pack_id}/${tab}.html` 디렉토리, client loader, `packUI(path, fallback)` helper.
-- intro / explore / free / ending phase 순차 분할 (각 phase 별도 commit + advisor 양끝 + prod 검증).
+### Phase 2 POC (완료 — 2026-05-13)
+- `GET /pack/:id/:phase` server route (`routes/pack-fragments.js`) — whitelist + cache 300s + `_default` fallback + 204 No Content silent skip.
+- `ntPackFragment.load({pack_id, phase, slotId})` client helper (`public/js/pack-fragment-loader.js`) — fetch 메모리 캐시 + AbortSignal 2.5s timeout + inject 후 `applyCopyToDOM` 자동 호출.
+- `config/pack-ui-overrides.json` manifest. `public/packs/_default/intro.html` fragment.
+- host.html intro panel 에 `#pack-intro-card-slot` 추가 + loader script tag.
+
+### Phase 3 (진행 중 — 2026-05-13)
+- 첫 실제 영역 추출: host.html `#no-approved` (참가자 없을 때 안내 텍스트) → `_default/intro.html` fragment 로 이동.
+- 신규 pack 이 `public/packs/{id}/intro.html` 작성하면 안내 텍스트를 pack-specific 으로 override 가능 (예: 팀빌딩 = "초대 링크를 팀 채널에 공유하세요").
+- `renderProfiles` 에 `noMsg` null safety + fragment load 완료 후 `renderProfiles` 재호출 (race 회피).
+
+### Phase 4-6 (대기)
+- explore / free / ending phase 순차 분할 (각 phase 별도 commit + advisor 양끝 + prod 핵심 시나리오 수동 워크스루 + smoke test 도입).
+
+### Phase 7 (대기)
+- cleanup (legacy dead code 제거) + 신규 pack 추가 가이드 문서.
 
 ### 합의된 규약 (다음 PR 의 fragment 로더가 이 규약 전제로 구현)
 
