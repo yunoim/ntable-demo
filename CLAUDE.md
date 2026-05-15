@@ -123,9 +123,9 @@
 - `loadRoomInfo` 에서 4-phase 모두 eager load (intro 는 P3 추출이라 재호출 콜백 포함, 나머지는 신규 영역이라 콜백 없음).
 - 신규 pack 이 phase tip 원하면 `public/packs/{id}/{phase}.html` 작성.
 
-### Phase 7 (대기)
-- 신규 pack 추가 가이드 문서 (`docs/PACK_GUIDE.md`).
-- `routes/question-sources.js` 의 임시 dead block (`if (false) { _REMOVED = {...} }`) 제거.
+### Phase 7 (완료 — 2026-05-13)
+- 신규 pack 추가 가이드 문서: `docs/PACK_GUIDE.md`.
+- `routes/question-sources.js` 의 임시 dead block (`if (false) { _REMOVED = {...} }`) 제거 — 574→374 line.
 
 ### 신규 Pack 추가 흐름 (현재 가능한 영역)
 1. `questions/packs/{id}.md` — 탐구 질문·자유대화 주제 (4-tier · 3-group).
