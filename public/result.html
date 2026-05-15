@@ -1236,7 +1236,7 @@
       const data = await r.json();
 
       // 팩별 UI 게이트 적용 (인스타 교환 카드 노출 등)
-      if (typeof window._applyPackGates === 'function') window._applyPackGates(data.pack_defaults, data.pack_id);
+      if (typeof window._applyPackGates === 'function') window._applyPackGates(data.pack_defaults, data.pack_id, data.demo_kind);
       // 2026-04-23: host 여부 판별 — '한번 또하기' 새 방 진입 경로 분기용.
       window._isHostView = !!(data.host_uuid && data.host_uuid === uuid);
 
@@ -2171,7 +2171,7 @@
 
   // 팩 정책에 따라 인스타 교환 카드 자체를 숨김 (dating 외 팩은 비노출).
   // data.pack_defaults 는 loadResult 에서 받은 뒤 적용 — 여기서는 초기 상태만 설정.
-  function applyPackGates(packDefaults, packId) {
+  function applyPackGates(packDefaults, packId, demoKind) {
     // match_pairs_enabled: false 면 "서로 또 만나고 싶어요" 섹션 렌더 차단
     window._packMatchPairsEnabled = !(packDefaults && packDefaults.match_pairs_enabled === false);
     // 이미 렌더된 경우 비우기 (race condition 방어)
@@ -2201,7 +2201,8 @@
     // result_sections 에 'summary' 가 없는 팩은 페이지 4(모임 요약) DOM 자체 제거 + 해당 도트 제거.
     // display:none 만 걸면 pager 의 scrollLeft/clientWidth 계산에 여전히 4페이지가 포함돼 마우스 드래그·스와이프 시 빈 페이지로 스냅됨 → DOM 제거로 pager 총 너비 자체를 단축.
     const sections = packDefaults && Array.isArray(packDefaults.result_sections) ? packDefaults.result_sections : null;
-    if (sections && !sections.includes('summary')) {
+    const stripSummary = (sections && !sections.includes('summary')) || !!demoKind;
+    if (stripSummary) {
       const page4 = document.querySelector('#pager section.page[data-page="3"]');
       if (page4 && page4.parentNode) page4.parentNode.removeChild(page4);
       const dot4 = document.querySelector('#pager-dots .pager-dot[data-dot="3"]');
@@ -2209,6 +2210,35 @@
       // pager 스크롤 위치가 제거 후에도 맨 앞에 유지되도록 초기화
       const pager = document.getElementById('pager');
       if (pager) pager.scrollLeft = 0;
+    }
+
+    // ─── 데모방 한정 변형 ──────────────────────────────────────────────
+    // #28: summary 페이지는 위 stripSummary 분기에서 함께 제거됨 (idempotent — 이미 제거됐으면 no-op).
+    // #29: "30일까지 볼 수 있어요" 문구 제거 (데모는 보관 의미 없음).
+    // #26: "다음 모임 열기" CTA 영역을 "🔄 또하기 (데모 다시)" 로 교체.
+    if (demoKind) {
+      // #29 — 30일 보관 안내 라인 hide (home-link-wrap 내 마지막 div).
+      const homeWrap = document.getElementById('home-link-wrap');
+      if (homeWrap) {
+        const retentionLine = homeWrap.querySelector('div[style*="30일"]');
+        if (retentionLine) retentionLine.style.display = 'none';
+        // 일반방용 다음/복사/홈 CTA 묶음 hide 후 데모 전용 또하기 버튼 inject (중복 inject 방지).
+        const stack = homeWrap.querySelector('div[style*="flex-direction:column"]');
+        if (stack) stack.style.display = 'none';
+        if (!document.getElementById('demo-restart-cta-wrap')) {
+          const restartHref = demoKind === 'ai' ? '/ai' : '/demo';
+          const wrap = document.createElement('div');
+          wrap.id = 'demo-restart-cta-wrap';
+          wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;align-items:stretch;';
+          wrap.innerHTML =
+            '<a href="' + restartHref + '" ' +
+            'style="padding:14px 16px;background:var(--gold);color:#0f1220;border-radius:12px;text-decoration:none;font-family:inherit;font-size:15px;font-weight:700;letter-spacing:0.02em;text-align:center;box-shadow:0 6px 18px rgba(212,168,67,0.24);">' +
+            '🔄 또하기 (데모 다시)</a>' +
+            '<a href="https://ntable.kr" ' +
+            'style="padding:8px 12px;background:none;color:var(--text-muted);border:none;text-decoration:none;font-family:inherit;font-size:12.5px;font-weight:500;letter-spacing:0.02em;text-align:center;">ntable 소개 보기</a>';
+          homeWrap.insertBefore(wrap, homeWrap.firstChild);
+        }
+      }
     }
   }
   // loadResult 내부에서 data.pack_defaults 수신 후 호출하기 위한 전역 노출

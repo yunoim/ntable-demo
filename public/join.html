@@ -396,6 +396,33 @@
     border-color: var(--gold);
     transform: scale(1.12);
   }
+  /* #23 slim 카테고리 탭 (2026-05-13) — strip 위쪽 줄로 카테고리 선택. */
+  .slim-cat-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+  .slim-cat-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 999px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #c0c0c0;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    transition: background 0.18s, border-color 0.18s, color 0.18s;
+  }
+  .slim-cat-tab:hover { border-color: var(--gold-border); color: #fff; }
+  .slim-cat-tab.active {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
 
   .slim-nick-field { margin-bottom: 14px; }
   /* 특이도: input[type=text] = (0,1,1) 과 동일. 뒤에 선언돼 우위 승계. */
@@ -686,23 +713,32 @@ function renderStep() {
       // T-34 (2026-04-23): STEPS.length===1 → 슬림 온보딩 (닉네임 + 아바타 + 바로 입장).
       // 그 이상은 legacy nick-only view (뒤에 추가 step 존재 — 다음 CTA).
       if (STEPS.length === 1) {
-        // 아바타 풀 — 기존 EMOJI_CATEGORIES 전체 (표정·동물·운동·자연·음식·취미·상징 7 그룹 × 12).
-        // flex-wrap 으로 여러 줄 노출. v2 에 카테고리 탭 UI 도입 검토.
-        const SLIM_AVATARS = [
-          '😀','😊','🥰','😍','🤩','🤔','😎','😴','🤗','🥳','😌','🙃',
-          '🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦋','🐧','🦄','🐳',
-          '⚽','🏀','🎾','🥊','🏋️','🚴','🏃','🏄','🧘','🏊','🤸','🧗',
-          '🌸','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌴','🌈','⚡','🌟',
-          '🍎','🍕','🍣','🍰','🍫','🍷','☕','🍜','🍓','🍹','🥐','🍦',
-          '🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼',
-          '💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'
+        // 아바타 풀 — EMOJI_CATEGORIES 카테고리 탭 + 활성 카테고리 12개만 표시 (2026-05-13 #23).
+        // 이전: 평면 84개 일렬 나열 → 인지 부하 큼. 이제 카테고리 선택 > 이모지 선택 2단계.
+        const SLIM_CATEGORIES = [
+          { label: '😊 표정',  emojis: ['😀','😊','🥰','😍','🤩','🤔','😎','😴','🤗','🥳','😌','🙃'] },
+          { label: '🐰 동물',  emojis: ['🐰','🐯','🦁','🦊','🐻','🐼','🐶','🐱','🦋','🐧','🦄','🐳'] },
+          { label: '⚽ 운동',  emojis: ['⚽','🏀','🎾','🥊','🏋️','🚴','🏃','🏄','🧘','🏊','🤸','🧗'] },
+          { label: '🌸 자연',  emojis: ['🌸','🌙','☀️','⭐','✨','🔥','🌊','🍀','🌴','🌈','⚡','🌟'] },
+          { label: '🍎 음식',  emojis: ['🍎','🍕','🍣','🍰','🍫','🍷','☕','🍜','🍓','🍹','🥐','🍦'] },
+          { label: '🎵 취미',  emojis: ['🎵','🎨','🎮','🎸','📚','✈️','📷','🎬','🎤','🎧','📖','🎼'] },
+          { label: '💎 상징',  emojis: ['💎','💌','🎁','🎉','🏆','💯','👑','💡','❤️','🎀','🗝️','🔮'] },
         ];
-        // 기본 아바타 prefill — init() 의 random pool 이 SLIM_AVATARS 밖이면 pool 내로 보정.
-        // prefillFromCache 로 불러온 기존 emoji (이모지 풀 밖) 는 그대로 둔다 — 화면 preview 는 맞게 나오고,
-        // 대신 chip selected 가 표시되지 않아 '내가 고른 다른 이모지가 있다' 는 시각적 힌트로 작동.
-        const curAva = data.emoji || SLIM_AVATARS[0];
+        const SLIM_FLAT = SLIM_CATEGORIES.flatMap(c => c.emojis);
+        // 현재 emoji 가 어느 카테고리에 속하는지 → 기본 활성 탭. 없으면 0.
+        const curAva = data.emoji || SLIM_FLAT[0];
         if (!data.emoji) data.emoji = curAva;
-        const avatarRow = SLIM_AVATARS.map(e => (
+        let slimCatIdx = (typeof window._slimCatIdx === 'number') ? window._slimCatIdx : 0;
+        if (window._slimCatIdx == null) {
+          const found = SLIM_CATEGORIES.findIndex(c => c.emojis.includes(curAva));
+          if (found >= 0) slimCatIdx = found;
+          window._slimCatIdx = slimCatIdx;
+        }
+        const activeSlimCat = SLIM_CATEGORIES[slimCatIdx] || SLIM_CATEGORIES[0];
+        const slimCatTabs = SLIM_CATEGORIES.map((cat, idx) =>
+          `<button type="button" class="slim-cat-tab${idx === slimCatIdx ? ' active' : ''}" data-slim-cat-idx="${idx}" aria-label="${escHtml(cat.label)}">${escHtml(cat.label)}</button>`
+        ).join('');
+        const avatarRow = activeSlimCat.emojis.map(e => (
           `<button type="button" class="slim-ava-chip emoji-chip${curAva===e?' selected':''}" data-emoji="${e}" aria-label="아바타 ${e}">${e}</button>`
         )).join('');
         body = `
@@ -721,6 +757,9 @@ function renderStep() {
 
           <div class="slim-avatar-card">
             <div class="slim-avatar-preview" aria-hidden="true">${escHtml(curAva)}</div>
+            <div class="slim-cat-tabs" role="tablist" aria-label="카테고리">
+              ${slimCatTabs}
+            </div>
             <div class="slim-avatar-strip" role="listbox" aria-label="아이콘 선택">
               ${avatarRow}
             </div>
@@ -1419,6 +1458,16 @@ function pickRandomEmoji() {
 
 // 이모지 선택/입력 핸들러
 document.addEventListener('click', (e) => {
+  // #23 slim 카테고리 탭 — emoji-chip 보다 먼저 처리 (탭 자체 클릭 시 emoji 선택 효과 X).
+  const slimTab = e.target.closest('.slim-cat-tab');
+  if (slimTab) {
+    const idx = parseInt(slimTab.dataset.slimCatIdx, 10);
+    if (Number.isFinite(idx)) {
+      window._slimCatIdx = idx;
+      if (typeof renderStep === 'function') renderStep();
+    }
+    return;
+  }
   const chip = e.target.closest('.emoji-chip');
   if (!chip) return;
   const v = chip.dataset.emoji || '';
