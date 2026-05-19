@@ -5326,10 +5326,10 @@ function renderClosingSubsteps(current) {
     'match': '또 만나고 싶은 사람',
     'match-result': '매칭 발표',
   };
-  const MVP_LABELS_PLAYLIST = { 'mvp': '베스트 플리 투표', 'mvp-result': '베스트 플리 발표' };
-  // TODO (Phase 10 후보 — validation advisor W3): MVP_LABELS_PLAYLIST + isPlaylist 분기는
-  // playlist-share 모듈로 옮길 수 있음. 단 ending phase 추출 시 sub-슬롯 설계 필요.
-  const isPlaylist = (state.room && state.room.pack_id === 'playlist-share') || (state.packDefaults && state.packDefaults.content_kind === 'playlist');
+  // Phase 10 (2026-05-19): chip 라벨·card head 의 pack-specific override 는 pack-defaults.json 의
+  // labels.{closing_chip_*, mvp_*_card_head} SoT 에서 읽음. host.html 의 pack_id 분기 제거.
+  const CHIP_LABEL_KEY = { 'mvp': 'closing_chip_mvp', 'mvp-result': 'closing_chip_mvp_result' };
+  const packLabels = (state.packDefaults && state.packDefaults.labels) || {};
   const NUM = ['①','②','③','④'];
   const visible = hasMatch ? ['mvp','mvp-result','match','match-result'] : ['mvp','mvp-result'];
   document.querySelectorAll('.csub').forEach(el => {
@@ -5338,7 +5338,8 @@ function renderClosingSubsteps(current) {
     el.hidden = !isVisible;
     if (isVisible) {
       const idx = visible.indexOf(sub);
-      const label = (isPlaylist && MVP_LABELS_PLAYLIST[sub]) || CHIP_LABELS[sub];
+      const customKey = CHIP_LABEL_KEY[sub];
+      const label = (customKey && packLabels[customKey]) || CHIP_LABELS[sub];
       el.textContent = `${NUM[idx] || ''} ${label}`.trim();
     }
     el.classList.toggle('active', sub === current.replace('closing-', ''));
@@ -5361,12 +5362,9 @@ function renderClosingSubsteps(current) {
     'closing-match-result': ['💘 매칭 결과', '매칭 카드가 참가자 화면에 떴어요. 인스타 공유 등 마무리 단계.', '모임 종료'],
     'closing-explore-result': ['📖 오늘의 질문 — 모아 보기', '진행한 모든 문항과 누가 어떤 답을 골랐는지 표시돼요.', '모임 종료'],
   };
-  // 팩별 MVP 카드 라벨 override (myplay: "베스트 플리 투표/발표")
-  if (isPlaylist && state.packDefaults && state.packDefaults.labels) {
-    const lb = state.packDefaults.labels;
-    if (lb.mvp_vote_card_head) labels['closing-mvp'][0] = lb.mvp_vote_card_head;
-    if (lb.mvp_card_head) labels['closing-mvp-result'][0] = lb.mvp_card_head;
-  }
+  // 팩별 MVP 카드 라벨 override (playlist-share: "베스트 플리 투표/발표")
+  if (packLabels.mvp_vote_card_head) labels['closing-mvp'][0] = packLabels.mvp_vote_card_head;
+  if (packLabels.mvp_card_head) labels['closing-mvp-result'][0] = packLabels.mvp_card_head;
   const conf = labels[current] || labels['closing-mvp'];
   if (head) head.textContent = conf[0];
   if (help) help.textContent = conf[1];
