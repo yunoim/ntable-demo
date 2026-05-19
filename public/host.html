@@ -3054,14 +3054,17 @@ async function loadRoomInfo() {
       // P3 (2026-05-13): intro 는 #no-approved fragment 추출이라 load 후 renderProfiles 재호출 (race 회피).
       // P4-6: 신규 영역 추가만이라 기존 함수 재호출 불필요.
       // P9 (2026-05-19): pack-specific JS 모듈도 함께 동적 로드. 모듈 없으면 silent skip.
+      // init() 안에서 refreshMap 자동 호출 (validation advisor B1 fix) — host.html setTimeout race 제거.
       if (typeof window.ntPackFragment === 'object' && window.ntPackFragment) {
-        window.ntPackFragment.loadModule(room.pack_id).then(loaded => {
+        const modulePromise = window.ntPackFragment.loadModule(room.pack_id).then(loaded => {
           if (loaded) window.ntPackFragment.pack(room.pack_id, 'init', { state });
+          return loaded;
         });
+        // free slot after: 모듈 로드 보장 후 onEnterFreeChat 호출 (validation advisor W1 fix).
         const slots = [
           { phase: 'intro',   slotId: 'pack-intro-card-slot',   after: () => { if (typeof renderProfiles === 'function') { try { renderProfiles(); } catch (_) {} } } },
           { phase: 'explore', slotId: 'pack-explore-card-slot', after: null },
-          { phase: 'free',    slotId: 'pack-free-card-slot',    after: () => { window.ntPackFragment.pack(room.pack_id, 'onEnterFreeChat'); } },
+          { phase: 'free',    slotId: 'pack-free-card-slot',    after: () => { modulePromise.then(() => window.ntPackFragment.pack(room.pack_id, 'onEnterFreeChat')); } },
           { phase: 'ending',  slotId: 'pack-ending-card-slot',  after: null },
         ];
         for (const s of slots) {
@@ -3069,6 +3072,8 @@ async function loadRoomInfo() {
             .then(injected => { if (injected && s.after) s.after(); })
             .catch(err => console.warn('[pack-fragment]', s.phase, 'load fail', err && err.message));
         }
+        // module promise 를 state 에 저장 — WS 핸들러 등 비동기 시점에서 await 가능 (B2 fix).
+        state.packModuleReady = modulePromise;
       }
     }
     // T-B0-10 (2026-04-22): pack_id 확정 후 stat bar 로드 시도 (dating 외는 내부에서 조기 return)
@@ -3089,9 +3094,8 @@ async function loadRoomInfo() {
       }
     }
     state.displayFields = Array.isArray(room.display_fields) ? room.display_fields : ['birth_year','region','industry','interest'];
-    // playlist-share 팩 — 플레이리스트 URL 맵 초기 로드 (Phase 9: 모듈 dispatcher)
-    // 모듈 init 후 비동기로 호출되도록 짧은 delay (loadModule promise 와 race 회피 — 모듈 없으면 silent skip)
-    setTimeout(() => { if (window.ntPackFragment) window.ntPackFragment.pack(room.pack_id, 'refreshMap'); }, 0);
+    // Phase 9: pack 모듈 init() 안에서 refreshMap 자동 호출 (validation advisor B1 fix).
+    // 이전 setTimeout dispatcher 호출은 loadModule promise 와 race → 제거.
     state.birthYearFormat = room.birth_year_format || 'exact';
     state.hostRole = room.host_role || 'host_only';
     state.questionCount = Number.isFinite(room.question_count) ? room.question_count : 10;
@@ -3892,7 +3896,11 @@ function handleWSMessage(msg) {
           }
         });
       }
-      if (window.ntPackFragment && state.room) window.ntPackFragment.pack(state.room.pack_id, 'refreshMap');
+      // Phase 9 fix (validation advisor B2): module 로드 보장 후 refreshMap. loadRoomInfo 가 packModuleReady 를 state 에 저장.
+      if (window.ntPackFragment && state.room) {
+        const ready = state.packModuleReady || Promise.resolve();
+        ready.then(() => window.ntPackFragment.pack(state.room.pack_id, 'refreshMap'));
+      }
       break;
     }
     case 'recover_request': {
@@ -4011,10 +4019,8 @@ async function fetchUserProfile(uuid) {
   } catch { return {}; }
 }
 
-// playlist-share 팩 — refreshPlaylistMap + PP 네임스페이스 + ppBindControls 전체
-// → 2026-05-19 Phase 9 추출: public/js/packs/playlist-share.js
-// 호출 지점은 ntPackFragment.pack('playlist-share', 'refreshMap' | 'onEnterFreeChat') 로 통일.
-// (이전: refreshPlaylistMap / renderPlaylistPlayer / ppBindControls / PP / ppDetectService / ppExtractYTList / ppExtractYTVideoId / ppExtractSpotifyEmbed / ppExtractAppleEmbed / ppShuffle / ppBuildQueue / ppLoadYTApiOnce / ppEmbedCurrent / ppPlay / ppPause / ppNext / ppReshuffle / ppOpenExternal — 모두 모듈로 이동)
+// playlist-share 팩 모듈 → public/js/packs/playlist-share.js (Phase 9, 2026-05-19).
+// 호출: ntPackFragment.pack('playlist-share', 'refreshMap' | 'onEnterFreeChat' | ...)
 // ── RENDER ────────────────────────────────────────
 function renderWaitingList() {
   const list = document.getElementById('waiting-list');
@@ -5002,9 +5008,11 @@ function switchTab(tab) {
   });
   if (tab === 'free') {
     applyFreeChatOptions();
-    // 자유대화 진입 hook — pack 모듈에 onEnterFreeChat 메서드 있으면 호출 (Phase 9: dispatcher)
+    // 자유대화 진입 hook — pack 모듈에 onEnterFreeChat 메서드 있으면 호출 (Phase 9: dispatcher).
+    // module 로드 보장 (loadRoomInfo 가 packModuleReady 저장; 사용자가 직접 탭 클릭한 늦은 시점이라 보통 이미 resolved).
     if (window.ntPackFragment && state.room) {
-      window.ntPackFragment.pack(state.room.pack_id, 'onEnterFreeChat');
+      const ready = state.packModuleReady || Promise.resolve();
+      ready.then(() => window.ntPackFragment.pack(state.room.pack_id, 'onEnterFreeChat'));
     }
   } else if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
   if (tab === 'ending') {
@@ -5319,6 +5327,8 @@ function renderClosingSubsteps(current) {
     'match-result': '매칭 발표',
   };
   const MVP_LABELS_PLAYLIST = { 'mvp': '베스트 플리 투표', 'mvp-result': '베스트 플리 발표' };
+  // TODO (Phase 10 후보 — validation advisor W3): MVP_LABELS_PLAYLIST + isPlaylist 분기는
+  // playlist-share 모듈로 옮길 수 있음. 단 ending phase 추출 시 sub-슬롯 설계 필요.
   const isPlaylist = (state.room && state.room.pack_id === 'playlist-share') || (state.packDefaults && state.packDefaults.content_kind === 'playlist');
   const NUM = ['①','②','③','④'];
   const visible = hasMatch ? ['mvp','mvp-result','match','match-result'] : ['mvp','mvp-result'];
@@ -6308,7 +6318,11 @@ async function saveMiEdit() {
             body: JSON.stringify({ uuid: state.uuid }),
           });
         }
-        if (window.ntPackFragment) await window.ntPackFragment.pack(state.room && state.room.pack_id, 'refreshMap');
+        if (window.ntPackFragment && state.room) {
+          const ready = state.packModuleReady || Promise.resolve();
+          await ready;
+          await window.ntPackFragment.pack(state.room.pack_id, 'refreshMap');
+        }
       } catch (_) {}
     }
     status.textContent = '✓ 저장됐어요';

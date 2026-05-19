@@ -81,11 +81,17 @@
     return p;
   }
 
-  // Pack 모듈 API dispatcher — 모듈 없거나 method 없으면 silent skip.
+  // Pack 모듈 API dispatcher.
+  // - 모듈 자체 없음 → silent skip (정상: 모든 pack 에 모듈이 있을 필요 없음)
+  // - 모듈 있는데 method 없음 → console.warn (오타·시그니처 변경 디버깅성, validation advisor W4 fix)
   // 예: ntPackFragment.pack('playlist-share', 'refreshMap')
   function pack(pack_id, method, ...args) {
     const mod = root.ntPack && root.ntPack[pack_id];
-    if (!mod || typeof mod[method] !== 'function') return undefined;
+    if (!mod) return undefined;
+    if (typeof mod[method] !== 'function') {
+      console.warn('[pack-module]', pack_id, 'method missing:', method);
+      return undefined;
+    }
     try { return mod[method](...args); }
     catch (err) { console.warn('[pack-module]', pack_id, method, 'threw', err && err.message); }
   }

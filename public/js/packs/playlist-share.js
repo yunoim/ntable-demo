@@ -9,7 +9,9 @@
   'use strict';
 
   let _state = null;
-  function getState() { return _state || (typeof root !== 'undefined' && root.state) || null; }
+  // Phase 9 fix (validation advisor B3): root.state 폴백 제거. host.html 의 const state 는 script scope
+  // 라 window.state 로 노출 안 됨 — 폴백이 사실상 죽은 코드라 위험 마스킹. init({state}) 호출 강제.
+  function getState() { return _state; }
   function escHtml(s) {
     if (typeof root.escHtml === 'function') return root.escHtml(s);
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -21,7 +23,10 @@
   // ── playlist_links 테이블에서 방 전체의 플레이리스트 URL 맵 가져오기 ────
   async function refreshMap() {
     const state = getState();
-    if (!state || !state.roomCode) return;
+    if (!state || !state.roomCode) {
+      if (!state) console.warn('[playlist-share] refreshMap called before init({state})');
+      return;
+    }
     try {
       const res = await fetch(`/api/rooms/${state.roomCode}/playlist`);
       if (res.ok) {
@@ -281,8 +286,11 @@
   }
 
   // 공개 API
+  // Phase 9 fix (validation advisor B1): init 안에서 refreshMap 자동 호출 → 첫 동기화 보장.
+  // 호스트 첫 진입 시 host.html 의 setTimeout(refreshMap) race 제거.
   function init(opts) {
     if (opts && opts.state) _state = opts.state;
+    if (_state && _state.roomCode) { try { refreshMap(); } catch (_) {} }
   }
   function onEnterFreeChat() {
     try { refreshMap(); } catch (_) {}
