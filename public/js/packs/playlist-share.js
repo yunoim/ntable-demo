@@ -285,12 +285,42 @@
     if (openBtn && !openBtn._bound) { openBtn._bound = true; openBtn.addEventListener('click', ppOpenExternal); }
   }
 
+  // ── 내 정보 모달 (mi modal) extra field — Phase 11 ──
+  // host.html 의 pack_id === 'playlist-share' 분기 3 곳을 메서드로 흡수.
+  // 다른 11개 pack 은 모듈 미존재 → ntPackFragment.pack(...) 이 undefined 반환 → host 의 `if (extra)` 분기로 zero-cost.
+  function getMiExtraField() {
+    return { key: 'playlist', label: '플리 링크', sourceKey: 'playlistByUuid' };
+  }
+  function renderMiExtraView(value) {
+    const label = '플리 링크';
+    if (!value) {
+      return `<div class="mi-view-row"><span class="mi-k">${label}</span><span class="mi-v" style="color:var(--text-dim);font-style:italic;">생략</span></div>`;
+    }
+    return `<div class="mi-view-row"><span class="mi-k">${label}</span><span class="mi-v" style="color:var(--white);font-weight:500;"><a href="${escHtml(value)}" target="_blank" rel="noopener" style="color:var(--gold-light);text-decoration:underline;">🎵 열기</a></span></div>`;
+  }
+  // Phase 11 fix (validation advisor B3): 성공/실패 boolean 반환. host 가 status 분기 가능.
+  async function saveMiExtra(uuid, value) {
+    const state = getState();
+    if (!state || !state.roomCode || !uuid) return false;
+    try {
+      const url = `/api/rooms/${state.roomCode}/playlist`;
+      const headers = { 'Content-Type': 'application/json' };
+      const r = value
+        ? await fetch(url, { method: 'POST', headers, body: JSON.stringify({ uuid, url: value }) })
+        : await fetch(url, { method: 'DELETE', headers, body: JSON.stringify({ uuid }) });
+      if (!r.ok) return false;
+      try { await refreshMap(); } catch (_) {}
+      return true;
+    } catch (_) { return false; }
+  }
+
   // 공개 API
   // Phase 9 fix (validation advisor B1): init 안에서 refreshMap 자동 호출 → 첫 동기화 보장.
-  // 호스트 첫 진입 시 host.html 의 setTimeout(refreshMap) race 제거.
-  function init(opts) {
+  // Phase 11 fix (validation advisor R2): init 을 async + refreshMap await — packModuleReady resolve 시점에
+  // state.playlistByUuid 데이터 준비 보장. mi 모달 자동 오픈 race 차단.
+  async function init(opts) {
     if (opts && opts.state) _state = opts.state;
-    if (_state && _state.roomCode) { try { refreshMap(); } catch (_) {} }
+    if (_state && _state.roomCode) { try { await refreshMap(); } catch (_) {} }
   }
   function onEnterFreeChat() {
     try { refreshMap(); } catch (_) {}
@@ -299,5 +329,8 @@
   }
 
   root.ntPack = root.ntPack || {};
-  root.ntPack['playlist-share'] = { init, refreshMap, renderPlayer, onEnterFreeChat, bindControls };
+  root.ntPack['playlist-share'] = {
+    init, refreshMap, renderPlayer, onEnterFreeChat, bindControls,
+    getMiExtraField, renderMiExtraView, saveMiExtra,
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

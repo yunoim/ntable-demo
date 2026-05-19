@@ -3056,8 +3056,10 @@ async function loadRoomInfo() {
       // P9 (2026-05-19): pack-specific JS 모듈도 함께 동적 로드. 모듈 없으면 silent skip.
       // init() 안에서 refreshMap 자동 호출 (validation advisor B1 fix) — host.html setTimeout race 제거.
       if (typeof window.ntPackFragment === 'object' && window.ntPackFragment) {
-        const modulePromise = window.ntPackFragment.loadModule(room.pack_id).then(loaded => {
-          if (loaded) window.ntPackFragment.pack(room.pack_id, 'init', { state });
+        // Phase 11 fix (validation advisor R2): init() 의 Promise 를 chain — modulePromise 가
+        // init + 내부 refreshMap 완료까지 resolve 보류. state.packModuleReady await 한 코드는 데이터 준비 보장.
+        const modulePromise = window.ntPackFragment.loadModule(room.pack_id).then(async loaded => {
+          if (loaded) { try { await window.ntPackFragment.pack(room.pack_id, 'init', { state }); } catch (_) {} }
           return loaded;
         });
         // free slot after: 모듈 로드 보장 후 onEnterFreeChat 호출 (validation advisor W1 fix).
@@ -6141,13 +6143,18 @@ document.addEventListener('change', (e) => {
 async function loadMiProfile() {
   const content = document.getElementById('mi-content');
   content.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">불러오는 중…</div>';
+  // Phase 11 fix (validation advisor R1): pack 모듈 로드 + init(refreshMap 포함) 완료까지 대기.
+  // 자동 오픈 시 모듈 미로드 race 차단 — extra 필드 row 가 누락된 채 mi 모달이 그려지는 회귀 방어.
+  if (state.packModuleReady) { try { await state.packModuleReady; } catch (_) {} }
   try {
     const res = await fetch(`/api/rooms/${state.roomCode}/members/${encodeURIComponent(state.uuid)}?viewer=${encodeURIComponent(state.uuid)}`);
     if (!res.ok) throw new Error('fetch failed');
     _miCurrent = await res.json();
-    // playlist-share 팩 — 내 플리 URL 병합 (별도 테이블)
-    if (state.room && state.room.pack_id === 'playlist-share') {
-      _miCurrent.playlist = (state.playlistByUuid && state.playlistByUuid[state.uuid]) || '';
+    // Pack 별 extra 필드 주입 — Phase 11: pack_id 분기 제거, 모듈 메타 (sourceKey) 기반.
+    const miExtra = miExtraField();
+    if (miExtra && miExtra.sourceKey) {
+      const src = state[miExtra.sourceKey];
+      _miCurrent[miExtra.key] = (src && src[state.uuid]) || '';
     }
     renderMiProfile();
   } catch (e) {
@@ -6155,11 +6162,18 @@ async function loadMiProfile() {
   }
 }
 
+// Phase 11: pack-specific extra field 메타 helper. 다른 11개 pack 은 모듈 미존재 → undefined → host 는 분기 skip.
+function miExtraField() {
+  const pid = state.room && state.room.pack_id;
+  if (!pid || !window.ntPackFragment) return null;
+  return window.ntPackFragment.pack(pid, 'getMiExtraField') || null;
+}
+
 function renderMiProfile() {
   const me = _miCurrent || {};
   const content = document.getElementById('mi-content');
   const photo = state.photos[state.uuid] || (() => { try { return localStorage.getItem(`ntable_photo_${state.roomCode}`) || ''; } catch (_) { return ''; } })();
-  const isPlaylistPack = state.room && state.room.pack_id === 'playlist-share';
+  const extra = miExtraField();
   if (_miEditMode) {
     content.innerHTML = `
       ${photo ? `<div style="text-align:center;margin-bottom:14px;"><img src="${escHtml(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-border);"></div>` : ''}
@@ -6171,7 +6185,7 @@ function renderMiProfile() {
       ${miEditText('업종', 'industry', me.industry, 'hide_industry', me.hide_industry)}
       ${miEditText('MBTI', 'mbti', me.mbti, null, false)}
       ${miEditText('관심사', 'interest', me.interest, 'hide_interest', me.hide_interest)}
-      ${isPlaylistPack ? miEditText('플리 링크', 'playlist', me.playlist, null, false) : ''}
+      ${extra ? miEditText(extra.label, extra.key, me[extra.key], null, false) : ''}
       ${miEditText('인스타그램', 'instagram', me.instagram, 'hide_instagram', me.hide_instagram)}
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button type="button" onclick="cancelMiEdit()" style="flex:1;padding:11px;background:transparent;border:1px solid var(--border);color:var(--white-dim);border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;">취소</button>
@@ -6185,11 +6199,9 @@ function renderMiProfile() {
       return `<div class="mi-view-row"><span class="mi-k">${k}</span><span class="mi-v" style="color:var(--white);font-weight:500;">${escHtml(v)}</span></div>`;
     };
     const genderLabel = me.gender === 'male' ? '남성' : me.gender === 'female' ? '여성' : me.gender === 'unspecified' ? '선택 안 함' : '';
-    const playlistRow = isPlaylistPack ? (
-      me.playlist
-        ? `<div class="mi-view-row"><span class="mi-k">플리 링크</span><span class="mi-v" style="color:var(--white);font-weight:500;"><a href="${escHtml(me.playlist)}" target="_blank" rel="noopener" style="color:var(--gold-light);text-decoration:underline;">🎵 열기</a></span></div>`
-        : `<div class="mi-view-row"><span class="mi-k">플리 링크</span><span class="mi-v" style="color:var(--text-dim);font-style:italic;">생략</span></div>`
-    ) : '';
+    const extraRow = extra
+      ? (window.ntPackFragment.pack(state.room.pack_id, 'renderMiExtraView', me[extra.key]) || '')
+      : '';
     content.innerHTML = `
       ${photo ? `<div style="text-align:center;margin-bottom:14px;"><img src="${escHtml(photo)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:2px solid var(--gold-border);"></div>` : ''}
       ${row('닉네임', me.nickname, false)}
@@ -6199,7 +6211,7 @@ function renderMiProfile() {
       ${row('업종', me.industry, me.hide_industry)}
       ${row('MBTI', me.mbti, false)}
       ${row('관심사', me.interest, me.hide_interest)}
-      ${playlistRow}
+      ${extraRow}
       ${row('인스타그램', me.instagram ? '@' + me.instagram : '', me.hide_instagram)}
     `;
   }
@@ -6257,11 +6269,12 @@ function cancelMiEdit() {
 async function saveMiEdit() {
   const inputs = document.querySelectorAll('#mi-content [data-mi-field]');
   const body = { uuid: state.uuid };
-  let playlistUrl = undefined; // playlist-share 팩 전용 (별도 엔드포인트)
+  const extra = miExtraField(); // Phase 11: pack-specific extra 필드 (별도 엔드포인트로 저장).
+  let extraValue = undefined;
   let newNickname = undefined; // 2026-04-22: 닉네임 변경은 /join 으로 별도 처리 — /me/profile 는 nickname 필드 없음.
   for (const inp of inputs) {
     const k = inp.dataset.miField;
-    if (k === 'playlist') { playlistUrl = (inp.value || '').trim(); continue; }
+    if (extra && k === extra.key) { extraValue = (inp.value || '').trim(); continue; }
     if (k === 'nickname') { newNickname = (inp.value || '').trim().slice(0, 20); continue; }
     if (inp.type === 'checkbox') body[k] = inp.checked;
     else if (inp.type === 'number') body[k] = inp.value ? parseInt(inp.value, 10) : null;
@@ -6302,26 +6315,20 @@ async function saveMiEdit() {
       });
       if (!r.ok) throw new Error('save failed');
     }
-    // playlist-share 팩 — URL 별도 저장 (빈 값이면 DELETE)
-    if (playlistUrl !== undefined) {
+    // Pack 별 extra 필드 저장 — Phase 11: pack_id 분기 제거. saveMiExtra 안에서 refreshMap 까지 캡슐화.
+    // validation advisor B3 fix: 모듈 메서드 결과 boolean — false 면 status 실패 표시 + 모달 안 닫음.
+    if (extra && extraValue !== undefined && window.ntPackFragment && state.room) {
+      const ready = state.packModuleReady || Promise.resolve();
+      await ready;
+      let extraOk = false;
       try {
-        if (playlistUrl) {
-          await fetch(`/api/rooms/${state.roomCode}/playlist`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uuid: state.uuid, url: playlistUrl }),
-          });
-        } else {
-          await fetch(`/api/rooms/${state.roomCode}/playlist`, {
-            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uuid: state.uuid }),
-          });
-        }
-        if (window.ntPackFragment && state.room) {
-          const ready = state.packModuleReady || Promise.resolve();
-          await ready;
-          await window.ntPackFragment.pack(state.room.pack_id, 'refreshMap');
-        }
-      } catch (_) {}
+        extraOk = await window.ntPackFragment.pack(state.room.pack_id, 'saveMiExtra', state.uuid, extraValue);
+      } catch (_) { extraOk = false; }
+      if (extraOk === false) {
+        status.textContent = `${extra.label} 저장 실패. 다시 시도해주세요.`;
+        status.style.color = 'var(--danger)';
+        return;
+      }
     }
     status.textContent = '✓ 저장됐어요';
     status.style.color = 'var(--success)';
