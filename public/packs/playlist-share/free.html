@@ -1,0 +1,42 @@
+<!--
+  Pack: playlist-share (나만의 플리 공유회) — 자유대화 단계 fragment.
+  Slot: #pack-free-card-slot (host.html).
+  2026-05-19 모듈화 Phase 9 — host.html 의 #playlist-player-card 추출.
+  JS: public/js/packs/playlist-share.js 의 ntPack['playlist-share'].onEnterFreeChat 가
+      자유대화 진입 시 refreshMap + bindControls + renderPlayer 트리거.
+  내부 element id 는 외부 함수(ppNext / ppPlay 등) 가 직접 참조하므로 prefix 안 붙임.
+  다른 pack 은 _default/free.html (빈 fragment) 로 fallback → 카드 자체가 DOM 에 없음.
+-->
+<section class="pack-panel" id="panel-free-pack-playlist-share">
+  <div class="free-card" id="playlist-player-card">
+    <div class="card-head">🎵 플리 랜덤 순차재생</div>
+    <div id="pp-empty" style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px 8px;">
+      아직 등록된 플리가 없어요. 참가자들이 등록을 마치면 여기서 재생할 수 있어요.
+    </div>
+    <div id="pp-main" hidden>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px;letter-spacing:0.12em;color:var(--gold);">현재 재생</div>
+          <div id="pp-current-nick" style="font-size:16px;color:var(--white);font-weight:600;">—</div>
+          <div id="pp-current-svc" style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">—</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--text-muted);">
+          <div id="pp-progress">0 / 0</div>
+        </div>
+      </div>
+      <div id="pp-embed-wrap" style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:10px;">
+        <div id="pp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;text-align:center;padding:16px;">▶ 재생 시작을 눌러주세요</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-gold" id="pp-play-btn" style="flex:1;min-width:120px;">▶ 재생 시작</button>
+        <button type="button" class="btn btn-outline" id="pp-next-btn" style="padding:10px 14px;">다음 사람 →</button>
+        <button type="button" class="btn btn-outline" id="pp-shuffle-btn" style="padding:10px 14px;">🔀 다시 섞기</button>
+        <button type="button" class="btn btn-outline" id="pp-open-btn" style="padding:10px 14px;" title="현재 곡 새 창에서 열기">↗ 새 창</button>
+      </div>
+      <div id="pp-queue" style="margin-top:12px;font-size:11.5px;color:var(--text-muted);line-height:1.7;"></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+        💡 YouTube는 같은 사람 플리 안에서 자동으로 다음 곡 진행. Spotify · Apple Music · YouTube Music은 모임장이 "다음 사람 →"으로 수동 진행.
+      </div>
+    </div>
+  </div>
+</section>

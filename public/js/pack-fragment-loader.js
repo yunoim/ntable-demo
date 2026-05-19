@@ -56,5 +56,45 @@
     return el || fallback || null;
   }
 
-  root.ntPackFragment = { load, packUI, fetchFragment };
+  // 2026-05-19 Phase 9: Pack-specific JS 모듈 동적 로드.
+  // public/js/packs/{pack_id}.js 가 존재하면 <script> 주입 → onload 후 resolve.
+  // 모듈은 IIFE 로 window.ntPack[pack_id] = { ... } 노출 규약.
+  // 404 (모듈 파일 없음) 는 silent skip — 모든 pack 에 모듈이 있을 필요는 없음.
+  const moduleCache = new Map(); // pack_id → Promise<boolean>
+  function loadModule(pack_id) {
+    if (!pack_id) return Promise.resolve(false);
+    if (moduleCache.has(pack_id)) return moduleCache.get(pack_id);
+    const p = new Promise((resolve) => {
+      // 이미 등록돼있으면 즉시 resolve (HMR / 재호출 방어).
+      if (root.ntPack && root.ntPack[pack_id]) { resolve(true); return; }
+      const safe = String(pack_id).replace(/[^a-z0-9_-]/gi, '');
+      if (!safe) { resolve(false); return; }
+      const url = `/js/packs/${safe}.js`;
+      const tag = document.createElement('script');
+      tag.src = url;
+      tag.async = false;
+      tag.onload = () => resolve(!!(root.ntPack && root.ntPack[pack_id]));
+      tag.onerror = () => { console.warn('[pack-module] not found', url); resolve(false); };
+      document.head.appendChild(tag);
+    });
+    moduleCache.set(pack_id, p);
+    return p;
+  }
+
+  // Pack 모듈 API dispatcher.
+  // - 모듈 자체 없음 → silent skip (정상: 모든 pack 에 모듈이 있을 필요 없음)
+  // - 모듈 있는데 method 없음 → console.warn (오타·시그니처 변경 디버깅성, validation advisor W4 fix)
+  // 예: ntPackFragment.pack('playlist-share', 'refreshMap')
+  function pack(pack_id, method, ...args) {
+    const mod = root.ntPack && root.ntPack[pack_id];
+    if (!mod) return undefined;
+    if (typeof mod[method] !== 'function') {
+      console.warn('[pack-module]', pack_id, 'method missing:', method);
+      return undefined;
+    }
+    try { return mod[method](...args); }
+    catch (err) { console.warn('[pack-module]', pack_id, method, 'threw', err && err.message); }
+  }
+
+  root.ntPackFragment = { load, packUI, fetchFragment, loadModule, pack };
 })(typeof window !== 'undefined' ? window : globalThis);

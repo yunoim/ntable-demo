@@ -2591,38 +2591,10 @@
         <p style="font-size:12px;color:var(--text-muted);text-align:center;line-height:1.5;">자동 종료는 안 됩니다. 시간 보고 마무리로 →</p>
       </div>
 
-      <!-- 플리 플레이어 카드 — pack_id=playlist-share 일 때만 JS 가 노출 -->
-      <div class="free-card" id="playlist-player-card" hidden>
-        <div class="card-head">🎵 플리 랜덤 순차재생</div>
-        <div id="pp-empty" style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px 8px;">
-          아직 등록된 플리가 없어요. 참가자들이 등록을 마치면 여기서 재생할 수 있어요.
-        </div>
-        <div id="pp-main" hidden>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div>
-              <div style="font-size:11px;letter-spacing:0.12em;color:var(--gold);">현재 재생</div>
-              <div id="pp-current-nick" style="font-size:16px;color:var(--white);font-weight:600;">—</div>
-              <div id="pp-current-svc" style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">—</div>
-            </div>
-            <div style="text-align:right;font-size:12px;color:var(--text-muted);">
-              <div id="pp-progress">0 / 0</div>
-            </div>
-          </div>
-          <div id="pp-embed-wrap" style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:10px;">
-            <div id="pp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;text-align:center;padding:16px;">▶ 재생 시작을 눌러주세요</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-gold" id="pp-play-btn" style="flex:1;min-width:120px;">▶ 재생 시작</button>
-            <button type="button" class="btn btn-outline" id="pp-next-btn" style="padding:10px 14px;">다음 사람 →</button>
-            <button type="button" class="btn btn-outline" id="pp-shuffle-btn" style="padding:10px 14px;">🔀 다시 섞기</button>
-            <button type="button" class="btn btn-outline" id="pp-open-btn" style="padding:10px 14px;" title="현재 곡 새 창에서 열기">↗ 새 창</button>
-          </div>
-          <div id="pp-queue" style="margin-top:12px;font-size:11.5px;color:var(--text-muted);line-height:1.7;"></div>
-          <div style="margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.5;">
-            💡 YouTube는 같은 사람 플리 안에서 자동으로 다음 곡 진행. Spotify · Apple Music · YouTube Music은 모임장이 "다음 사람 →"으로 수동 진행.
-          </div>
-        </div>
-      </div>
+      <!-- P5 (2026-05-13): Pack-별 free 안내·tip slot. _default 빈 fragment 또는 packs/{id}/free.html override.
+           P9 (2026-05-19): 자유대화 진입 시 가장 먼저 보이도록 free-grid 위로 이동.
+           현재 consumer: playlist-share (플리 랜덤 순차재생 카드). -->
+      <div id="pack-free-card-slot" data-pack-phase="free"></div>
 
       <div class="free-grid">
         <!-- 자리 셔플 카드 폐기 (2026-04-19) — 모임장이 자연스럽게 분위기 조정하도록 -->
@@ -2634,8 +2606,6 @@
       </div>
 
       <!-- #free-chat-card 는 #persistentChatHost 로 이동 — intro + free 탭 공통 노출 -->
-      <!-- P5 (2026-05-13): Pack-별 free 안내·tip slot. _default 빈 fragment 또는 packs/{id}/free.html override. -->
-      <div id="pack-free-card-slot" data-pack-phase="free"></div>
     </div>
 
     <!-- 상시 익명 채팅 — intro · free 탭에서만 표시 (CSS: body.tab-intro / body.tab-free) -->
@@ -3083,11 +3053,18 @@ async function loadRoomInfo() {
       // _default 또는 pack-specific fragment 를 각 phase slot 에 inject. 빈 _default 는 zero regression.
       // P3 (2026-05-13): intro 는 #no-approved fragment 추출이라 load 후 renderProfiles 재호출 (race 회피).
       // P4-6: 신규 영역 추가만이라 기존 함수 재호출 불필요.
+      // P9 (2026-05-19): pack-specific JS 모듈도 함께 동적 로드. 모듈 없으면 silent skip.
+      // init() 안에서 refreshMap 자동 호출 (validation advisor B1 fix) — host.html setTimeout race 제거.
       if (typeof window.ntPackFragment === 'object' && window.ntPackFragment) {
+        const modulePromise = window.ntPackFragment.loadModule(room.pack_id).then(loaded => {
+          if (loaded) window.ntPackFragment.pack(room.pack_id, 'init', { state });
+          return loaded;
+        });
+        // free slot after: 모듈 로드 보장 후 onEnterFreeChat 호출 (validation advisor W1 fix).
         const slots = [
           { phase: 'intro',   slotId: 'pack-intro-card-slot',   after: () => { if (typeof renderProfiles === 'function') { try { renderProfiles(); } catch (_) {} } } },
           { phase: 'explore', slotId: 'pack-explore-card-slot', after: null },
-          { phase: 'free',    slotId: 'pack-free-card-slot',    after: null },
+          { phase: 'free',    slotId: 'pack-free-card-slot',    after: () => { modulePromise.then(() => window.ntPackFragment.pack(room.pack_id, 'onEnterFreeChat')); } },
           { phase: 'ending',  slotId: 'pack-ending-card-slot',  after: null },
         ];
         for (const s of slots) {
@@ -3095,6 +3072,8 @@ async function loadRoomInfo() {
             .then(injected => { if (injected && s.after) s.after(); })
             .catch(err => console.warn('[pack-fragment]', s.phase, 'load fail', err && err.message));
         }
+        // module promise 를 state 에 저장 — WS 핸들러 등 비동기 시점에서 await 가능 (B2 fix).
+        state.packModuleReady = modulePromise;
       }
     }
     // T-B0-10 (2026-04-22): pack_id 확정 후 stat bar 로드 시도 (dating 외는 내부에서 조기 return)
@@ -3115,8 +3094,8 @@ async function loadRoomInfo() {
       }
     }
     state.displayFields = Array.isArray(room.display_fields) ? room.display_fields : ['birth_year','region','industry','interest'];
-    // playlist-share 팩 — 플레이리스트 URL 맵 초기 로드
-    if (room.pack_id === 'playlist-share') refreshPlaylistMap();
+    // Phase 9: pack 모듈 init() 안에서 refreshMap 자동 호출 (validation advisor B1 fix).
+    // 이전 setTimeout dispatcher 호출은 loadModule promise 와 race → 제거.
     state.birthYearFormat = room.birth_year_format || 'exact';
     state.hostRole = room.host_role || 'host_only';
     state.questionCount = Number.isFinite(room.question_count) ? room.question_count : 10;
@@ -3917,7 +3896,11 @@ function handleWSMessage(msg) {
           }
         });
       }
-      if (state.room && state.room.pack_id === 'playlist-share') refreshPlaylistMap();
+      // Phase 9 fix (validation advisor B2): module 로드 보장 후 refreshMap. loadRoomInfo 가 packModuleReady 를 state 에 저장.
+      if (window.ntPackFragment && state.room) {
+        const ready = state.packModuleReady || Promise.resolve();
+        ready.then(() => window.ntPackFragment.pack(state.room.pack_id, 'refreshMap'));
+      }
       break;
     }
     case 'recover_request': {
@@ -4036,266 +4019,8 @@ async function fetchUserProfile(uuid) {
   } catch { return {}; }
 }
 
-// playlist_links 테이블에서 방 전체의 플레이리스트 URL 맵 가져오기 (playlist-share 팩 전용)
-async function refreshPlaylistMap() {
-  try {
-    const res = await fetch(`/api/rooms/${state.roomCode}/playlist`);
-    if (res.ok) {
-      const j = await res.json();
-      state.playlistByUuid = (j && j.links) || {};
-      renderProfiles();
-      try { renderPlaylistPlayer(); } catch (_) {}
-    }
-  } catch (_) {}
-}
-
-// ── 자유대화 플리 랜덤 순차재생 ────────────────────
-const PP = {
-  queue: [],   // [{ uuid, nickname, url, service }]
-  idx: 0,
-  started: false,
-  ytPlayer: null,
-  ytApiLoaded: false,
-};
-
-function ppDetectService(url) {
-  if (!url) return null;
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    if (/spotify\.com$/.test(host)) return 'spotify';
-    if (/music\.apple\.com$/.test(host)) return 'apple';
-    if (/music\.youtube\.com$/.test(host)) return 'youtube_music';
-    if (/(^|\.)youtube\.com$/.test(host) || /(^|\.)youtu\.be$/.test(host)) return 'youtube';
-    return 'other';
-  } catch (_) { return null; }
-}
-
-function ppExtractYTList(url) {
-  try {
-    const u = new URL(url);
-    return u.searchParams.get('list') || null;
-  } catch (_) { return null; }
-}
-
-function ppExtractYTVideoId(url) {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1) || null;
-    return u.searchParams.get('v') || null;
-  } catch (_) { return null; }
-}
-
-function ppExtractSpotifyEmbed(url) {
-  // https://open.spotify.com/playlist/ID 또는 album/track 등
-  try {
-    const u = new URL(url);
-    const m = u.pathname.match(/^\/(playlist|album|track)\/([^/?]+)/);
-    if (!m) return null;
-    return `https://open.spotify.com/embed/${m[1]}/${m[2]}`;
-  } catch (_) { return null; }
-}
-
-function ppExtractAppleEmbed(url) {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.endsWith('music.apple.com')) return null;
-    return `https://embed.music.apple.com${u.pathname}${u.search || ''}`;
-  } catch (_) { return null; }
-}
-
-function ppShuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function ppBuildQueue() {
-  const links = state.playlistByUuid || {};
-  const items = [];
-  for (const [uuid, url] of Object.entries(links)) {
-    if (!url) continue;
-    const member = (state.approvedUsers || []).find(u => u && u.uuid === uuid)
-                || (state.waitingUsers || []).find(u => u && u.uuid === uuid);
-    const nickname = (member && member.nickname) || '익명';
-    items.push({ uuid, nickname, url, service: ppDetectService(url) });
-  }
-  return ppShuffle(items);
-}
-
-function renderPlaylistPlayer() {
-  const card = document.getElementById('playlist-player-card');
-  if (!card) return;
-  const isPack = state.room && state.room.pack_id === 'playlist-share';
-  if (!isPack) { card.hidden = true; return; }
-  card.hidden = false;
-
-  const empty = document.getElementById('pp-empty');
-  const main = document.getElementById('pp-main');
-  // 큐가 비어있으면 빌드. 이미 있으면 새 항목만 추가 (재셔플은 사용자가 명시적으로).
-  if (!PP.queue.length) PP.queue = ppBuildQueue();
-  if (!PP.queue.length) { empty.hidden = false; main.hidden = true; return; }
-  empty.hidden = true;
-  main.hidden = false;
-
-  const cur = PP.queue[PP.idx] || null;
-  document.getElementById('pp-progress').textContent = `${PP.idx + 1} / ${PP.queue.length}`;
-  document.getElementById('pp-current-nick').textContent = cur ? cur.nickname : '—';
-  const svcLabels = { spotify: '🟢 Spotify', apple: '🍎 Apple Music', youtube: '▶︎ YouTube', youtube_music: '⚠️ YouTube Music (영상 없음)', other: '🎵 기타' };
-  document.getElementById('pp-current-svc').textContent = cur ? (svcLabels[cur.service] || cur.service) : '—';
-
-  // 큐 미리보기
-  const queueEl = document.getElementById('pp-queue');
-  if (queueEl) {
-    queueEl.innerHTML = PP.queue.map((it, i) => {
-      const isCur = i === PP.idx;
-      const dot = isCur ? '▶︎' : (i < PP.idx ? '✓' : '·');
-      const color = isCur ? 'color:var(--gold-light);font-weight:600;' : (i < PP.idx ? 'color:var(--text-muted);text-decoration:line-through;opacity:0.6;' : 'color:var(--text-muted);');
-      return `<div style="${color}">${dot} ${escHtml(it.nickname)} <span style="font-size:10.5px;opacity:0.7;">(${(svcLabels[it.service] || it.service || '').replace(/^[^\s]*\s/, '')})</span></div>`;
-    }).join('');
-  }
-}
-
-function ppLoadYTApiOnce(callback) {
-  if (PP.ytApiLoaded && window.YT && window.YT.Player) { callback(); return; }
-  if (!PP.ytApiLoaded) {
-    PP.ytApiLoaded = true;
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-  }
-  const wait = setInterval(() => {
-    if (window.YT && window.YT.Player) { clearInterval(wait); callback(); }
-  }, 200);
-  setTimeout(() => clearInterval(wait), 10000);
-}
-
-function ppEmbedCurrent() {
-  const wrap = document.getElementById('pp-embed-wrap');
-  const placeholder = document.getElementById('pp-placeholder');
-  if (!wrap) return;
-  // 기존 임베드 정리
-  if (PP.ytPlayer) { try { PP.ytPlayer.destroy(); } catch (_) {} PP.ytPlayer = null; }
-  wrap.innerHTML = '<div id="pp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;text-align:center;padding:16px;">로딩 중…</div>';
-  const cur = PP.queue[PP.idx];
-  if (!cur) return;
-
-  // YouTube Music 도 list 만 떼서 일반 YouTube 임베드로 자동 변환 (advisor 제안)
-  if (cur.service === 'youtube' || cur.service === 'youtube_music') {
-    const listId = ppExtractYTList(cur.url);
-    const videoId = ppExtractYTVideoId(cur.url);
-    const div = document.createElement('div');
-    div.id = 'pp-yt-player';
-    div.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
-    wrap.innerHTML = '';
-    wrap.appendChild(div);
-    ppLoadYTApiOnce(() => {
-      try {
-        const playerVars = { autoplay: 1, playsinline: 1, rel: 0 };
-        if (listId) { playerVars.listType = 'playlist'; playerVars.list = listId; }
-        const opts = {
-          width: '100%', height: '100%', playerVars,
-          events: {
-            onStateChange: (e) => {
-              if (e.data === 0) {
-                console.log('[host] yt ended → next person');
-                ppNext();
-              }
-            },
-            onError: (e) => {
-              console.warn('[host] yt error', e.data, '— fallback to external link');
-              const wrap2 = document.getElementById('pp-embed-wrap');
-              if (wrap2) {
-                wrap2.innerHTML = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;background:#000;color:#fff;">
-                  <div style="font-size:13px;color:var(--text-muted);">이 플리는 임베드에서 안 열려요${cur.service === 'youtube_music' ? ' (YouTube Music 전용 플리)' : ''}</div>
-                  <a href="${cur.url}" target="_blank" rel="noopener noreferrer" style="padding:10px 18px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">↗ 새 창에서 듣기</a>
-                  <div style="font-size:11px;color:var(--text-muted);">끝나면 "다음 사람 →"</div>
-                </div>`;
-              }
-            },
-          },
-        };
-        if (!listId && videoId) opts.videoId = videoId;
-        PP.ytPlayer = new YT.Player('pp-yt-player', opts);
-      } catch (e) { console.warn('[host] yt player init failed', e); }
-    });
-    return;
-  }
-
-  if (cur.service === 'spotify') {
-    const src = ppExtractSpotifyEmbed(cur.url);
-    if (src) {
-      wrap.innerHTML = `<iframe src="${src}" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
-      return;
-    }
-  }
-  if (cur.service === 'apple') {
-    const src = ppExtractAppleEmbed(cur.url);
-    if (src) {
-      wrap.innerHTML = `<iframe src="${src}" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allow="autoplay *; encrypted-media *;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"></iframe>`;
-      return;
-    }
-  }
-  // 임베드 못 만들면 외부 링크 안내
-  wrap.innerHTML = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;">
-    <div style="font-size:13px;color:var(--text-muted);">이 서비스는 임베드 미지원</div>
-    <a href="${cur.url}" target="_blank" rel="noopener noreferrer" style="padding:10px 18px;background:linear-gradient(135deg,var(--gold),#a07828);color:var(--navy);border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">↗ 새 창에서 듣기</a>
-    <div style="font-size:11px;color:var(--text-muted);">끝나면 "다음 사람 →"</div>
-  </div>`;
-}
-
-function ppPlay() {
-  if (!PP.queue.length) return;
-  PP.started = true;
-  ppEmbedCurrent();
-  const btn = document.getElementById('pp-play-btn');
-  if (btn) btn.textContent = '⏸ 일시정지';
-}
-
-function ppPause() {
-  PP.started = false;
-  if (PP.ytPlayer && PP.ytPlayer.pauseVideo) { try { PP.ytPlayer.pauseVideo(); } catch (_) {} }
-  const wrap = document.getElementById('pp-embed-wrap');
-  if (wrap && !PP.ytPlayer) wrap.innerHTML = '<div id="pp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;">⏸ 일시정지</div>';
-  const btn = document.getElementById('pp-play-btn');
-  if (btn) btn.textContent = '▶ 재생 시작';
-}
-
-function ppNext() {
-  if (!PP.queue.length) return;
-  PP.idx = (PP.idx + 1) % PP.queue.length;
-  renderPlaylistPlayer();
-  if (PP.started) ppEmbedCurrent();
-}
-
-function ppReshuffle() {
-  PP.queue = ppBuildQueue();
-  PP.idx = 0;
-  renderPlaylistPlayer();
-  if (PP.started) ppEmbedCurrent();
-}
-
-function ppOpenExternal() {
-  const cur = PP.queue[PP.idx];
-  if (cur && cur.url) window.open(cur.url, '_blank', 'noopener');
-}
-
-function ppBindControls() {
-  const playBtn = document.getElementById('pp-play-btn');
-  const nextBtn = document.getElementById('pp-next-btn');
-  const shuffleBtn = document.getElementById('pp-shuffle-btn');
-  const openBtn = document.getElementById('pp-open-btn');
-  if (playBtn && !playBtn._bound) {
-    playBtn._bound = true;
-    playBtn.addEventListener('click', () => { PP.started ? ppPause() : ppPlay(); });
-  }
-  if (nextBtn && !nextBtn._bound) { nextBtn._bound = true; nextBtn.addEventListener('click', ppNext); }
-  if (shuffleBtn && !shuffleBtn._bound) { shuffleBtn._bound = true; shuffleBtn.addEventListener('click', ppReshuffle); }
-  if (openBtn && !openBtn._bound) { openBtn._bound = true; openBtn.addEventListener('click', ppOpenExternal); }
-}
-
+// playlist-share 팩 모듈 → public/js/packs/playlist-share.js (Phase 9, 2026-05-19).
+// 호출: ntPackFragment.pack('playlist-share', 'refreshMap' | 'onEnterFreeChat' | ...)
 // ── RENDER ────────────────────────────────────────
 function renderWaitingList() {
   const list = document.getElementById('waiting-list');
@@ -5283,11 +5008,11 @@ function switchTab(tab) {
   });
   if (tab === 'free') {
     applyFreeChatOptions();
-    // playlist-share 팩 — 자유대화 진입 시 플레이어 초기화
-    if (state.room && state.room.pack_id === 'playlist-share') {
-      try { refreshPlaylistMap(); } catch (_) {}
-      try { ppBindControls(); } catch (_) {}
-      try { renderPlaylistPlayer(); } catch (_) {}
+    // 자유대화 진입 hook — pack 모듈에 onEnterFreeChat 메서드 있으면 호출 (Phase 9: dispatcher).
+    // module 로드 보장 (loadRoomInfo 가 packModuleReady 저장; 사용자가 직접 탭 클릭한 늦은 시점이라 보통 이미 resolved).
+    if (window.ntPackFragment && state.room) {
+      const ready = state.packModuleReady || Promise.resolve();
+      ready.then(() => window.ntPackFragment.pack(state.room.pack_id, 'onEnterFreeChat'));
     }
   } else if (_freeTimerInterval) { clearInterval(_freeTimerInterval); _freeTimerInterval = null; }
   if (tab === 'ending') {
@@ -5602,6 +5327,8 @@ function renderClosingSubsteps(current) {
     'match-result': '매칭 발표',
   };
   const MVP_LABELS_PLAYLIST = { 'mvp': '베스트 플리 투표', 'mvp-result': '베스트 플리 발표' };
+  // TODO (Phase 10 후보 — validation advisor W3): MVP_LABELS_PLAYLIST + isPlaylist 분기는
+  // playlist-share 모듈로 옮길 수 있음. 단 ending phase 추출 시 sub-슬롯 설계 필요.
   const isPlaylist = (state.room && state.room.pack_id === 'playlist-share') || (state.packDefaults && state.packDefaults.content_kind === 'playlist');
   const NUM = ['①','②','③','④'];
   const visible = hasMatch ? ['mvp','mvp-result','match','match-result'] : ['mvp','mvp-result'];
@@ -6591,7 +6318,11 @@ async function saveMiEdit() {
             body: JSON.stringify({ uuid: state.uuid }),
           });
         }
-        await refreshPlaylistMap();
+        if (window.ntPackFragment && state.room) {
+          const ready = state.packModuleReady || Promise.resolve();
+          await ready;
+          await window.ntPackFragment.pack(state.room.pack_id, 'refreshMap');
+        }
       } catch (_) {}
     }
     status.textContent = '✓ 저장됐어요';

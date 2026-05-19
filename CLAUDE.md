@@ -127,6 +127,15 @@
 - 신규 pack 추가 가이드 문서: `docs/PACK_GUIDE.md`.
 - `routes/question-sources.js` 의 임시 dead block (`if (false) { _REMOVED = {...} }`) 제거 — 574→374 line.
 
+### Phase 9 (완료 — 2026-05-19)
+- 첫 큰 영역 + JS 모듈 분리: `playlist-share` 의 `#playlist-player-card` (HTML 32줄) + `refreshPlaylistMap` · PP 네임스페이스 · 16개 `pp*` 함수 (JS 258줄) 통째 추출.
+- 신규 파일 2개: `public/packs/playlist-share/free.html`, `public/js/packs/playlist-share.js` (IIFE → `window.ntPack['playlist-share']`).
+- `pack-fragment-loader.js` 확장: `loadModule(pack_id)` (동적 `<script>` 주입 + 404 silent skip + Promise cache), `pack(pack_id, method, ...args)` dispatcher.
+- host.html 의 인라인 `if (pack_id === 'playlist-share') ...` 4곳 → `ntPackFragment.pack(...)` dispatcher 로 일원화. host.html: 6797 → 6514 line (-283).
+- `#pack-free-card-slot` 위치 이동 (free-grid 아래 → 위) — playlist-share 진입 시 플리 카드를 질문 카드보다 먼저 보이도록.
+- 다른 8개 pack: 모듈 파일 없음 → loadModule 404 silent skip + `_default/free.html` 빈 fragment 그대로 → zero regression.
+- 모듈 API 규약: `init({state})`, `refreshMap`, `onEnterFreeChat` 등 도메인 메서드. 호출자는 `ntPackFragment.pack(pack_id, 'methodName', ...)` 만 알면 됨 (`if (pack_id === '…')` 분기 불필요).
+
 ### 신규 Pack 추가 흐름 (현재 가능한 영역)
 1. `questions/packs/{id}.md` — 탐구 질문·자유대화 주제 (4-tier · 3-group).
 2. `config/pack-defaults.json` — 메타 entry (series, content_kind, flow, wizard_*, result_sections, labels 등).
@@ -134,7 +143,7 @@
 4. (선택) `public/packs/{id}/{explore|free|ending}.html` — 각 phase 안내·tip 카드.
 5. (선택) `config/pack-ui-overrides.json` — 향후 UI override manifest 필요 시.
 
-위 1-2번이 필수, 3-5번이 optional. **현재 단계의 한계**: host.html 의 기존 큰 영역 (lobby tabs, profile carousel, vote bars 등) 은 아직 in-place — pack-specific 변경 시 host.html 직접 수정 필요.
+위 1-2번이 필수, 3-5번이 optional. **Phase 9 (2026-05-19) 추가**: pack-specific JS 모듈은 `public/js/packs/{id}.js` 작성 → IIFE 로 `window.ntPack[pack_id] = { init, ...methods }` 노출 → host.html 의 `loadRoomInfo` 가 자동 `loadModule` + dispatcher 호출. **남은 한계**: host.html 의 기타 큰 영역 (lobby tabs, profile carousel, vote bars 등) 은 여전히 in-place — pack-specific 변경 시 host.html 직접 수정 필요.
 
 ### 합의된 규약 (다음 PR 의 fragment 로더가 이 규약 전제로 구현)
 

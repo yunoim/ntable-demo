@@ -187,6 +187,106 @@
         "page2_card_title": "🎯 오늘의 주인공",
         "best_match_eyebrow": "비슷한 답을 고른 동료"
       }
+    },
+    "hobby-travel": {
+      "series": null,
+      "content_kind": "conversation",
+      "flow": ["explore-result"],
+      "wizard_fields": ["nickname", "emoji", "birth_year", "mbti", "interest"],
+      "wizard_required": ["nickname"],
+      "wizard_prompt_after_join": ["birth_year", "mbti", "interest"],
+      "display_fields_default": ["birth_year", "mbti", "interest"],
+      "result_sections": ["ai_personality", "explore_result", "summary"],
+      "skip_free_chat": false,
+      "insta_exchange_enabled": false,
+      "best_match_enabled": false,
+      "mvp_enabled": false,
+      "match_pairs_enabled": false,
+      "chat_reactions": ["✈️ 가고 싶다", "📸 사진 보고파", "🌅 인상적", "😄 재밌어요", "🙌 공감돼요"],
+      "labels": {
+        "page2_card_title": "✈️ 오늘의 여행 스타일",
+        "best_match_eyebrow": "여행 스타일이 비슷한 사람"
+      }
+    },
+    "book-club": {
+      "series": null,
+      "content_kind": "conversation",
+      "flow": ["explore-result"],
+      "wizard_fields": ["nickname", "emoji", "birth_year", "mbti", "interest"],
+      "wizard_required": ["nickname"],
+      "wizard_prompt_after_join": ["birth_year", "mbti", "interest"],
+      "display_fields_default": ["mbti", "interest"],
+      "result_sections": ["ai_personality", "explore_result", "summary"],
+      "skip_free_chat": false,
+      "insta_exchange_enabled": false,
+      "best_match_enabled": false,
+      "mvp_enabled": false,
+      "match_pairs_enabled": false,
+      "chat_reactions": ["📖 좋은 인사이트", "💡 그 관점", "🤔 흥미로워요", "👏 공감돼요", "✍️ 메모할게요"],
+      "labels": {
+        "page2_card_title": "📚 오늘의 독서 성향",
+        "best_match_eyebrow": "읽는 결이 비슷한 사람"
+      }
+    },
+    "hobby-food": {
+      "series": null,
+      "content_kind": "conversation",
+      "flow": ["explore-result"],
+      "wizard_fields": ["nickname", "emoji", "birth_year", "mbti", "interest"],
+      "wizard_required": ["nickname"],
+      "wizard_prompt_after_join": ["birth_year", "mbti", "interest"],
+      "display_fields_default": ["birth_year", "mbti", "interest"],
+      "result_sections": ["ai_personality", "explore_result", "summary"],
+      "skip_free_chat": false,
+      "insta_exchange_enabled": false,
+      "best_match_enabled": false,
+      "mvp_enabled": false,
+      "match_pairs_enabled": false,
+      "chat_reactions": ["🍽 맛있겠다", "👨‍🍳 셰프네", "😋 침 고임", "🙌 공감돼요", "🌶️ 도전 정신"],
+      "labels": {
+        "page2_card_title": "🍽 오늘의 식문화 성향",
+        "best_match_eyebrow": "입맛이 비슷한 사람"
+      }
+    },
+    "hobby-movie": {
+      "series": null,
+      "content_kind": "conversation",
+      "flow": ["explore-result"],
+      "wizard_fields": ["nickname", "emoji", "birth_year", "mbti", "interest"],
+      "wizard_required": ["nickname"],
+      "wizard_prompt_after_join": ["birth_year", "mbti", "interest"],
+      "display_fields_default": ["birth_year", "mbti", "interest"],
+      "result_sections": ["ai_personality", "explore_result", "summary"],
+      "skip_free_chat": false,
+      "insta_exchange_enabled": false,
+      "best_match_enabled": false,
+      "mvp_enabled": false,
+      "match_pairs_enabled": false,
+      "chat_reactions": ["🎬 그 작품", "💯 추천", "🤩 미장센", "😭 인생작", "🍿 같이 보고파"],
+      "labels": {
+        "page2_card_title": "🎬 오늘의 감상 성향",
+        "best_match_eyebrow": "감상 결이 비슷한 사람"
+      }
+    },
+    "hobby-sports": {
+      "series": null,
+      "content_kind": "conversation",
+      "flow": ["explore-result"],
+      "wizard_fields": ["nickname", "emoji", "birth_year", "mbti", "interest"],
+      "wizard_required": ["nickname"],
+      "wizard_prompt_after_join": ["birth_year", "mbti", "interest"],
+      "display_fields_default": ["birth_year", "mbti", "interest"],
+      "result_sections": ["ai_personality", "explore_result", "summary"],
+      "skip_free_chat": false,
+      "insta_exchange_enabled": false,
+      "best_match_enabled": false,
+      "mvp_enabled": false,
+      "match_pairs_enabled": false,
+      "chat_reactions": ["🏃 가즈아", "💪 멋져요", "🔥 페이스", "🙌 공감돼요", "🥲 슬럼프 공감"],
+      "labels": {
+        "page2_card_title": "🏃 오늘의 운동 성향",
+        "best_match_eyebrow": "운동 결이 비슷한 사람"
+      }
     }
   }
 }
