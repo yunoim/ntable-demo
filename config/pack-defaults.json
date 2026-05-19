@@ -124,6 +124,8 @@
         "best_match_eyebrow": "음악 취향이 비슷한 사람",
         "mvp_card_head": "🎵 오늘의 베스트 플리",
         "mvp_vote_card_head": "🎵 베스트 플리 투표",
+        "closing_chip_mvp": "베스트 플리 투표",
+        "closing_chip_mvp_result": "베스트 플리 발표",
         "closing_stage_sub": "베스트 플리 투표 → 발표 → 탐구 결과 공개 순서로 진행해요."
       }
     },
