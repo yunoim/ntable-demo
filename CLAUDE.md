@@ -1,6 +1,6 @@
 # ntable-app — 데모 형상 개발 허브
 
-> **Notion 동기화**: 2026-05-12 (모듈화 Phase 1 — PACK_DEFAULTS JSON 추출 / outdated SoT 정리)
+> **Notion 동기화**: 2026-05-19 (모듈화 Phase 12 — host.html pack_id 직접 비교 분기 0 달성)
 > **목적**: 누구나 모임장이 되어 실제 모임을 열고 진행할 수 있는 경량 플랫폼
 > **기존 ntable(ns)과 완전 분리된 병렬 프로젝트**
 > **🧊 ns 동결 (2026-04-17부)**: ns는 신규 개발 중단. 플랫폼 작업은 이 디렉토리 + `ntable-landing/`에만 집중.
@@ -98,7 +98,7 @@
 - **변경 SoT 순서**: Notion 브랜드 가이드 → `docs/brand/brand.json` → `public/styles/*.css` → HTML `<style>` → 인라인
 - **이전 정책 배경**: 초기 병렬 개발 + Claude 프롬프트 파일 단위 공유 편의. 현재는 해당 없음.
 
-## 방(Pack) 별 UI 분기 구조 (2026-05-12 — 모듈화 Phase 1 완료, Phase 2 진행 중)
+## 방(Pack) 별 UI 분기 구조 (2026-05-19 — Phase 12 완료, host.html pack_id 직접 비교 분기 0)
 
 방 종류(`pack_id`)마다 대기실·탐구·자유대화·마무리 탭 UI 가 달라질 수 있도록 fragment partial 기반으로 전환 중.
 
@@ -136,30 +136,65 @@
 - 다른 8개 pack: 모듈 파일 없음 → loadModule 404 silent skip + `_default/free.html` 빈 fragment 그대로 → zero regression.
 - 모듈 API 규약: `init({state})`, `refreshMap`, `onEnterFreeChat` 등 도메인 메서드. 호출자는 `ntPackFragment.pack(pack_id, 'methodName', ...)` 만 알면 됨 (`if (pack_id === '…')` 분기 불필요).
 
+### Phase 10 (완료 — 2026-05-19, PR #3 `7abaf55`)
+- closing labels SoT 통합 — `renderClosingSubsteps` (host.html 5311-5403) 의 `MVP_LABELS_PLAYLIST` 하드코딩 객체 + `isPlaylist` 변수 + 2 분기 제거.
+- `config/pack-defaults.json` 의 `playlist-share.labels` 에 `closing_chip_{mvp,mvp_result}` 2 entry 추가. 다른 11개 pack 은 labels entry 부재로 CHIP_LABELS fallback 자동 — zero regression.
+- advisor 권고 (`getClosingLabels` module method) 대신 정적 라벨에 가벼운 JSON SoT 패턴 채택 (race condition 표면 증가 0, B 철학 부합).
+
+### Phase 11 (완료 — 2026-05-19, PR #4 `adef582`)
+- mi modal (내 정보 모달) 의 `pack_id === 'playlist-share'` 분기 3 곳 → 모듈 메서드 3개로 흡수.
+- `playlist-share.js` 신규 메서드: `getMiExtraField()` (정적 메타 `{key,label,sourceKey}`), `renderMiExtraView(value)` (a-tag html), `saveMiExtra(uuid,value)` (POST/DELETE + refreshMap + boolean 반환).
+- host.html 신규 helper `miExtraField()` — dispatcher wrapper. `loadMiProfile` 은 `sourceKey` 메타 기반 prefill, `renderMiProfile` 은 `extra` truthy 면 row 자동 렌더, `saveMiEdit` 는 boolean 결과로 status 분기.
+- 검증 advisor 가 race / silent fail 3건 발견 + 동일 PR 에서 fix:
+  - **R1**: `loadMiProfile` sync 호출이 모듈 미로드 시 row 누락 → `state.packModuleReady` await 추가.
+  - **R2**: 모듈 `init` 의 `refreshMap` fire-and-forget → `init` 을 async + modulePromise chain (host.html `loadRoomInfo` 의 `.then(async loaded => await pack(...,'init',{state}))`).
+  - **B3**: `saveMiEdit` outer try/catch 가 dispatcher 실패 삼키고 항상 ✓ 표시 → `saveMiExtra` boolean 반환, false 면 "{label} 저장 실패" status + 모달 안 닫음.
+- guest.html 의 같은 분기 (3308-3320, 3424-3440) 는 정적 id 기반 별도 구조 — symmetric debt 로 인지, 다음 PR.
+
+### Phase 12 (완료 — 2026-05-19, PR #5 `164832b`)
+- host.html 의 남은 pack_id 직접 비교 분기 2 곳 → 정적 enum 메타로 SoT 통합. P10 와 동질의 정적 dispatch 패턴.
+- 신규 enum:
+  - `closing_action`: `"survey"` (default) | `"result"` — 모임 종료 시 redirect 분기.
+  - `host_first_arrival`: `"open_qr"` (default) | `"open_mi"` | `"none"` — 호스트 첫 진입 시 자동 오픈 모달.
+- pack-defaults.json entry: `couples.closing_action="result"` + `couples.host_first_arrival="none"`, `playlist-share.host_first_arrival="open_mi"`. 다른 9 pack 은 entry 없이 default fallback.
+- **host.html 의 `pack_id === 'X'` 직접 비교 분기 0 달성** (이전: 9곳 → P9-P12 거치며 점진 제거).
+- /api/rooms/:code 응답에 이미 `pack_defaults` 포함 (rooms.js:185) → 기존 방 migration 불필요.
+
 ### 신규 Pack 추가 흐름 (현재 가능한 영역)
 1. `questions/packs/{id}.md` — 탐구 질문·자유대화 주제 (4-tier · 3-group).
-2. `config/pack-defaults.json` — 메타 entry (series, content_kind, flow, wizard_*, result_sections, labels 등).
+2. `config/pack-defaults.json` — 메타 entry (series, content_kind, flow, wizard_*, result_sections, labels, closing_action, host_first_arrival 등).
 3. (선택) `public/packs/{id}/intro.html` — 빈 방 안내 텍스트 override.
 4. (선택) `public/packs/{id}/{explore|free|ending}.html` — 각 phase 안내·tip 카드.
 5. (선택) `config/pack-ui-overrides.json` — 향후 UI override manifest 필요 시.
+6. (선택) `public/js/packs/{id}.js` — pack-specific JS 모듈 (IIFE → `window.ntPack[pack_id]`).
+   - 동적 fetch/render 가 필요한 경우만 (정적 라벨·enum 은 JSON 으로 충분).
+   - 노출 가능 메서드: `init({state})`, `refreshMap`, `onEnterFreeChat`, `getMiExtraField`, `renderMiExtraView`, `saveMiExtra` (mi modal extra), 그 외 도메인 메서드.
 
-위 1-2번이 필수, 3-5번이 optional. **Phase 9 (2026-05-19) 추가**: pack-specific JS 모듈은 `public/js/packs/{id}.js` 작성 → IIFE 로 `window.ntPack[pack_id] = { init, ...methods }` 노출 → host.html 의 `loadRoomInfo` 가 자동 `loadModule` + dispatcher 호출. **남은 한계**: host.html 의 기타 큰 영역 (lobby tabs, profile carousel, vote bars 등) 은 여전히 in-place — pack-specific 변경 시 host.html 직접 수정 필요.
+위 1-2번이 필수, 3-6번이 optional. **호출자 (host.html) 는 `ntPackFragment.pack(pack_id, 'methodName', ...args)` dispatcher 만 알면 됨** — 모듈 미존재 시 undefined silent skip → host 의 `if (result)` 가드로 zero-cost.
 
-### 합의된 규약 (다음 PR 의 fragment 로더가 이 규약 전제로 구현)
+### 책임 분리 원칙 (P10-P12 확립)
+
+- **정적 메타 / dispatch / enum / labels**: `config/pack-defaults.json` SoT. host.html 은 `state.packDefaults.{field}` lookup. (예: closing labels, closing_action, host_first_arrival)
+- **동적 fetch / 별도 endpoint / 외부 임베드 / 도메인 로직**: `public/js/packs/{id}.js` 모듈 메서드. host.html 은 `ntPackFragment.pack(pid, method, ...args)` dispatcher 만. (예: playlist-share 의 refreshMap, mi modal extra)
+- **fragment partial (HTML)**: `public/packs/{id}/{phase}.html`. server route `GET /pack/:id/:phase` 가 inject, `_default/` fallback.
+
+### 남은 한계 (다음 phase 후보)
+
+- host.html 의 큰 영역 (lobby tabs · profile carousel · vote bars · WS 핸들러) 은 여전히 in-place. pack-specific 변경 시 host.html 직접 수정 필요.
+- guest.html 의 mi modal symmetric debt (3308-3320, 3424-3440) — 정적 id 기반 구조, P11 의 모듈 재사용 검토 필요.
+- `state.packModuleReady` 의 `init` Promise chain 패턴 (P11 fix) 을 다른 phase hook (onEnterFreeChat 등) 에도 일관 적용 검토.
+
+### 합의된 규약
 
 1. **URL**: `/pack/:id/:tab` — HTML fragment 반환 (e.g. `/pack/couples/intro`, `/pack/playlist-share/explore`)
 2. **Fragment 형태**: `<section class="pack-panel" id="panel-${tab}-pack-${id}">…</section>` 단일 root. `<html>/<head>/<body>` 없음.
 3. **ID prefix**: fragment 내부의 모든 element id 는 기존 host.html/guest.html 과 충돌 안 나도록 `${something}-pack-${id}` 로 suffix. 예: `panel-intro-pack-couples`.
+4. **모듈 IIFE**: `(function(root){ ... root.ntPack[pack_id] = { init, ...methods }; })(window)`. `init({state})` 필수, 그 외 도메인 메서드는 자유.
+5. **opt-in to hero**: 기본값 최소, pack 별로 명시 opt-in. 신규 pack 추가 시 "왜 이건 특이하지" 대신 "이 pack 은 hero 선언" 이 드러나게.
 
-### 이미 심어둔 hook (이번 PR)
+### body class hook (Phase 2 이후 유지)
 
 - `document.body.classList.add('pack-${pack_id}')` — host.html (loadRoomInfo), guest.html (loadRoom). CSS 에서 `body.pack-couples .nt-lobby-topbar { ... }` 같은 pack-scoped 스타일 분기 가능.
-- `opt-in to hero` 원칙: 기본값 최소, pack 별로 명시 opt-in. 신규 pack 추가 시 "왜 이건 특이하지" 대신 "이 pack 은 hero 선언" 이 드러나게.
-
-### 아직 안 만든 것 (imaginary hook 금지 원칙)
-
-- `PACK_UI_OVERRIDES` manifest · `packUI(path, fallback)` helper — **fragment 로더와 함께 태어나야 함** (advisor 30분 검토 결과). 지금 behavior flag 쌓으면 B 철학에 역행.
-- Fragment 로더 JS · `/pack/:id/:tab` server route · 첫 intro POC — 다음 PR 에서 advisor 호출과 함께 설계.
 
 ## 파일 구조 (병렬 개발 — 담당 파일만 수정)
 
